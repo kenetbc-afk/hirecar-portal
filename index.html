@@ -3164,6 +3164,88 @@ function sendMsg(){
   });
 }
 
+/* ===== MESSAGE POLLING — Admin replies + notifications ===== */
+var _lastMsgCount=0;
+var _msgPollTimer=null;
+var _knownMsgIds={};
+
+function pollMessages(){
+  fetch(HIRECAR_API+'/client/'+HIRECAR_CLIENT_ID+'/messages',{
+    headers:{'X-Client-Id':HIRECAR_CLIENT_ID}
+  }).then(function(r){return r.json();}).then(function(data){
+    if(!data.messages)return;
+    var bubbles=document.getElementById('msg-bubbles');
+    var dashBubbles=document.getElementById('dash-msg-bubbles');
+    var newAdmin=0;
+    data.messages.forEach(function(m){
+      if(_knownMsgIds[m.id])return;
+      _knownMsgIds[m.id]=true;
+      if(m.from==='admin'){
+        newAdmin++;
+        /* Render in main Messages panel */
+        var b=document.createElement('div');
+        b.className='msg-bubble theirs';
+        var ts=new Date(m.timestamp);
+        var timeStr=ts.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' \u00b7 '+ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        b.innerHTML='<strong style="color:var(--gold);font-size:12px;">'+(m.sender||'HIRECAR Team')+'</strong><br>'+escHtml(m.text)+'<span class="msg-time">'+timeStr+'</span>';
+        bubbles.appendChild(b);
+        /* Mirror in dashboard quick message */
+        if(dashBubbles){
+          var d=document.createElement('div');
+          d.style.cssText='background:linear-gradient(135deg,rgba(42,107,184,.15),rgba(42,107,184,.08));border:1px solid rgba(42,107,184,.3);color:var(--white);padding:10px 14px;border-radius:14px 14px 14px 4px;font-size:13px;max-width:85%;align-self:flex-start;';
+          d.innerHTML='<strong style="color:var(--gold);font-size:11px;">'+(m.sender||'HIRECAR Team')+'</strong><br>'+escHtml(m.text)+'<br><span style="font-size:10px;opacity:.5;">'+timeStr+'</span>';
+          dashBubbles.appendChild(d);
+          dashBubbles.scrollTop=dashBubbles.scrollHeight;
+        }
+      }
+    });
+    bubbles.scrollTop=bubbles.scrollHeight;
+    /* Update notification badge */
+    if(newAdmin>0){
+      updateMsgBadge(newAdmin);
+      showToast('New message from HIRECAR Member Services','info');
+    }
+    _lastMsgCount=data.messages.length;
+  }).catch(function(e){console.log('Poll error:',e);});
+}
+
+function updateMsgBadge(count){
+  /* Badge on Messages sidebar nav item */
+  var navItems=document.querySelectorAll('.sidebar-item');
+  navItems.forEach(function(item){
+    if(item.getAttribute('data-sec')==='sec-messages'){
+      var badge=item.querySelector('.msg-notify-badge');
+      if(!badge){
+        badge=document.createElement('span');
+        badge.className='msg-notify-badge';
+        badge.style.cssText='position:absolute;top:8px;right:8px;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px;animation:pulse 2s infinite;';
+        item.style.position='relative';
+        item.appendChild(badge);
+      }
+      badge.textContent=count;
+      badge.style.display='flex';
+    }
+  });
+}
+
+function startMsgPolling(){
+  /* Mark all existing messages as known */
+  fetch(HIRECAR_API+'/client/'+HIRECAR_CLIENT_ID+'/messages',{
+    headers:{'X-Client-Id':HIRECAR_CLIENT_ID}
+  }).then(function(r){return r.json();}).then(function(data){
+    if(data.messages){
+      data.messages.forEach(function(m){_knownMsgIds[m.id]=true;});
+      _lastMsgCount=data.messages.length;
+    }
+  }).catch(function(){});
+  /* Poll every 30 seconds */
+  if(_msgPollTimer)clearInterval(_msgPollTimer);
+  _msgPollTimer=setInterval(pollMessages,30000);
+}
+
+/* Start polling on page load */
+setTimeout(startMsgPolling,3000);
+
 /* ===== CHATBOT ===== */
 function toggleChat(){
   document.getElementById('chatbot-panel').classList.toggle('open');
