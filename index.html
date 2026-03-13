@@ -134,6 +134,10 @@ p,li,span,label,a{line-height:1.6;}
 .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;position:relative;}
 .badge-gold{background:linear-gradient(135deg,rgba(184,146,42,.15),rgba(184,146,42,.08));color:var(--gold);border:1px solid rgba(184,146,42,.4);box-shadow:0 0 8px rgba(184,146,42,.08);}
 .badge-green{background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(26,107,60,.08));color:var(--success);border:1px solid rgba(52,211,153,.35);box-shadow:0 0 8px rgba(52,211,153,.06);}
+.badge-active-dispute{background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(26,107,60,.08));color:var(--success);border:1px solid rgba(52,211,153,.35);box-shadow:0 0 8px rgba(52,211,153,.06);display:inline-flex;align-items:center;gap:6px;}
+.badge-active-dispute .pulse-dot{width:8px;height:8px;border-radius:50%;background:#34d399;animation:dotPulse 2s ease-in-out infinite;flex-shrink:0;}
+@keyframes dotPulse{0%,100%{opacity:1;box-shadow:0 0 4px rgba(52,211,153,.6);}50%{opacity:.3;box-shadow:0 0 8px rgba(52,211,153,.2);}}
+.badge-grayed{background:rgba(255,255,255,.05);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);box-shadow:none;}
 .badge-red{background:linear-gradient(135deg,rgba(248,113,113,.12),rgba(192,57,43,.08));color:var(--error);border:1px solid rgba(248,113,113,.35);box-shadow:0 0 8px rgba(248,113,113,.06);}
 .badge-blue{background:linear-gradient(135deg,rgba(96,165,250,.12),rgba(42,107,184,.08));color:var(--blue);border:1px solid rgba(96,165,250,.35);box-shadow:0 0 8px rgba(96,165,250,.06);}
 .badge-muted{background:linear-gradient(135deg,rgba(160,174,192,.1),rgba(122,112,104,.06));color:var(--muted);border:1px solid rgba(160,174,192,.25);}
@@ -625,7 +629,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
           <h3 style="font-size:20px;"><span class="client-name-dynamic">Credit Restoration</span></h3>
-          <span class="badge badge-gold">ACTIVE LITIGATION</span>
+          <span class="badge badge-active-dispute"><span class="pulse-dot"></span>ACTIVE DISPUTE</span>&nbsp;<span class="badge badge-grayed">ACTIVE LITIGATION</span>
         </div>
         <div class="case-overview">
           <div class="case-row"><span class="case-label">Court</span><span class="case-val">--</span></div>
