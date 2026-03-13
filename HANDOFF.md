@@ -1,153 +1,229 @@
-# HIRECAR Member Services Portal — Full Handoff Document
+# HIRECAR Member Services Portal — Developer Handoff
 
-**Date:** March 12, 2026
-**Author:** Claude (AI) + Ken (CreditWithKen)
-**Repo:** `kenetbc-afk/hirecar-portal` on GitHub
+**Date:** March 13, 2026
+**Author:** Claude (AI assistant) + Ken Eckman (CreditWithKen)
+**Repo:** https://github.com/kenetbc-afk/hirecar-portal.git
+**Live:** https://hirecarken.github.io/hirecar-portal/
 
 ---
 
 ## 1. Project Overview
 
-The HIRECAR Member Services Portal is a single-page HTML application serving as a secure client dashboard for CreditWithKen's credit repair and auto loan preparation services. It provides clients with real-time case visibility, document management, evidence tracking, communication logs, and strategic planning — all behind a cinematic login experience.
+HIRECAR is an automated credit repair client onboarding pipeline. The portal is a **single-file HTML SPA** (no build step) serving as the client dashboard where members track credit repair progress, exchange documents, and communicate with the admin team via Slack-backed messaging.
 
-### Business Context
-- **Company:** HIRECAR, LLC dba HIRECREDIT / CreditWithKen
-- **Service:** Credit repair, auto loan readiness (ASAP Auto Loan Approval Program)
-- **Target:** Individual clients needing credit restoration before financing
-- **Delivery:** Static HTML portal deployed via GitHub Pages
+**Business entities:** CreditWithKen / ASAP Auto Loan / HIRECAR Member Services / SeedXchange
 
 ---
 
 ## 2. Architecture
 
+```
+Client Browser
+    |
+    v
+GitHub Pages (static hosting)
+  /dist/index.html  <-- single-file SPA (3858 lines, ~810 KB)
+    |
+    v  (fetch API calls)
+Cloudflare Worker ("hirecar-onboarding")
+    |
+    +---> KV: CLIENTS   (auth, tokens, client index)
+    +---> KV: DASHBOARDS (portal display data per client)
+    +---> R2: hirecar-documents (pending activation)
+    +---> Slack Bot API (messages, modals, slash commands)
+    +---> PassKit (wallet pass webhooks -> auto-account creation)
+```
+
 ### Single-File SPA
-The entire portal is a self-contained `index.html` file (~2900+ lines, ~750KB) with:
-- **Inline CSS** — all styles embedded in `<style>` tags
-- **Inline JS** — all logic embedded in `<script>` tags
-- **Base64 assets** — logos encoded directly in HTML (no external image deps)
-- **Zero build step** — served as a static file via any HTTP server
-- **No backend required** — all data stored in `localStorage`
-
-### Tech Stack
-| Component | Technology |
-|-----------|-----------|
-| Fonts | Playfair Display, DM Sans, Share Tech Mono (Google Fonts CDN) |
-| Storage | `localStorage` (PIN, nickname, email, preferences) |
-| Hosting | GitHub Pages (`gh-pages` branch or `dist/` folder on `main`) |
-| Server (dev) | Python `http.server` on port 3456 |
-
-### Design System
-| Token | Value |
-|-------|-------|
-| `--ink` | `#0d0d0d` (near-black text) |
-| `--paper` | `#f5f2ee` (warm paper background) |
-| `--gold` | `#b8922a` (accent, badges) |
-| `--error` | `#e31e2d` (red alerts) |
-| `--success` | `#1a6b3c` (green confirmations) |
-| Login BG | Red/black with matrix rain animation |
+- All CSS in one `<style>` block
+- All HTML inline
+- All JS in `<script>` blocks at the bottom
+- Base64-encoded logos (no external image deps)
+- Zero build step: edit the file and deploy
+- `localStorage` for client-side PIN/nickname/email
 
 ---
 
-## 3. File Structure
+## 3. Key File Paths
 
+| Component | Path |
+|-----------|------|
+| **Portal HTML** | `/Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal/dist/index.html` |
+| **OG image** | `/Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal/dist/og-image.png` |
+| **Santiago client copy** | `/Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal/dist/santiago-urias.html` |
+| **Worker entry** | `/Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-worker/src/index.js` |
+| **Worker handlers** | `/Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-worker/src/handlers/` |
+| **Wrangler config** | `/Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-worker/wrangler.toml` |
+| **This handoff** | `/Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal/HANDOFF.md` |
+
+### Worker Handler Files
+| File | Responsibility |
+|------|---------------|
+| `index.js` | Router, CORS, admin auth middleware |
+| `handlers/webhook.js` | PassKit webhook receiver |
+| `handlers/auth.js` | Email + PIN client auth |
+| `handlers/dashboard.js` | Get/update client dashboard data |
+| `handlers/documents.js` | Upload, list, download documents |
+| `handlers/messages.js` | Client and admin message handlers |
+| `handlers/modules.js` | Module access management |
+| `handlers/admin.js` | List all clients |
+| `handlers/slack.js` | Slash commands + interactivity (modals, block_actions, view_submission) |
+| `handlers/token.js` | Personalized link token validation + revocation |
+
+---
+
+## 4. Cloudflare Infrastructure
+
+| Resource | Value |
+|----------|-------|
+| Account email | kene.tbc@gmail.com |
+| Account ID | `ea237ab47beb2ea9a722083a01cc7590` |
+| Worker name | `hirecar-onboarding` |
+| KV CLIENTS ID | `d26715fa0d904470aecc278a56feeb44` |
+| KV DASHBOARDS ID | `81c38c67872b470f80ae4a5f51bd2001` |
+| R2 bucket | `hirecar-documents` (commented out in wrangler.toml, not yet activated) |
+| CORS origins | `https://portal.hirecar.app`, `http://localhost:3456`, `https://kenetbc-afk.github.io` |
+
+### Secrets (set via `wrangler secret put`)
+- `PASSKIT_WEBHOOK_SECRET` — HMAC key from PassKit
+- `PASSKIT_API_KEY` — PassKit long-lived API token
+- `PASSKIT_PROGRAM_ID` — PassKit program ID
+- `SLACK_WEBHOOK_URL` — Slack incoming webhook
+- `SLACK_BOT_TOKEN` — Slack bot token (xoxb-...)
+- `SLACK_DOCS_CHANNEL` — Slack channel ID for document notifications
+- `ADMIN_API_KEY` — Bearer key for admin endpoints
+
+---
+
+## 5. Worker API Routes (19 endpoints)
+
+### Public
+| Method | Path | Handler |
+|--------|------|---------|
+| POST | `/webhook/passkit` | PassKit wallet pass webhook |
+| POST | `/auth/verify` | Email + PIN login |
+| GET | `/auth/token/:token` | Validate personalized link token |
+| GET | `/client/:id/dashboard` | Fetch dashboard data |
+| POST | `/client/:id/documents` | Client uploads document |
+| GET | `/client/:id/documents` | List client documents |
+| GET | `/client/:id/documents/:docId` | Download document |
+| POST | `/client/:id/messages` | Client sends message |
+| GET | `/client/:id/messages` | Get message history |
+
+### Admin (require `Authorization: Bearer <ADMIN_API_KEY>`)
+| Method | Path | Handler |
+|--------|------|---------|
+| POST | `/admin/client/:id/dashboard` | Update dashboard data |
+| POST | `/admin/client/:id/documents` | Admin uploads doc to client |
+| POST | `/admin/client/:id/messages` | Admin sends message to client |
+| POST | `/admin/client/:id/modules` | Add/remove module access |
+| GET | `/admin/clients` | List all clients |
+| DELETE | `/admin/token/:token` | Revoke access token |
+
+### Slack
+| Method | Path | Handler |
+|--------|------|---------|
+| POST | `/slack/commands` | 8 slash commands |
+| POST | `/slack/interactivity` | Modals, block_actions, view_submission |
+
+---
+
+## 6. Slack Integration
+
+### Message Flow
 ```
-PassKit/hirecar-portal/
-├── dist/
-│   ├── index.html          # BLANK TEMPLATE (no client data)
-│   ├── santiago-urias.html  # Santiago Urias client-specific version
-│   └── og-image.png         # Open Graph preview image
-├── vite.config.js            # Vite config (legacy, not used for dist serving)
-├── package.json              # Node deps (legacy)
-├── .gitignore                # dist/ is gitignored but force-added
-└── HANDOFF.md                # This document
+Client types in portal  -->  POST /client/:id/messages
+                                |
+                                v
+                        Worker stores in KV + posts to Slack channel
+                                |
+                                v
+                        Admin replies via Slack modal/thread
+                                |
+                                v
+                        handleSlackInteractivity() stores reply in KV
+                                |
+                                v
+                        Portal polls GET /client/:id/messages every 5s
+                                |
+                                v
+                        New messages appear in portal chat
 ```
 
----
-
-## 4. Login & Intake Flow
-
-### Phase 1: Cinematic Intro (0–8s)
-1. **HIRECAR logo** fades in on black background (~3s)
-2. **CreditWithKen logo** appears with red matrix rain effect (~5s)
-3. Transitions to PIN entry screen
-
-### Phase 2: PIN Entry
-- **First-time users** (no `hirecar_pin` in localStorage):
-  - Label: "CREATE YOUR ACCESS CODE"
-  - Sublabel: "CHOOSE A 5-DIGIT PIN"
-  - Enter PIN → label changes to "CONFIRM YOUR CODE" / "RE-ENTER YOUR 5-DIGIT PIN"
-  - Mismatch → "PINS DID NOT MATCH — TRY AGAIN" → resets
-  - Match → PIN saved to `localStorage.hirecar_pin`
-- **Returning users**:
-  - Label: "ENTER ACCESS CODE"
-  - Verify against stored PIN using timing-safe comparison
-  - 3 wrong attempts → 30s lockout
-
-### Phase 3: Intake (first-time only)
-1. **Nickname prompt**: "WHAT SHOULD I CALL YOU?" — saved to `hirecar_nickname`
-2. **Email prompt**: "CONFIRM YOUR EMAIL" — saved to `hirecar_email`
-
-### Phase 4: Unlock Transition
-- Full-screen black overlay with typed terminal lines:
-  - `> ESTABLISHING SECURE CHANNEL...`
-  - `> ENCRYPTION: AES-256 // VERIFIED`
-  - `> RECIPIENT: [CLIENT NAME]`
-  - `> CLEARANCE: MEMBER SERVICES — LEVEL 2`
-  - `> STATUS: CREDIT REPAIR PORTAL READY`
-  - `Welcome, [Name].`
-  - `Your credit file is ready.`
-- Matrix rain overlay dissolves into dashboard
+### Slack App Config Required
+- **Slash Commands URL:** `https://hirecar-onboarding.<subdomain>.workers.dev/slack/commands`
+- **Interactivity URL:** `https://hirecar-onboarding.<subdomain>.workers.dev/slack/interactivity`
+- **Bot Token Scopes:** `chat:write`, `files:write`, `commands`, `users:read`
 
 ---
 
-## 5. Dashboard Tabs (8 Sections)
+## 7. Portal HTML Structure (index.html)
 
-| Tab | Section ID | Description |
-|-----|-----------|-------------|
-| Dashboard | `sec-dashboard` | Case overview, timeline, stats, goals |
-| Statistics | `sec-statistics` | Key figures, client info, defendants, causes of action |
-| Documents | `sec-documents` | Document filing system with tabs (All/On File/Pending/Counsel) |
-| Evidence | `sec-evidence` | 18-question evidence checklist with upload zones |
-| Communications | `sec-communications` | Communication log with file attachments |
-| Messages | `sec-messages` | Direct message interface (Twilio-powered) |
-| Action Plan | `sec-strategy` | Legal analysis, strategy checklist, contingency plans |
-| Billing | `sec-billing` | Payment tracking |
+### Line Map (approximate)
+| Lines | Content |
+|-------|---------|
+| 1-25 | Head, meta tags, OG image, Google Fonts |
+| 26-35 | CSS variables (`:root`) |
+| 36-430 | All CSS: sidebar, topbar, cards, tables, badges, animations, responsive |
+| 431-540 | Intro screen HTML (matrix rain, PIN entry, logo sequence) |
+| 541-603 | Sidebar HTML (9 nav items, user avatar, collapse toggle) |
+| 604-614 | Topbar HTML (hamburger, brand logos) |
+| 616-1700 | 9 section content blocks |
+| 1700-1900 | Chatbot overlay HTML |
+| 1900-2800 | Intro animation JS, PIN logic, auth flow |
+| 2800-3200 | Tab switching IIFE, sidebar toggle, chatbot JS |
+| 3200-3858 | Message polling (5s interval), document handlers, playbooks JS |
 
-### Tab Navigation
-- Desktop: horizontal tab bar in nav
-- Mobile: hamburger menu toggles vertical dropdown
-- JS handles show/hide via `.section.visible` class
-- Active tab highlighted with gold underline
-
----
-
-## 6. JavaScript Architecture
-
-### Two Script Contexts (Critical!)
-The portal has **two separate script scopes** — this is the most important architectural detail:
-
-1. **Outer `<script>` block** (~lines 1604–1683):
-   - `showNicknamePrompt()`, `submitNickname()`
-   - `showEmailPrompt()`, `submitEmail()`
-   - `escHtml()` (duplicated here for cross-scope access)
-
-2. **IIFE `(function(){...})()`** (~lines 1685+):
-   - Core portal logic: `verify()`, `unlock()`, `proceedAfterPin()`
-   - PIN handling, localStorage management
-   - `escHtml()` (original definition)
-   - Tab navigation, chatbot, evidence tracking
-   - `unlock` exposed globally via `window.unlock = function unlock(){...}`
-
-**Why this matters:** Functions in the outer scope calling IIFE functions will get `ReferenceError` unless the IIFE function is exposed on `window`. This was the root cause of multiple bugs fixed in this session.
-
-### Key Variables
-```javascript
-var _storedPin = localStorage.getItem('hirecar_pin') || '';
-var _isFirstTime = !_storedPin;
-var _setupStep = 0;    // 0 = first entry, 1 = confirmation
-var _firstEntry = '';   // first PIN attempt during setup
-var CLIENT = preferredName || 'Client';
+### CSS Variables
+```css
+:root {
+  --ink:#f0f2f7; --paper:#111827; --cream:#1a2236;
+  --gold:#b8922a; --gold-light:#d4aa4a;
+  --sidebar-width:260px; --sidebar-collapsed:64px; --topbar-height:56px;
+  --sidebar-bg: linear-gradient(180deg, #000 0%, #020408 20%, #060a14 45%, #0a0e1a 70%, #0d1525 100%);
+  --sidebar-active-border:#2a6bb8;
+}
 ```
+
+### 9 Navigation Sections
+| # | data-sec | Label | Icon |
+|---|----------|-------|------|
+| 1 | `sec-dashboard` | Dashboard | grid |
+| 2 | `sec-statistics` | Statistics | chart |
+| 3 | `sec-documents` | Documents | folder |
+| 4 | `sec-evidence` | Evidence Vault | shield |
+| 5 | `sec-communications` | Communications | phone |
+| 6 | `sec-messages` | Message Center | chat |
+| 7 | `sec-strategy` | Strategy | target |
+| 8 | `sec-billing` | Billing | credit card |
+| 9 | `sec-playbooks` | Playbooks | book |
+
+### Tab Switching
+Sidebar buttons have class `menu-tab` + `data-sec` attribute. JS IIFE (~line 2872) adds click listeners:
+1. Remove `.active` from all sidebar items
+2. Add `.active` to clicked item
+3. Hide all `.section` divs
+4. Show matching `#sec-*` div
+5. Close mobile sidebar if open
+
+### Sidebar Behavior
+- **Desktop:** `.sidebar-toggle` toggles `.collapsed` class. 260px -> 64px, text labels hidden (opacity:0, width:0), icons only.
+- **Mobile (<=768px):** Sidebar off-screen via `transform:translateX(-100%)`. Hamburger (`#topbar-hamburger`) toggles `.mobile-open`. Backdrop `#sidebar-backdrop` overlays content.
+
+---
+
+## 8. Intro Animation Flow
+
+1. Matrix rain canvas fills screen (green characters)
+2. HIRECAR logo fades in, red glow intensifies (~3s)
+3. CreditWithKen logo fades in with ambient glow (~5s)
+4. PIN entry appears (4-digit code)
+5. Correct PIN -> intro fades out, main portal fades in
+6. "SKIP" button (fixed bottom-right, z-index:10001) bypasses at any stage
+
+### PIN Logic
+- First-time: Create 5-digit PIN -> confirm -> saved to `localStorage.hirecar_pin`
+- Returning: Verify against stored PIN, 3 wrong attempts -> 30s lockout
 
 ### localStorage Keys
 | Key | Purpose |
@@ -158,119 +234,255 @@ var CLIENT = preferredName || 'Client';
 
 ---
 
-## 7. Blank Template vs Client Versions
+## 9. Color System & Design
 
-### Blank Template (`index.html`)
-- All case fields show `--` placeholders
-- Case number: `CR-0000-0000`
-- No names, addresses, or case-specific data
-- Unlock transition: `RECIPIENT: [CLIENT NAME]` (dynamic from nickname)
-- Generic chatbot responses
-- Generic timeline (all pending)
-- Single placeholder defendant card
+| Role | Color | Notes |
+|------|-------|-------|
+| Brand gold | `#b8922a` | Logo text, some badges — being phased toward blue for UI elements |
+| Blue accent | `#2a6bb8` / `#3b82d6` / `#60a5fa` | Sidebar active, buttons, message bubbles, tab badges |
+| Background | `#000 -> #0d1525 -> #152545` | Black-heavy gradient, fixed |
+| Success green | `#34d399` | Active Dispute badge, pulse dot |
+| Error red | `#f87171` | Alerts, errors |
+| Muted text | `#a0aec0` | Secondary labels |
 
-### Santiago Urias Version (`santiago-urias.html`)
-- Full case data: court, defendants (Chong Oh, Youngse Kwon, etc.)
-- Specific timeline with dates
-- Populated causes of action table
-- Real chatbot responses with case details
-- Unlock: `RECIPIENT: [NAME] URIAS`
-
-### Creating New Client Versions
-1. Copy `santiago-urias.html` (or `index.html`) as `[client-name].html`
-2. Search-replace client-specific fields:
-   - Name, case number, court info
-   - Defendant names and details
-   - Timeline dates and events
-   - Financial figures
-   - Chatbot responses (deposit/deadline/document answers)
-   - Unlock transition text (line ~2198)
-   - Watermark text (line ~2803)
-3. Update `.client-name-dynamic` spans (auto-populated from nickname)
-4. Force-add to git: `git add -f dist/[client-name].html`
+### Fonts
+- **Playfair Display** (serif) — headings, sidebar brand text
+- **DM Sans** (sans-serif) — body, UI, tables
+- **Share Tech Mono** (monospace) — intro screen, PIN entry
 
 ---
 
-## 8. Deployment
+## 10. Recent Changes (completed as of 2026-03-13)
 
-### GitHub Pages
+1. **Sidebar nav redesign** — replaced top nav bar with left sidebar (black-to-blue gradient, 260px, collapsible)
+2. **Topbar added** — thin 56px header with hamburger + brand logos
+3. **Sidebar collapse** — desktop toggle (260px -> 64px icons-only) + mobile hamburger slide-out
+4. **Active Dispute badge** — green badge with `@keyframes dotPulse` slow-flashing green dot
+5. **Active Litigation grayed** — `badge-grayed` class (dimmed, no color)
+6. **Body gradient** — heavy black coverage transitioning to deep navy
+7. **Message bubbles** — changed from gold to blue gradient (`#2563b0 -> #3b82d6`)
+8. **"Ken Eckman" -> "Message Member Services"** — renamed in 4 HTML + 2 JS locations
+9. **Polling interval** — reduced from 30s to 5s for near-real-time messaging
+10. **Dashboard Send button** — gold to blue gradient
+11. **Tab badges** — gold to blue gradient (`.tab-badge-gold` class)
+12. **Playbooks tab** — added as 9th tab with bit.ai-style document viewer + inner sidebar
+13. **Slack interactivity** — `handleSlackInteractivity()` wired for modals + block actions
+14. **GitHub Pages deployment** — live at https://hirecarken.github.io/hirecar-portal/
+15. **PassKit full field mapping** — `updatePassKitMember()` now sends all 10+ pass fields (displayName, activePlans, score, billing, status, etc.) instead of just portalLink
+16. **PassKit auto-sync** — admin dashboard updates to stats/billing now trigger `syncPassFromDashboard()` to keep the wallet pass current
+17. **Credit Score Diagnostics** — added CRDTSNP credit score diagnostic card to dashboard with Equifax/Experian/TransUnion placeholders, average/range/target, positive/negative factors
+18. **Email updated to member@hirecar.la** — all member-facing email references changed from `team@hirecar.la` to `member@hirecar.la` across portal
+19. **Hash-based deep linking** — portal now supports `#section` URL fragments for PassKit back-of-pass navigation (e.g., `#evidence`, `#messages`, `#playbook`, `#scores`, `#upload`)
+20. **Coming Soon page** — `dist/coming-soon.html` created for features under development (Reservations, Funding); accepts `?feature=` param for dynamic title/icon
+21. **Document control naming** — all 12 on-file documents assigned HC-YYYY-CAT-NNN identifiers (e.g., HC-2025-FIL-001, HC-2025-CRT-001). Category codes: AGR=Agreement, FIL=Filing, CRT=Court, NTC=Notice, EVD=Evidence, FIN=Financial
+22. **Document source attribution** — each doc card displays a source badge: `HIRECAR` (gold) for court filings/notices, `CWK` (blue) for CreditWithKen agreements, `CLIENT` for pending/uploaded items. Source filter dropdown added alongside search.
+23. **Combined document filtering** — tab, source dropdown, and text search now work together as a unified filter system (`_applyDocFilters()`)
+
+---
+
+## 11. PassKit Access Pass — Field Mapping
+
+### Pass Template ID
+`7t4cG3EhKw6EF0GLCxUCBi` (Draft — promote to Live for production)
+
+### Field Mapping (Worker → PassKit)
+
+The worker sends all fields via `updatePassKitMember()` in `token.js`. PassKit template variables must match these `metaData` keys exactly.
+
+#### Front Face Fields
+| PassKit Template Variable | metaData Key | Source | Example Value |
+|--------------------------|-------------|--------|---------------|
+| `[displayName]` | `displayName` | `authRecord.fullName` | "Santiago Urias" |
+| `[activePlans]` | `activePlans` | Derived from `program` | "A$AP Auto Loan Approval" |
+| `CRDTSNP SCORE ----` | `crdtsnpScore` | `dashboard.stats.scoreCurrent` | "682" or "Pending" |
+| `CO-INSURANCE N/A` | `coInsurance` | `clientData.coInsurance` | "N/A" |
+| `PLAYBOOK TYPE` | `playbookType` | Derived from `program` | "A$AP AUTO LOAN APPROVAL" |
+| `CAR RENTAL BILLING $$$` | `carRentalBilling` | `dashboard.billing.amount` | "$149/monthly" or "See Portal" |
+| `NEXT BILLING DUE MM/DD/YY` | `nextBillingDue` | Calculated from billing history | "04/13/26" |
+| Barcode `${pId}` | Auto (PassKit) | PassKit pass ID | Auto-generated |
+
+#### Back Fields
+| PassKit Template Variable | metaData Key | Source | Example Value |
+|--------------------------|-------------|--------|---------------|
+| `[status]` | `status` | `authRecord.status` | "Active" |
+| `${universal.expiryDate}` | Built-in | PassKit expiry config | Auto from program |
+| `[funding]` | `funding` | `clientData.funding` | "None Pending" |
+| `[refer]` | `refer` | `clientData.referralCode` | "Contact Member Services" |
+| Portal link | `portalLink` | Generated URL with token | `https://portal.hirecar.app?t=abc123...` |
+
+#### Built-in Person Fields
+| PassKit Field | Source |
+|--------------|--------|
+| `person.displayName` | `authRecord.fullName` |
+| `person.emailAddress` | `authRecord.email` |
+| `person.mobileNumber` | `authRecord.phone` |
+
+### Auto-Sync Behavior
+- **On client creation** (webhook.js): All fields populated via `updatePassKitMember()`
+- **On admin dashboard update** (dashboard.js): If `stats` or `billing` change, pass auto-syncs via `syncPassFromDashboard()`
+- **Sync function** lives in `token.js` — looks up auth + dashboard from KV, rebuilds all fields, sends to PassKit API
+
+### Back-of-Pass Link Routing (set in PassKit dashboard)
+
+| # | Pass Item | Target URL | Notes |
+|---|-----------|-----------|-------|
+| 4 | Reservations (HireCar Member Services) | `.../coming-soon.html?feature=reservations` | Coming Soon page |
+| 5 | CRDTSNP Score | `.../hirecar-portal/#scores` | Dashboard → credit diagnostics card |
+| 6 | Dispute Tracking | `.../hirecar-portal/#evidence` | "Log into your portfolio, select My Claims" |
+| 7 | Playbook | `.../hirecar-portal/#playbook` | Playbooks section in dashboard |
+| 8 | Client Q&A | `.../hirecar-portal/#messages` | Messages section |
+| 9 | Phone | `tel:+16616510858` | Triggers phone dialer / SMS prompt |
+| 10 | Email | `mailto:member@hirecar.la` | Opens email compose |
+| 11 | Funding Request | `.../coming-soon.html?feature=funding` | Coming Soon page |
+| 12 | Secure Upload Vault | `.../hirecar-portal/#upload` | Documents tab → opens upload modal |
+| 13 | MarketWatch | (keep current link) | Verified working |
+| 14 | Scanner Barcode | `https://hirecar.la` | Disabled/placeholder for now |
+
+> **Base URL:** `https://kenetbc-afk.github.io/hirecar-portal/` (or `https://portal.hirecar.app/` once DNS configured)
+
+### Contact Email
+- **Member-facing:** `member@hirecar.la` (PassKit pass, portal, messaging)
+- **Legal:** `legal@hirecar.la` (urgent/legal matters — unchanged)
+
+### PassKit Dashboard TODO (manual changes required)
+1. **Fix typo**: Back field "Client Documents" section says "lease upload" — change to "**Please upload**"
+2. **Remove "----coming soon----"** from MarketWatch field (or hide until ready)
+3. **Fix DBA name**: Push notification says "HIRECAR, LLC dba HIRECREDIT" — should be "HIRECAR, LLC dba CREDITWITHKEN" for consistency
+4. **Promote to Live Project** once all fields verified (draft passes expire after 48 hours)
+5. **Set all back-of-pass links** per the routing table above
+6. **Update contact email** on pass to `member@hirecar.la`
+7. **Scanner barcode** — map to `https://hirecar.la` (placeholder until referral system ready)
+
+---
+
+### P1 — Topbar Banner Redesign
+Convert the topbar from text-heavy branding to a clean logo-only banner.
+
+**Current HTML (lines 604-614):**
+```html
+<header class="topbar" id="topbar">
+  <button class="topbar-hamburger" id="topbar-hamburger">&#9776;</button>
+  <div class="topbar-brands">
+    <span>POWERED BY</span>
+    <img src="data:image/png;base64,..." alt="SeedXchange">
+    <span>|</span>
+    <span>CREDITWITHKEN</span>
+    <span>|</span>
+    <span>HIRECAR</span>
+  </div>
+</header>
+```
+
+**Action:**
+- Remove all text spans ("POWERED BY", "|", "CREDITWITHKEN", "HIRECAR")
+- Keep only logo images (SeedXchange, CWK)
+- Use the **white** SeedXchange logo variant
+- Center logos in the banner
+
+### P2 — Fix Topbar Bleed
+The topbar overlaps or leaves a gap with the content area. Check:
+- `.portal-body` padding-top/margin-top vs `--topbar-height` (56px)
+- Ensure `margin-left: var(--sidebar-width)` + `padding-top: calc(var(--topbar-height) + 20px)` are correct
+- Test with sidebar collapsed vs expanded
+
+### P3 — Verify Sidebar Collapse
+Confirm desktop toggle and mobile hamburger both work end-to-end after the sidebar redesign. JS is around line 2872.
+
+### P4 — Convert Remaining Gold to Blue (optional)
+Various `badge-gold` instances for "NEEDED", "PARTIAL", "OUTSTANDING" labels. Evaluate case-by-case whether they should become blue to match the new theme.
+
+### P5 — R2 Bucket Activation
+Uncomment `[[r2_buckets]]` section in `wrangler.toml` and redeploy worker when ready.
+
+### P6 — Production Domain
+Set up DNS for `portal.hirecar.app` pointing to the deployment target. Update CORS origins and meta tags.
+
+---
+
+## 13. Deployment
+
+### Portal (GitHub Pages)
 ```bash
 cd /Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal
-git add -f dist/index.html dist/santiago-urias.html
-git commit -m "Update portal"
-git push origin main
+npx gh-pages -d dist
+# Deploys to: https://hirecarken.github.io/hirecar-portal/
+```
+
+### Worker (Cloudflare)
+```bash
+cd /Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-worker
+npx wrangler deploy
 ```
 
 ### Local Dev
 ```bash
-python3 -m http.server 3456 --directory dist/
-# Open http://localhost:3456/index.html
+cd /Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal
+npx vite preview
+# or: python3 -m http.server 3456 --directory dist/
 ```
 
-### Launch Config (`.claude/launch.json`)
-```json
-{
-  "name": "hirecar-portal",
-  "runtimeExecutable": "python3",
-  "runtimeArgs": ["-m", "http.server", "3456", "--directory", "/Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal/dist"],
-  "port": 3456
-}
+### Browser Caching Warning
+After deploying via `gh-pages`, browsers cache aggressively. Users need hard-refresh (`Cmd+Shift+R`) to see updates. Consider adding cache-busting meta tag or query param.
+
+---
+
+## 14. Git History
+
+```
+671b008 Add Active Dispute badge, fix background bleed, sidebar collapse
+65b2414 Dark slate theme with gradient bleeding + wire Slack messaging
+523afb2 Add Playbooks tab with bit.ai-style document viewer + handoff doc
+dd386b3 Add blank portal template + Santiago Urias client version
+2675425 Replace React SPA with single-page HTML portal matching reference design
+8e017ad HIRECAR Member Services Portal — full redesign matching reference
 ```
 
 ---
 
-## 9. Backend Integration (Future / In Progress)
+## 15. Important Architectural Notes
 
-### Cloudflare Worker (`hirecar-onboarding`)
-- 19 API routes, 13 source files
-- KV Namespaces: CLIENTS + DASHBOARDS
-- R2 Bucket: `hirecar-documents`
-- Worker code: `/PassKit/hirecar-worker/src/`
+### Two Script Scopes
+The portal has **two separate script scopes** — this is the most important thing to know:
+1. **Outer `<script>`** — nickname/email prompts, some utility functions
+2. **IIFE `(function(){...})()`** — core portal logic: PIN handling, tab navigation, chatbot, messaging
 
-### PassKit Integration
-- Wallet pass scan → webhook → auto-account creation
-- Links to portal login
+Functions in the outer scope cannot call IIFE functions unless exposed via `window.functionName`. This has caused bugs before.
 
-### Slack Integration
-- Webhooks + bot token
-- 8 slash commands for admin management
+### Playbooks Inner Sidebar
+The Playbooks tab has its own sidebar (`.pb-sidebar`) independent of the main nav sidebar. Different CSS classes, separate JS toggle. They don't conflict.
 
----
+### Chatbot Overlay
+Fixed bottom-right (`z-index:1001`), independent of the nav sidebar (`z-index:1000`). No overlap issues.
 
-## 10. Known Issues & Tech Debt
-
-1. **Scoping architecture** — outer script vs IIFE creates fragile cross-scope dependencies. Future refactor should consolidate into a single module or use ES modules.
-2. **No backend auth** — PIN stored in localStorage is client-side only. Cloudflare Worker integration will add server-side auth.
-3. **Static client data** — each client version is a separate HTML file. Future: dynamic data loading from KV/API.
-4. **Large file size** — ~750KB per HTML file due to base64 images. Could extract to CDN.
-5. **dist/ in .gitignore** — files are force-added. Consider removing dist/ from gitignore or using a proper build pipeline.
+### Message Polling
+`setInterval` at ~line 3251 polls `GET /client/:id/messages` every 5000ms. Admin replies sent via Slack interactivity are stored in KV and picked up on the next poll cycle.
 
 ---
 
-## 11. Playbook System (New — In Development)
+## 16. Quick Reference
 
-### Source
-The HIRECAR Playbook content originates from bit.ai (`hirecar.bitdocs.ai`). The playbook is a 15-section client guide for the ASAP Auto Loan Approval Program.
+| Task | Command |
+|------|---------|
+| Edit portal | Open `dist/index.html` in any editor |
+| Deploy portal | `cd hirecar-portal && npx gh-pages -d dist` |
+| Deploy worker | `cd hirecar-worker && npx wrangler deploy` |
+| Set worker secret | `cd hirecar-worker && npx wrangler secret put SECRET_NAME` |
+| Check KV data | Cloudflare Dashboard -> Workers & Pages -> KV |
+| View live site | https://hirecarken.github.io/hirecar-portal/ |
+| Tail worker logs | `cd hirecar-worker && npx wrangler tail` |
+| Local preview | `cd hirecar-portal && npx vite preview` |
 
-### Playbook Sections
-1. Welcome + How to Use This Playbook
-2. Client Profile / CreditWithKen Score
-3. Program Overview (SKU, deliverables, support, expectations)
-4. Payment + Enrollment
-5. Start Here — Onboarding Gate ("Clock Start")
-6. Secure Upload Vault
-7. Program Dashboard (Progress + Status)
-8. Score & Credit File Tracking
-9. Credit Sweep + Cleanup Plan
-10. Tradelines & Authorized User (AU) Coordination
-11. Counseling Sessions Hub (3 × 30 Minutes)
-12. Lender Readiness Toolkit
-13. Dealer & Deal Support
-14. Messages, Q&A, and Decisions Log
-15. Completion Packet
+---
 
-### Implementation Plan
-- New "Playbooks" tab in portal navigation
-- bit.ai-style document viewer with sidebar TOC + rich content area
-- Collapsible sections, tables, status badges
-- Embedded in the same single-file SPA architecture
+## 17. Known Tech Debt
+
+1. **Dual script scopes** — outer script + IIFE creates fragile cross-scope deps. Consolidate when possible.
+2. **Client-side PIN only** — localStorage PIN is not real auth. Worker API provides server-side auth but the portal intro doesn't use it yet.
+3. **Static client data** — each client is a separate HTML file. Future: dynamic data from KV via API.
+4. **Large file** — 810KB due to base64 images. Could extract to CDN.
+5. **dist/ in gitignore** — force-added. Consider removing from `.gitignore`.
+6. **No service worker** — could add for offline support and cache management.
+
+---
+
+*Contact: Ken Eckman (kene.tbc@gmail.com)*
