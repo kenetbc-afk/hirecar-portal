@@ -242,7 +242,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 .msg-thread-header{padding:14px 18px;border-bottom:1px solid transparent;border-image:linear-gradient(90deg,rgba(184,146,42,.15),rgba(42,107,184,.1),transparent) 1;font-weight:600;font-size:15px;background:linear-gradient(135deg,#1c2538 0%,#1a2236 100%);}
 .msg-bubbles{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;}
 .msg-bubble{max-width:75%;padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.5;}
-.msg-bubble.mine{background:linear-gradient(135deg,#1a3a6b 0%,#1e4a8a 50%,#1a3a6b 100%);color:#e0eaff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 8px rgba(30,74,138,.35);}
+.msg-bubble.mine{background:linear-gradient(135deg,#2563b0 0%,#3b82d6 50%,#2563b0 100%);color:#f0f6ff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 8px rgba(37,99,176,.4);}
 .msg-bubble.theirs{background:linear-gradient(135deg,#0d1525 0%,#111d33 50%,#0f1a2e 100%);color:var(--ink);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid rgba(42,107,184,.15);box-shadow:inset 0 1px 0 rgba(42,107,184,.06);}
 .msg-input-bar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--rule);}
 .msg-input-bar input{flex:1;padding:10px 14px;border:1px solid var(--rule);border-radius:20px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);}
@@ -261,7 +261,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 .cb-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:340px;}
 .cb-msg{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;max-width:85%;}
 .cb-msg.bot{background:linear-gradient(135deg,#1a2236,#162040);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid rgba(255,255,255,.04);}
-.cb-msg.user{background:linear-gradient(135deg,#1a3a6b,#1e4a8a);color:#e0eaff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 6px rgba(30,74,138,.3);}
+.cb-msg.user{background:linear-gradient(135deg,#2563b0,#3b82d6);color:#f0f6ff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 6px rgba(37,99,176,.4);}
 .cb-quick-actions{display:flex;gap:6px;padding:8px 14px;flex-wrap:wrap;}
 .cb-quick{padding:6px 12px;border:1px solid rgba(42,107,184,.5);border-radius:16px;font-size:12px;cursor:pointer;background:var(--white);color:#60a5fa;transition:all .2s;}
 .cb-quick:hover{background:linear-gradient(135deg,#2a6bb8,#1e4a8a);color:#fff;border-color:#2a6bb8;}
@@ -1318,13 +1318,13 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Send messages to your HIRECAR Member Services team. Messages are delivered to your dedicated support channel via Slack. You can also attach documents.</p>
       <div class="msg-container">
         <div class="msg-contacts">
-          <div class="msg-contact active" onclick="switchThread('Ken Eckman')"><h4>Ken Eckman</h4><p style="font-size:11px;color:var(--gold);">HIRECAR Member Services</p><p>Direct channel &mdash; Slack + email</p></div>
+          <div class="msg-contact active" onclick="switchThread('Message Member Services')"><h4>Message Member Services</h4><p style="font-size:11px;color:#60a5fa;">HIRECAR Member Services</p><p>Direct channel &mdash; Slack + email</p></div>
           <div class="msg-contact" onclick="switchThread('SeedXchange Legal')"><h4>SeedXchange Legal</h4><p>Yes &mdash; we need your move-in photos...</p></div>
           <div class="msg-contact" onclick="switchThread('Court Notifications')"><h4>Court Notifications</h4><p>CMC scheduling notice...</p></div>
           <div class="msg-contact" onclick="switchThread('HIRECAR Support')"><h4>HIRECAR Support</h4><p>How can we help?</p></div>
         </div>
         <div class="msg-thread">
-          <div class="msg-thread-header" id="msg-thread-header">Ken Eckman <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">via Twilio &bull; email + text</span></div>
+          <div class="msg-thread-header" id="msg-thread-header">Message Member Services <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">via Slack &bull; real-time</span></div>
           <div class="msg-bubbles" id="msg-bubbles">
             <div class="msg-bubble theirs">Hi there, welcome to your secure message channel. Messages here are sent directly to me via email and text through Twilio. You can also attach files using the paperclip icon. How can I help?<span class="msg-time">Feb 27, 2026 &middot; System</span></div>
           </div>
@@ -1332,7 +1332,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
           <div class="msg-input-bar">
             <button class="msg-attach-btn" onclick="document.getElementById('msg-file-input').click()" title="Attach file">&#128206;</button>
             <input type="file" id="msg-file-input" style="display:none;" onchange="handleMsgFileAttach(this)">
-            <input type="text" id="msg-input" placeholder="Type a message to Ken Eckman..." onkeydown="if(event.key==='Enter')sendMsg()">
+            <input type="text" id="msg-input" placeholder="Type a message to Member Services..." onkeydown="if(event.key==='Enter')sendMsg()">
             <button class="msg-send-btn" onclick="sendMsg()">&#9654;</button>
           </div>
           <div class="msg-twilio-note">Powered by HIRECAR Member Services &mdash; routed to: team@hirecar.la via Slack &nbsp;|&nbsp; <span class="client-name-dynamic">New Client</span>: client@email.com &nbsp;|&nbsp; Messages delivered to your dedicated HIRECAR support team.</div>
@@ -3248,7 +3248,7 @@ function startMsgPolling(){
   }).catch(function(){});
   /* Poll every 30 seconds */
   if(_msgPollTimer)clearInterval(_msgPollTimer);
-  _msgPollTimer=setInterval(pollMessages,30000);
+  _msgPollTimer=setInterval(pollMessages,5000);
 }
 
 /* Start polling on page load */
@@ -3374,14 +3374,14 @@ function switchThread(name){
   contacts.forEach(function(c){c.classList.remove('active');});
   contacts.forEach(function(c){if(c.querySelector('h4').textContent===name)c.classList.add('active');});
   var header=document.getElementById('msg-thread-header');
-  if(name==='Ken Eckman'){
-    header.innerHTML='Ken Eckman <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">via Twilio &bull; email + text</span>';
+  if(name==='Message Member Services'){
+    header.innerHTML='Message Member Services <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">via Slack &bull; real-time</span>';
   }else{
     header.textContent=name;
   }
   var bubbles=document.getElementById('msg-bubbles');
   bubbles.innerHTML='';
-  if(name==='Ken Eckman'){
+  if(name==='Message Member Services'){
     bubbles.innerHTML='<div class="msg-bubble theirs">Hi there, welcome to your secure message channel. Messages here are sent directly to me via email and text through Twilio. You can also attach files using the paperclip icon. How can I help?<span class="msg-time">Feb 27, 2026 &middot; System</span></div>';
   }else if(name==='SeedXchange Legal'){
     bubbles.innerHTML='<div class="msg-bubble mine">Hi, I have a question about the demurrer deadline. When is it due?<span class="msg-time">Aug 12, 2025 &middot; 2:34 PM</span></div>'
@@ -3800,7 +3800,7 @@ function sendDashMsg(){
   var now=new Date();
   var timeStr=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   var mine=document.createElement('div');
-  mine.style.cssText='background:linear-gradient(135deg,#1a3a6b,#1e4a8a);color:#e0eaff;padding:8px 12px;border-radius:12px 12px 4px 12px;margin-bottom:6px;font-size:13px;max-width:85%;margin-left:auto;';
+  mine.style.cssText='background:linear-gradient(135deg,#2563b0,#3b82d6);color:#f0f6ff;padding:8px 12px;border-radius:12px 12px 4px 12px;margin-bottom:6px;font-size:13px;max-width:85%;margin-left:auto;';
   mine.innerHTML=escHtml(text)+'<span style="display:block;font-size:10px;opacity:.7;margin-top:4px;">'+timeStr+'</span>';
   bubbles.appendChild(mine);
   input.value='';
