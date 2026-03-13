@@ -892,7 +892,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       <span style="color:rgba(184,146,42,.3);font-size:10px;">|</span>
       <span style="font-weight:600;letter-spacing:1px;">CREDITWITHKEN</span>
       <span style="color:rgba(184,146,42,.3);font-size:10px;">|</span>
-      <span style="font-weight:600;letter-spacing:1px;">HIRECAR</span>
+      <span style="font-weight:600;letter-spacing:1px;">HIR<span id="hirecar-e-trigger" style="cursor:pointer;transition:color .2s,text-shadow .2s;" title="Toggle sidebar">E</span>CAR</span>
     </div>
   </header>
 
@@ -3929,6 +3929,29 @@ function setClientMemberSince(date){
     if(sidebar)sidebar.classList.remove('mobile-open');
     if(backdrop)backdrop.classList.remove('visible');
   };
+  /* "E" easter-egg trigger in HIRECAR topbar text */
+  var eTrigger=document.getElementById('hirecar-e-trigger');
+  if(eTrigger){
+    eTrigger.addEventListener('click',function(e){
+      e.stopPropagation();
+      var isMobile=window.innerWidth<=768;
+      if(isMobile){
+        if(sidebar.classList.contains('mobile-open')){
+          closeMobileSidebar();
+        }else{
+          sidebar.classList.add('mobile-open');
+          if(backdrop)backdrop.classList.add('visible');
+        }
+      }else{
+        sidebar.classList.toggle('collapsed');
+        if(toggle)toggle.innerHTML=sidebar.classList.contains('collapsed')?'&#9654;':'&#9664;';
+      }
+      /* brief gold flash on the E */
+      eTrigger.style.color='var(--gold)';
+      eTrigger.style.textShadow='0 0 8px rgba(184,146,42,.6)';
+      setTimeout(function(){eTrigger.style.color='';eTrigger.style.textShadow='';},400);
+    });
+  }
 })();
 
 /* ===== PLAYBOOK SIDEBAR NAV ===== */
