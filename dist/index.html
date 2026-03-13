@@ -28,14 +28,14 @@
 --rule:rgba(255,255,255,.07);--muted:#a0aec0;--white:#1c2538;--error:#f87171;--success:#34d399;
 --red-dark:#f87171;--blue:#60a5fa;--card-text:#e8ecf4;
 --sidebar-width:260px;--sidebar-collapsed:64px;
---sidebar-bg:linear-gradient(180deg,#0a0a0a 0%,#0d1525 40%,#112244 100%);
+--sidebar-bg:linear-gradient(180deg,#000000 0%,#020408 20%,#060a14 45%,#0a0e1a 70%,#0d1525 100%);
 --sidebar-hover:rgba(42,107,184,.15);--sidebar-active-bg:rgba(42,107,184,.2);
 --sidebar-active-border:#2a6bb8;--sidebar-text:rgba(255,255,255,.6);
 --sidebar-text-active:#fff;--topbar-height:56px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;overflow-x:hidden;}
-body{font-family:'DM Sans',sans-serif;background:var(--paper);background:linear-gradient(135deg,#0a0e1a 0%,#111827 30%,#151e30 60%,#0f172a 100%);background-attachment:fixed;color:var(--ink);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;min-height:100vh;}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);background:linear-gradient(160deg,#000000 0%,#000000 20%,#020408 32%,#060a14 46%,#0a0e1a 60%,#0d1525 72%,#111d33 84%,#152545 94%,#0f172a 100%);background-attachment:fixed;color:var(--ink);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;min-height:100vh;}
 h1,h2,h3,h4{font-family:'Playfair Display',serif;font-weight:700;}
 input,select,textarea,button{font-family:inherit;font-size:inherit;}
 table,th,td{font-family:'DM Sans',sans-serif;}
@@ -78,7 +78,7 @@ p,li,span,label,a{line-height:1.6;}
 #main-portal{display:none;opacity:0;transition:opacity .8s;}
 .sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-width);background:var(--sidebar-bg);z-index:1000;display:flex;flex-direction:column;transition:width .3s cubic-bezier(.4,0,.2,1),transform .3s cubic-bezier(.4,0,.2,1);border-right:1px solid rgba(42,107,184,.15);overflow:hidden;}
 .sidebar.collapsed{width:var(--sidebar-collapsed);}
-.sidebar-brand{display:flex;align-items:center;gap:12px;padding:20px 18px 16px;border-bottom:1px solid rgba(184,146,42,.15);flex-shrink:0;}
+.sidebar-brand{display:flex;align-items:center;gap:12px;padding:20px 18px 16px;border-bottom:1px solid rgba(42,107,184,.1);flex-shrink:0;}
 .sidebar-brand img{height:28px;width:auto;flex-shrink:0;}
 .sidebar-brand-text{font-family:'Playfair Display',serif;color:var(--gold);font-size:15px;letter-spacing:2px;white-space:nowrap;overflow:hidden;opacity:1;transition:opacity .2s;}
 .sidebar.collapsed .sidebar-brand-text{opacity:0;width:0;}
@@ -92,7 +92,7 @@ p,li,span,label,a{line-height:1.6;}
 .sidebar-item .tab-badge{position:absolute;top:8px;right:12px;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff;line-height:1;}
 .sidebar.collapsed .sidebar-item .tab-badge{top:4px;right:4px;width:16px;height:16px;font-size:8px;}
 .sidebar-user{padding:16px 18px;border-top:1px solid rgba(42,107,184,.15);display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.sidebar-user .avatar{width:34px;height:34px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0d0d0d;flex-shrink:0;}
+.sidebar-user .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2563b0,#3b82d6);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
 .sidebar-user .uname{color:var(--cream);font-size:13px;white-space:nowrap;overflow:hidden;opacity:1;transition:opacity .2s;}
 .sidebar.collapsed .sidebar-user .uname{opacity:0;width:0;}
 .sidebar-toggle{padding:12px 18px;border-top:1px solid rgba(42,107,184,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--sidebar-text);background:none;border:none;border-left:none;border-right:none;border-bottom:none;font-size:18px;transition:color .2s;flex-shrink:0;width:100%;}
@@ -100,7 +100,7 @@ p,li,span,label,a{line-height:1.6;}
 .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;}
 .sidebar-backdrop.visible{display:block;}
 /* ===== TOP BAR ===== */
-.topbar{position:fixed;top:0;left:var(--sidebar-width);right:0;height:var(--topbar-height);background:linear-gradient(90deg,#0d1525 0%,#0f1a2e 25%,#111827 50%,#0f1a2e 75%,#0d1525 100%);z-index:998;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid transparent;border-image:linear-gradient(90deg,rgba(184,146,42,.2),rgba(42,107,184,.15),rgba(184,146,42,.1),transparent) 1;transition:left .3s cubic-bezier(.4,0,.2,1);box-shadow:0 2px 16px rgba(0,0,0,.3);}
+.topbar{position:fixed;top:0;left:var(--sidebar-width);right:0;height:var(--topbar-height);background:linear-gradient(90deg,#000000 0%,#020408 15%,#060a14 35%,#0a0e1a 55%,#0d1525 75%,#0f172a 100%);z-index:998;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid rgba(42,107,184,.08);transition:left .3s cubic-bezier(.4,0,.2,1);box-shadow:0 2px 16px rgba(0,0,0,.4);}
 .sidebar.collapsed~.topbar{left:var(--sidebar-collapsed);}
 .topbar-hamburger{display:none;background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;padding:4px 8px;}
 .topbar-brands{display:flex;align-items:center;gap:20px;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--muted);letter-spacing:.5px;}
@@ -111,9 +111,9 @@ p,li,span,label,a{line-height:1.6;}
 .section{margin-bottom:48px;display:none;}
 .section.visible{display:block;animation:fadeUp .5s ease;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
-.sec-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:14px;border-bottom:2px solid transparent;border-image:linear-gradient(90deg,var(--gold),rgba(42,107,184,.5),rgba(96,165,250,.2),transparent) 1;position:relative;}
-.sec-header::after{content:'';position:absolute;bottom:-2px;left:0;width:100%;height:24px;background:linear-gradient(180deg,rgba(184,146,42,.06) 0%,transparent 100%);pointer-events:none;}
-.sec-header .accent-bar{width:5px;height:32px;background:linear-gradient(180deg,var(--gold) 0%,#2a6bb8 100%);border-radius:3px;box-shadow:0 0 12px rgba(184,146,42,.3);}
+.sec-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:14px;border-bottom:2px solid transparent;border-image:linear-gradient(90deg,#3b82d6,rgba(42,107,184,.5),rgba(96,165,250,.2),transparent) 1;position:relative;}
+.sec-header::after{content:'';position:absolute;bottom:-2px;left:0;width:100%;height:24px;background:linear-gradient(180deg,rgba(42,107,184,.06) 0%,transparent 100%);pointer-events:none;}
+.sec-header .accent-bar{width:5px;height:32px;background:linear-gradient(180deg,#3b82d6 0%,#2a6bb8 100%);border-radius:3px;box-shadow:0 0 12px rgba(42,107,184,.3);}
 .sec-header h2{font-size:clamp(22px,3vw,30px);color:var(--ink);}
 
 /* Cards */
@@ -134,6 +134,10 @@ p,li,span,label,a{line-height:1.6;}
 .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;position:relative;}
 .badge-gold{background:linear-gradient(135deg,rgba(184,146,42,.15),rgba(184,146,42,.08));color:var(--gold);border:1px solid rgba(184,146,42,.4);box-shadow:0 0 8px rgba(184,146,42,.08);}
 .badge-green{background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(26,107,60,.08));color:var(--success);border:1px solid rgba(52,211,153,.35);box-shadow:0 0 8px rgba(52,211,153,.06);}
+.badge-active-dispute{background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(26,107,60,.08));color:var(--success);border:1px solid rgba(52,211,153,.35);box-shadow:0 0 8px rgba(52,211,153,.06);display:inline-flex;align-items:center;gap:6px;}
+.badge-active-dispute .pulse-dot{width:8px;height:8px;border-radius:50%;background:#34d399;animation:dotPulse 2s ease-in-out infinite;flex-shrink:0;}
+@keyframes dotPulse{0%,100%{opacity:1;box-shadow:0 0 4px rgba(52,211,153,.6);}50%{opacity:.3;box-shadow:0 0 8px rgba(52,211,153,.2);}}
+.badge-grayed{background:rgba(255,255,255,.05);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);box-shadow:none;}
 .badge-red{background:linear-gradient(135deg,rgba(248,113,113,.12),rgba(192,57,43,.08));color:var(--error);border:1px solid rgba(248,113,113,.35);box-shadow:0 0 8px rgba(248,113,113,.06);}
 .badge-blue{background:linear-gradient(135deg,rgba(96,165,250,.12),rgba(42,107,184,.08));color:var(--blue);border:1px solid rgba(96,165,250,.35);box-shadow:0 0 8px rgba(96,165,250,.06);}
 .badge-muted{background:linear-gradient(135deg,rgba(160,174,192,.1),rgba(122,112,104,.06));color:var(--muted);border:1px solid rgba(160,174,192,.25);}
@@ -242,35 +246,34 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 .msg-thread-header{padding:14px 18px;border-bottom:1px solid transparent;border-image:linear-gradient(90deg,rgba(184,146,42,.15),rgba(42,107,184,.1),transparent) 1;font-weight:600;font-size:15px;background:linear-gradient(135deg,#1c2538 0%,#1a2236 100%);}
 .msg-bubbles{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;}
 .msg-bubble{max-width:75%;padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.5;}
-.msg-bubble.mine{background:linear-gradient(135deg,var(--gold) 0%,#a67c1e 100%);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 8px rgba(184,146,42,.2);}
-.msg-bubble.theirs{background:linear-gradient(135deg,#1a2236 0%,#162040 100%);color:var(--ink);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid rgba(255,255,255,.05);}
+.msg-bubble.mine{background:linear-gradient(135deg,#2563b0 0%,#3b82d6 50%,#2563b0 100%);color:#f0f6ff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 8px rgba(37,99,176,.4);}
+.msg-bubble.theirs{background:linear-gradient(135deg,#0d1525 0%,#111d33 50%,#0f1a2e 100%);color:var(--ink);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid rgba(42,107,184,.15);box-shadow:inset 0 1px 0 rgba(42,107,184,.06);}
 .msg-input-bar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--rule);}
 .msg-input-bar input{flex:1;padding:10px 14px;border:1px solid var(--rule);border-radius:20px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);}
-.msg-input-bar input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 12px rgba(184,146,42,.1);}
-.msg-send-btn{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#a67c1e);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(184,146,42,.3);transition:all .2s;}
-.msg-send-btn:hover{background:linear-gradient(135deg,var(--gold-light),var(--gold));box-shadow:0 4px 14px rgba(184,146,42,.4);}
+.msg-input-bar input:focus{outline:none;border-color:#3b82d6;box-shadow:0 0 12px rgba(42,107,184,.15);}
+.msg-send-btn{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#2a6bb8,#1e4a8a);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(42,107,184,.35);transition:all .2s;}
+.msg-send-btn:hover{background:linear-gradient(135deg,#3a7fd4,#2a6bb8);box-shadow:0 4px 14px rgba(42,107,184,.45);}
 .msg-twilio-note{padding:8px 18px;font-size:11px;color:var(--muted);text-align:center;border-top:1px solid var(--rule);}
 
 /* Chatbot */
-#chatbot-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--gold) 0%,#c9a033 50%,#a67c1e 100%);border:none;color:#fff;font-size:22px;cursor:pointer;z-index:1001;box-shadow:0 4px 16px rgba(184,146,42,.4),0 0 30px rgba(184,146,42,.15);transition:all .2s;}
-#chatbot-btn:hover{transform:scale(1.05);box-shadow:0 6px 24px rgba(184,146,42,.5),0 0 40px rgba(184,146,42,.2);}
-#chatbot-btn:hover{transform:scale(1.08);}
+#chatbot-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#2a6bb8 0%,#1e4a8a 50%,#163a6e 100%);border:none;color:#fff;font-size:22px;cursor:pointer;z-index:1001;box-shadow:0 4px 16px rgba(42,107,184,.4),0 0 30px rgba(42,107,184,.15);transition:all .2s;}
+#chatbot-btn:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(42,107,184,.5),0 0 40px rgba(42,107,184,.2);}
 #chatbot-panel{position:fixed;bottom:88px;right:24px;width:360px;max-height:500px;background:var(--white);border:1px solid var(--rule);border-radius:16px;z-index:1001;display:none;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.15);}
 #chatbot-panel.open{display:flex;}
-.cb-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(135deg,#0d1525 0%,#111827 50%,#162244 100%);color:var(--gold);font-weight:600;border-bottom:1px solid rgba(184,146,42,.12);}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(135deg,#0a1020 0%,#0d1525 50%,#112244 100%);color:#60a5fa;font-weight:600;border-bottom:1px solid rgba(42,107,184,.2);}
 .cb-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
 .cb-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:340px;}
 .cb-msg{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;max-width:85%;}
 .cb-msg.bot{background:linear-gradient(135deg,#1a2236,#162040);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid rgba(255,255,255,.04);}
-.cb-msg.user{background:linear-gradient(135deg,var(--gold),#a67c1e);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 6px rgba(184,146,42,.2);}
+.cb-msg.user{background:linear-gradient(135deg,#2563b0,#3b82d6);color:#f0f6ff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 6px rgba(37,99,176,.4);}
 .cb-quick-actions{display:flex;gap:6px;padding:8px 14px;flex-wrap:wrap;}
-.cb-quick{padding:6px 12px;border:1px solid var(--gold);border-radius:16px;font-size:12px;cursor:pointer;background:var(--white);color:var(--gold);transition:all .2s;}
-.cb-quick:hover{background:var(--gold);color:#fff;}
+.cb-quick{padding:6px 12px;border:1px solid rgba(42,107,184,.5);border-radius:16px;font-size:12px;cursor:pointer;background:var(--white);color:#60a5fa;transition:all .2s;}
+.cb-quick:hover{background:linear-gradient(135deg,#2a6bb8,#1e4a8a);color:#fff;border-color:#2a6bb8;}
 .cb-input-bar{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--rule);}
 .cb-input-bar input{flex:1;padding:8px 12px;border:1px solid var(--rule);border-radius:16px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);}
-.cb-input-bar input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 12px rgba(184,146,42,.1);}
-.cb-send{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#a67c1e);border:none;color:#fff;cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(184,146,42,.3);transition:all .2s;}
-.cb-send:hover{background:linear-gradient(135deg,var(--gold-light),var(--gold));box-shadow:0 3px 12px rgba(184,146,42,.4);}
+.cb-input-bar input:focus{outline:none;border-color:#3b82d6;box-shadow:0 0 12px rgba(42,107,184,.15);}
+.cb-send{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2a6bb8,#1e4a8a);border:none;color:#fff;cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(42,107,184,.35);transition:all .2s;}
+.cb-send:hover{background:linear-gradient(135deg,#3a7fd4,#2a6bb8);box-shadow:0 3px 12px rgba(42,107,184,.45);}
 .cb-typing{font-size:12px;color:var(--muted);padding:4px 14px;font-style:italic;}
 
 /* Toast */
@@ -279,7 +282,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 .toast.show{opacity:1;transform:translateX(0);}
 .toast-success{background:linear-gradient(135deg,#1a6b3c,var(--success));box-shadow:0 4px 20px rgba(52,211,153,.25);}
 .toast-error{background:linear-gradient(135deg,#b91c1c,var(--error));box-shadow:0 4px 20px rgba(248,113,113,.25);}
-.toast-info{background:linear-gradient(135deg,var(--gold),#a67c1e);box-shadow:0 4px 20px rgba(184,146,42,.25);}
+.toast-info{background:linear-gradient(135deg,#1e4a8a,#2a6bb8);box-shadow:0 4px 20px rgba(42,107,184,.3);}
 
 /* Footer */
 .portal-footer{background:linear-gradient(135deg,#0a0e1a 0%,#0d1525 40%,#111d33 70%,#0f172a 100%);color:#a0aec0;padding:40px 24px;text-align:center;margin-left:var(--sidebar-width);transition:margin-left .3s cubic-bezier(.4,0,.2,1);border-top:1px solid transparent;border-image:linear-gradient(90deg,transparent,rgba(184,146,42,.12),rgba(42,107,184,.08),transparent) 1;}
@@ -318,7 +321,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 
 /* Tab Badges */
 .tab-badge-red{background:var(--error);}
-.tab-badge-gold{background:var(--gold);}
+.tab-badge-gold{background:linear-gradient(135deg,#2563b0,#3b82d6);}
 
 /* Confidential Classification Header */
 .conf-header{background:linear-gradient(135deg,#0a0e1a 0%,#0d1525 30%,#112244 60%,#162a50 100%);color:var(--gold);padding:12px 20px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border:1px solid rgba(42,107,184,.12);box-shadow:0 2px 16px rgba(0,0,0,.3),inset 0 1px 0 rgba(42,107,184,.08);}
@@ -626,7 +629,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
           <h3 style="font-size:20px;"><span class="client-name-dynamic">Credit Restoration</span></h3>
-          <span class="badge badge-gold">ACTIVE LITIGATION</span>
+          <span class="badge badge-active-dispute"><span class="pulse-dot"></span>ACTIVE DISPUTE</span>&nbsp;<span class="badge badge-grayed">ACTIVE LITIGATION</span>
         </div>
         <div class="case-overview">
           <div class="case-row"><span class="case-label">Court</span><span class="case-val">--</span></div>
@@ -730,7 +733,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
         <div id="dash-msg-bubbles" style="max-height:200px;overflow-y:auto;margin-bottom:12px;padding:8px;background:rgba(250,248,244,.5);border-radius:8px;border:1px solid var(--rule);"></div>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="text" id="dash-msg-input" placeholder="Type a quick message..." style="flex:1;padding:10px 14px;border:1px solid var(--rule);border-radius:20px;font-size:14px;" onkeydown="if(event.key==='Enter')sendDashMsg()">
-          <button onclick="sendDashMsg()" style="padding:10px 18px;background:var(--gold);color:var(--white);border:none;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;">Send</button>
+          <button onclick="sendDashMsg()" style="padding:10px 18px;background:linear-gradient(135deg,#2a6bb8,#1e4a8a);color:var(--white);border:none;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;">Send</button>
         </div>
         <p style="font-size:11px;color:var(--muted);margin-top:8px;">Powered by HIRECAR Member Services &mdash; messages delivered to your team via Slack &nbsp;|&nbsp; <a href="#" onclick="document.querySelector('[data-sec=sec-messages]').click();return false;" style="color:var(--gold);">Open Full Message Center &rarr;</a></p>
       </div>
@@ -1319,13 +1322,13 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Send messages to your HIRECAR Member Services team. Messages are delivered to your dedicated support channel via Slack. You can also attach documents.</p>
       <div class="msg-container">
         <div class="msg-contacts">
-          <div class="msg-contact active" onclick="switchThread('Ken Eckman')"><h4>Ken Eckman</h4><p style="font-size:11px;color:var(--gold);">HIRECAR Member Services</p><p>Direct channel &mdash; Slack + email</p></div>
+          <div class="msg-contact active" onclick="switchThread('Message Member Services')"><h4>Message Member Services</h4><p style="font-size:11px;color:#60a5fa;">HIRECAR Member Services</p><p>Direct channel &mdash; Slack + email</p></div>
           <div class="msg-contact" onclick="switchThread('SeedXchange Legal')"><h4>SeedXchange Legal</h4><p>Yes &mdash; we need your move-in photos...</p></div>
           <div class="msg-contact" onclick="switchThread('Court Notifications')"><h4>Court Notifications</h4><p>CMC scheduling notice...</p></div>
           <div class="msg-contact" onclick="switchThread('HIRECAR Support')"><h4>HIRECAR Support</h4><p>How can we help?</p></div>
         </div>
         <div class="msg-thread">
-          <div class="msg-thread-header" id="msg-thread-header">Ken Eckman <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">via Twilio &bull; email + text</span></div>
+          <div class="msg-thread-header" id="msg-thread-header">Message Member Services <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">via Slack &bull; real-time</span></div>
           <div class="msg-bubbles" id="msg-bubbles">
             <div class="msg-bubble theirs">Hi there, welcome to your secure message channel. Messages here are sent directly to me via email and text through Twilio. You can also attach files using the paperclip icon. How can I help?<span class="msg-time">Feb 27, 2026 &middot; System</span></div>
           </div>
@@ -1333,7 +1336,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
           <div class="msg-input-bar">
             <button class="msg-attach-btn" onclick="document.getElementById('msg-file-input').click()" title="Attach file">&#128206;</button>
             <input type="file" id="msg-file-input" style="display:none;" onchange="handleMsgFileAttach(this)">
-            <input type="text" id="msg-input" placeholder="Type a message to Ken Eckman..." onkeydown="if(event.key==='Enter')sendMsg()">
+            <input type="text" id="msg-input" placeholder="Type a message to Member Services..." onkeydown="if(event.key==='Enter')sendMsg()">
             <button class="msg-send-btn" onclick="sendMsg()">&#9654;</button>
           </div>
           <div class="msg-twilio-note">Powered by HIRECAR Member Services &mdash; routed to: team@hirecar.la via Slack &nbsp;|&nbsp; <span class="client-name-dynamic">New Client</span>: client@email.com &nbsp;|&nbsp; Messages delivered to your dedicated HIRECAR support team.</div>
@@ -3164,6 +3167,97 @@ function sendMsg(){
   });
 }
 
+/* ===== MESSAGE POLLING — Admin replies + notifications ===== */
+var _lastMsgCount=0;
+var _msgPollTimer=null;
+var _knownMsgIds={};
+
+function pollMessages(){
+  fetch(HIRECAR_API+'/client/'+HIRECAR_CLIENT_ID+'/messages',{
+    headers:{'X-Client-Id':HIRECAR_CLIENT_ID}
+  }).then(function(r){return r.json();}).then(function(data){
+    if(!data.messages)return;
+    var bubbles=document.getElementById('msg-bubbles');
+    var dashBubbles=document.getElementById('dash-msg-bubbles');
+    var newAdmin=0;
+    data.messages.forEach(function(m){
+      if(_knownMsgIds[m.id])return;
+      _knownMsgIds[m.id]=true;
+      if(m.from==='admin'||m.from==='system'){
+        newAdmin++;
+        /* Render in main Messages panel */
+        var b=document.createElement('div');
+        b.className='msg-bubble theirs';
+        var ts=new Date(m.timestamp);
+        var timeStr=ts.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' \u00b7 '+ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        b.innerHTML='<strong style="color:#60a5fa;font-size:12px;">'+(m.sender||'HIRECAR Team')+'</strong><br>'+escHtml(m.text)+'<span class="msg-time">'+timeStr+'</span>';
+        bubbles.appendChild(b);
+        /* Mirror in dashboard quick message */
+        if(dashBubbles){
+          var d=document.createElement('div');
+          d.style.cssText='background:linear-gradient(135deg,rgba(42,107,184,.15),rgba(42,107,184,.08));border:1px solid rgba(42,107,184,.3);color:var(--white);padding:10px 14px;border-radius:14px 14px 14px 4px;font-size:13px;max-width:85%;align-self:flex-start;';
+          d.innerHTML='<strong style="color:#60a5fa;font-size:11px;">'+(m.sender||'HIRECAR Team')+'</strong><br>'+escHtml(m.text)+'<br><span style="font-size:10px;opacity:.5;">'+timeStr+'</span>';
+          dashBubbles.appendChild(d);
+          dashBubbles.scrollTop=dashBubbles.scrollHeight;
+        }
+        /* Mirror in chatbot panel */
+        var cbMsgs=document.getElementById('cb-messages');
+        if(cbMsgs){
+          var cb=document.createElement('div');
+          cb.className='cb-msg bot';
+          cb.innerHTML='<strong style="color:#60a5fa;font-size:11px;">'+(m.sender||'HIRECAR Team')+'</strong><br>'+escHtml(m.text);
+          cbMsgs.appendChild(cb);
+          cbMsgs.scrollTop=cbMsgs.scrollHeight;
+        }
+      }
+    });
+    bubbles.scrollTop=bubbles.scrollHeight;
+    /* Update notification badge */
+    if(newAdmin>0){
+      updateMsgBadge(newAdmin);
+      showToast('New message from HIRECAR Member Services','info');
+    }
+    _lastMsgCount=data.messages.length;
+  }).catch(function(e){console.log('Poll error:',e);});
+}
+
+function updateMsgBadge(count){
+  /* Badge on Messages sidebar nav item */
+  var navItems=document.querySelectorAll('.sidebar-item');
+  navItems.forEach(function(item){
+    if(item.getAttribute('data-sec')==='sec-messages'){
+      var badge=item.querySelector('.msg-notify-badge');
+      if(!badge){
+        badge=document.createElement('span');
+        badge.className='msg-notify-badge';
+        badge.style.cssText='position:absolute;top:8px;right:8px;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px;animation:pulse 2s infinite;';
+        item.style.position='relative';
+        item.appendChild(badge);
+      }
+      badge.textContent=count;
+      badge.style.display='flex';
+    }
+  });
+}
+
+function startMsgPolling(){
+  /* Mark all existing messages as known */
+  fetch(HIRECAR_API+'/client/'+HIRECAR_CLIENT_ID+'/messages',{
+    headers:{'X-Client-Id':HIRECAR_CLIENT_ID}
+  }).then(function(r){return r.json();}).then(function(data){
+    if(data.messages){
+      data.messages.forEach(function(m){_knownMsgIds[m.id]=true;});
+      _lastMsgCount=data.messages.length;
+    }
+  }).catch(function(){});
+  /* Poll every 30 seconds */
+  if(_msgPollTimer)clearInterval(_msgPollTimer);
+  _msgPollTimer=setInterval(pollMessages,5000);
+}
+
+/* Start polling on page load */
+setTimeout(startMsgPolling,3000);
+
 /* ===== CHATBOT ===== */
 function toggleChat(){
   document.getElementById('chatbot-panel').classList.toggle('open');
@@ -3187,6 +3281,59 @@ function cbSend(){
   u.textContent=val;
   msgs.appendChild(u);
   input.value='';
+  msgs.scrollTop=msgs.scrollHeight;
+
+  /* Check if this is a direct message to the team (starts with "msg:" or "send:" or just send everything as a message) */
+  var low=val.toLowerCase();
+  var isDirectMsg=low.indexOf('msg:')=== 0||low.indexOf('send:')===0||low.indexOf('reply:')===0;
+  var isBotQuery=low.indexOf('deadline')!==-1||low.indexOf('document')!==-1||low.indexOf('evidence')!==-1||low.indexOf('status')!==-1||low.indexOf('case')!==-1||low.indexOf('attorney')!==-1||low.indexOf('lawyer')!==-1||low.indexOf('counsel')!==-1||low.indexOf('deposit')!==-1||low.indexOf('money')!==-1||low.indexOf('upload')!==-1||low.indexOf('file')!==-1||low.indexOf('help')!==-1;
+
+  /* If it's a direct message or not a known bot query, send to Slack */
+  if(isDirectMsg||!isBotQuery){
+    var msgText=isDirectMsg?val.replace(/^(msg:|send:|reply:)\s*/i,''):val;
+    var typing=document.createElement('div');
+    typing.className='cb-typing';
+    typing.textContent='Sending to your HIRECAR team...';
+    msgs.appendChild(typing);
+    msgs.scrollTop=msgs.scrollHeight;
+
+    fetch(HIRECAR_API+'/client/'+HIRECAR_CLIENT_ID+'/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Client-Id':HIRECAR_CLIENT_ID},
+      body:JSON.stringify({text:msgText})
+    }).then(function(res){return res.json();}).then(function(data){
+      msgs.removeChild(typing);
+      var reply=document.createElement('div');
+      reply.className='cb-msg bot';
+      if(data.status==='sent'){
+        reply.innerHTML='<span style="color:#60a5fa;">Message delivered to your HIRECAR team via Slack.</span> They\'ll respond shortly. You can see replies here and in the Messages tab.';
+        showToast('Message sent to HIRECAR team','success');
+        /* Also add to main Messages panel */
+        var mainBubbles=document.getElementById('msg-bubbles');
+        if(mainBubbles){
+          var mb=document.createElement('div');
+          mb.className='msg-bubble mine';
+          var now=new Date();
+          var timeStr=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' \u00b7 '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+          mb.innerHTML=escHtml(msgText)+'<span class="msg-time">'+timeStr+' \u00b7 via Chatbot</span>';
+          mainBubbles.appendChild(mb);
+          mainBubbles.scrollTop=mainBubbles.scrollHeight;
+        }
+      }else{
+        reply.textContent='Delivery failed: '+(data.error||'Unknown error')+'. Try the Messages tab.';
+      }
+      msgs.appendChild(reply);
+      msgs.scrollTop=msgs.scrollHeight;
+    }).catch(function(){
+      msgs.removeChild(typing);
+      var reply=document.createElement('div');
+      reply.className='cb-msg bot';
+      reply.textContent='Message queued. Your team will receive it shortly.';
+      msgs.appendChild(reply);
+      msgs.scrollTop=msgs.scrollHeight;
+    });
+    return;
+  }
 
   var typing=document.createElement('div');
   typing.className='cb-typing';
@@ -3198,7 +3345,6 @@ function cbSend(){
     msgs.removeChild(typing);
     var reply=document.createElement('div');
     reply.className='cb-msg bot';
-    var low=val.toLowerCase();
     if(low.indexOf('deadline')!==-1){
       reply.textContent='No deadlines are currently scheduled. Check the Dashboard tab for upcoming dates once your case is active.';
     }else if(low.indexOf('document')!==-1){
@@ -3232,14 +3378,14 @@ function switchThread(name){
   contacts.forEach(function(c){c.classList.remove('active');});
   contacts.forEach(function(c){if(c.querySelector('h4').textContent===name)c.classList.add('active');});
   var header=document.getElementById('msg-thread-header');
-  if(name==='Ken Eckman'){
-    header.innerHTML='Ken Eckman <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">via Twilio &bull; email + text</span>';
+  if(name==='Message Member Services'){
+    header.innerHTML='Message Member Services <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;">via Slack &bull; real-time</span>';
   }else{
     header.textContent=name;
   }
   var bubbles=document.getElementById('msg-bubbles');
   bubbles.innerHTML='';
-  if(name==='Ken Eckman'){
+  if(name==='Message Member Services'){
     bubbles.innerHTML='<div class="msg-bubble theirs">Hi there, welcome to your secure message channel. Messages here are sent directly to me via email and text through Twilio. You can also attach files using the paperclip icon. How can I help?<span class="msg-time">Feb 27, 2026 &middot; System</span></div>';
   }else if(name==='SeedXchange Legal'){
     bubbles.innerHTML='<div class="msg-bubble mine">Hi, I have a question about the demurrer deadline. When is it due?<span class="msg-time">Aug 12, 2025 &middot; 2:34 PM</span></div>'
@@ -3658,7 +3804,7 @@ function sendDashMsg(){
   var now=new Date();
   var timeStr=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   var mine=document.createElement('div');
-  mine.style.cssText='background:linear-gradient(135deg,var(--gold),#a67c1e);color:#fff;padding:8px 12px;border-radius:12px 12px 4px 12px;margin-bottom:6px;font-size:13px;max-width:85%;margin-left:auto;';
+  mine.style.cssText='background:linear-gradient(135deg,#2563b0,#3b82d6);color:#f0f6ff;padding:8px 12px;border-radius:12px 12px 4px 12px;margin-bottom:6px;font-size:13px;max-width:85%;margin-left:auto;';
   mine.innerHTML=escHtml(text)+'<span style="display:block;font-size:10px;opacity:.7;margin-top:4px;">'+timeStr+'</span>';
   bubbles.appendChild(mine);
   input.value='';
