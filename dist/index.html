@@ -382,6 +382,70 @@ textarea.ev-input{min-height:80px;resize:vertical;}
   body{background:#fff!important;}
   .card,.doc-card,.ev-section{border-color:#ddd!important;}
 }
+
+/* ===== PLAYBOOKS (bit.ai-style document viewer) ===== */
+.pb-container{display:flex;gap:0;min-height:calc(100vh - 200px);background:var(--paper);border:1px solid rgba(0,0,0,.08);border-radius:12px;overflow:hidden;}
+.pb-sidebar{width:280px;min-width:280px;background:#fff;border-right:1px solid rgba(0,0,0,.08);overflow-y:auto;padding:20px 0;}
+.pb-sidebar-header{padding:12px 20px 16px;border-bottom:1px solid rgba(0,0,0,.06);}
+.pb-sidebar-header h3{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink);margin:0 0 4px;}
+.pb-sidebar-header p{font-size:11px;color:var(--muted);margin:0;text-transform:uppercase;letter-spacing:.5px;}
+.pb-toc{list-style:none;padding:8px 0;margin:0;}
+.pb-toc-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:all .2s;border-left:3px solid transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:#555;line-height:1.3;}
+.pb-toc-item:hover{background:rgba(184,146,42,.05);color:var(--ink);}
+.pb-toc-item.active{background:rgba(184,146,42,.08);border-left-color:var(--gold);color:var(--ink);font-weight:600;}
+.pb-toc-num{width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#888;flex-shrink:0;}
+.pb-toc-item.active .pb-toc-num{background:var(--gold);color:#fff;}
+.pb-content{flex:1;overflow-y:auto;padding:32px 40px;background:var(--paper);}
+.pb-section{display:none;}
+.pb-section.active{display:block;}
+.pb-section-header{margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid rgba(184,146,42,.15);}
+.pb-section-header h2{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--ink);margin:0 0 8px;}
+.pb-section-header .pb-section-num{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:600;}
+.pb-block{margin-bottom:24px;}
+.pb-block h3{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--ink);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(0,0,0,.06);}
+.pb-block h4{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--ink);margin:0 0 8px;}
+.pb-block p,.pb-block li{font-family:'DM Sans',sans-serif;font-size:14px;color:#444;line-height:1.7;}
+.pb-block ul,.pb-block ol{padding-left:20px;margin:8px 0;}
+.pb-block li{margin-bottom:4px;}
+.pb-callout{background:#fff;border:1px solid rgba(184,146,42,.2);border-left:4px solid var(--gold);border-radius:8px;padding:16px 20px;margin:16px 0;}
+.pb-callout.info{border-left-color:#3b82f6;background:rgba(59,130,246,.03);}
+.pb-callout.warn{border-left-color:#f59e0b;background:rgba(245,158,11,.03);}
+.pb-callout.success{border-left-color:var(--success);background:rgba(26,107,60,.03);}
+.pb-callout-title{font-weight:700;font-size:13px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.pb-callout.info .pb-callout-title{color:#3b82f6;}
+.pb-callout.warn .pb-callout-title{color:#f59e0b;}
+.pb-callout.success .pb-callout-title{color:var(--success);}
+.pb-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;font-family:'DM Sans',sans-serif;}
+.pb-table th{background:var(--ink);color:#fff;padding:10px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+.pb-table td{padding:10px 14px;border-bottom:1px solid rgba(0,0,0,.06);color:#444;}
+.pb-table tr:hover td{background:rgba(184,146,42,.03);}
+.pb-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.pb-badge.gold{background:rgba(184,146,42,.12);color:var(--gold);}
+.pb-badge.green{background:rgba(26,107,60,.1);color:var(--success);}
+.pb-badge.red{background:rgba(227,30,45,.1);color:var(--error);}
+.pb-badge.blue{background:rgba(59,130,246,.1);color:#3b82f6;}
+.pb-badge.gray{background:rgba(0,0,0,.06);color:#888;}
+.pb-checklist{list-style:none;padding:0;margin:12px 0;}
+.pb-checklist li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.04);font-size:14px;color:#444;font-family:'DM Sans',sans-serif;}
+.pb-check{width:20px;height:20px;border-radius:4px;border:2px solid #ccc;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:12px;}
+.pb-check.done{background:var(--success);border-color:var(--success);color:#fff;}
+.pb-progress-bar{height:8px;background:rgba(0,0,0,.06);border-radius:4px;overflow:hidden;margin:8px 0;}
+.pb-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),#d4a82e);border-radius:4px;transition:width .5s ease;}
+.pb-upload-zone{border:2px dashed rgba(184,146,42,.3);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.5);}
+.pb-upload-zone:hover{border-color:var(--gold);background:rgba(184,146,42,.03);}
+.pb-upload-zone p{margin:0;color:#888;font-size:13px;}
+.pb-session-card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:10px;padding:20px;margin:12px 0;display:flex;align-items:center;gap:16px;}
+.pb-session-num{width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;}
+.pb-session-info{flex:1;}
+.pb-session-info h4{margin:0 0 4px;font-size:14px;font-weight:600;}
+.pb-session-info p{margin:0;font-size:12px;color:#888;}
+.pb-divider{height:1px;background:rgba(0,0,0,.06);margin:24px 0;}
+@media(max-width:768px){
+  .pb-container{flex-direction:column;}
+  .pb-sidebar{width:100%;min-width:100%;max-height:200px;border-right:none;border-bottom:1px solid rgba(0,0,0,.08);}
+  .pb-content{padding:20px 16px;}
+  .pb-section-header h2{font-size:20px;}
+}
 </style>
 </head>
 <body>
@@ -445,6 +509,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       <button class="menu-tab" data-sec="sec-messages">Messages<span class="tab-badge tab-badge-red">3</span></button>
       <button class="menu-tab" data-sec="sec-strategy">Action Plan</button>
       <button class="menu-tab" data-sec="sec-billing">Billing</button>
+      <button class="menu-tab" data-sec="sec-playbooks">Playbooks<span class="tab-badge tab-badge-gold">15</span></button>
     </div>
     <div class="menu-user">
       <span class="uname"><span id="display-name" class="client-name-dynamic">New Client</span></span>
@@ -1539,6 +1604,485 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       </div>
     </div>
 
+    <!-- ===== PLAYBOOKS ===== -->
+    <div id="sec-playbooks" class="section">
+      <div class="conf-header">
+        <span class="conf-label">ASAP Auto Loan Approval Program</span>
+        <span class="conf-case">CreditWithKen &mdash; Client Playbook</span>
+      </div>
+      <div class="sec-header">
+        <div class="accent-bar"></div>
+        <h2>Client Playbook</h2>
+        <p style="color:var(--muted);margin-top:4px;font-size:14px;">Your complete guide to the ASAP Auto Loan Approval Program</p>
+      </div>
+
+      <div class="pb-container">
+        <!-- Sidebar TOC -->
+        <div class="pb-sidebar">
+          <div class="pb-sidebar-header">
+            <h3>Table of Contents</h3>
+            <p>15 Sections</p>
+          </div>
+          <ul class="pb-toc" id="pb-toc">
+            <li class="pb-toc-item active" data-pb="pb-sec-1"><span class="pb-toc-num">1</span>Welcome</li>
+            <li class="pb-toc-item" data-pb="pb-sec-2"><span class="pb-toc-num">2</span>Client Profile</li>
+            <li class="pb-toc-item" data-pb="pb-sec-3"><span class="pb-toc-num">3</span>Program Overview</li>
+            <li class="pb-toc-item" data-pb="pb-sec-4"><span class="pb-toc-num">4</span>Payment &amp; Enrollment</li>
+            <li class="pb-toc-item" data-pb="pb-sec-5"><span class="pb-toc-num">5</span>Start Here &mdash; Onboarding</li>
+            <li class="pb-toc-item" data-pb="pb-sec-6"><span class="pb-toc-num">6</span>Secure Upload Vault</li>
+            <li class="pb-toc-item" data-pb="pb-sec-7"><span class="pb-toc-num">7</span>Program Dashboard</li>
+            <li class="pb-toc-item" data-pb="pb-sec-8"><span class="pb-toc-num">8</span>Score &amp; Credit Tracking</li>
+            <li class="pb-toc-item" data-pb="pb-sec-9"><span class="pb-toc-num">9</span>Credit Sweep &amp; Cleanup</li>
+            <li class="pb-toc-item" data-pb="pb-sec-10"><span class="pb-toc-num">10</span>Tradelines &amp; AU</li>
+            <li class="pb-toc-item" data-pb="pb-sec-11"><span class="pb-toc-num">11</span>Counseling Sessions</li>
+            <li class="pb-toc-item" data-pb="pb-sec-12"><span class="pb-toc-num">12</span>Lender Readiness</li>
+            <li class="pb-toc-item" data-pb="pb-sec-13"><span class="pb-toc-num">13</span>Dealer &amp; Deal Support</li>
+            <li class="pb-toc-item" data-pb="pb-sec-14"><span class="pb-toc-num">14</span>Messages &amp; Q&amp;A</li>
+            <li class="pb-toc-item" data-pb="pb-sec-15"><span class="pb-toc-num">15</span>Completion Packet</li>
+          </ul>
+        </div>
+
+        <!-- Content Area -->
+        <div class="pb-content" id="pb-content">
+
+          <!-- Section 1: Welcome -->
+          <div class="pb-section active" id="pb-sec-1">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 1 of 15</div>
+              <h2>Welcome &amp; How to Use This Playbook</h2>
+            </div>
+            <div class="pb-block">
+              <p>Welcome to the <strong>ASAP Auto Loan Approval Program</strong> by CreditWithKen. This playbook is your personal command center &mdash; everything you need to repair your credit, build lender-ready scores, and secure auto financing lives here.</p>
+            </div>
+            <div class="pb-callout info">
+              <div class="pb-callout-title">How This Works</div>
+              <p>Each section of this playbook represents a stage in your journey. Work through them in order, or jump to any section using the sidebar. Your progress is tracked automatically.</p>
+            </div>
+            <div class="pb-block">
+              <h3>What You'll Find Inside</h3>
+              <ul>
+                <li><strong>Your Profile &amp; Score</strong> &mdash; Current credit snapshot and CreditWithKen Score</li>
+                <li><strong>Program Overview</strong> &mdash; What's included, timelines, and expectations</li>
+                <li><strong>Onboarding Gate</strong> &mdash; Required documents and "clock start" checklist</li>
+                <li><strong>Upload Vault</strong> &mdash; Secure document exchange portal</li>
+                <li><strong>Progress Dashboard</strong> &mdash; Real-time status on disputes, tradelines, and milestones</li>
+                <li><strong>Credit Tracking</strong> &mdash; Score history and credit file changes</li>
+                <li><strong>Cleanup Plan</strong> &mdash; Dispute strategy and sweep timeline</li>
+                <li><strong>Tradeline Coordination</strong> &mdash; AU accounts and seasoning schedule</li>
+                <li><strong>Counseling Hub</strong> &mdash; Schedule and notes from your 3 coaching sessions</li>
+                <li><strong>Lender Toolkit</strong> &mdash; Pre-qualification checklist and lender matching</li>
+                <li><strong>Deal Support</strong> &mdash; Dealer negotiation prep and deal review</li>
+                <li><strong>Messages &amp; Decisions</strong> &mdash; Communication log and Q&amp;A history</li>
+                <li><strong>Completion Packet</strong> &mdash; Final deliverables and graduation certificate</li>
+              </ul>
+            </div>
+            <div class="pb-callout warn">
+              <div class="pb-callout-title">Important</div>
+              <p>This playbook is confidential. Do not share access credentials or screenshots with third parties. Your data is encrypted and protected under our privacy policy.</p>
+            </div>
+          </div>
+
+          <!-- Section 2: Client Profile -->
+          <div class="pb-section" id="pb-sec-2">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 2 of 15</div>
+              <h2>Client Profile / CreditWithKen Score</h2>
+            </div>
+            <div class="pb-block">
+              <h3>Your Credit Snapshot</h3>
+              <table class="pb-table">
+                <tr><th style="width:40%">Field</th><th>Value</th></tr>
+                <tr><td>Client Name</td><td class="client-name-dynamic">--</td></tr>
+                <tr><td>Program Enrolled</td><td>ASAP Auto Loan Approval</td></tr>
+                <tr><td>Enrollment Date</td><td>--</td></tr>
+                <tr><td>CreditWithKen Score</td><td><span class="pb-badge gold">Pending Assessment</span></td></tr>
+                <tr><td>Starting FICO (Equifax)</td><td>--</td></tr>
+                <tr><td>Starting FICO (Experian)</td><td>--</td></tr>
+                <tr><td>Starting FICO (TransUnion)</td><td>--</td></tr>
+                <tr><td>Target Score Range</td><td>680 &ndash; 720+</td></tr>
+                <tr><td>Estimated Timeline</td><td>90 &ndash; 120 days</td></tr>
+              </table>
+            </div>
+            <div class="pb-callout info">
+              <div class="pb-callout-title">CreditWithKen Score</div>
+              <p>Your CWK Score is a proprietary lender-readiness rating that factors in FICO scores, credit mix, payment history patterns, utilization, and auto-specific lending criteria. It's updated as your file improves.</p>
+            </div>
+          </div>
+
+          <!-- Section 3: Program Overview -->
+          <div class="pb-section" id="pb-sec-3">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 3 of 15</div>
+              <h2>Program Overview</h2>
+            </div>
+            <div class="pb-block">
+              <h3>ASAP Auto Loan Approval Program</h3>
+              <table class="pb-table">
+                <tr><th style="width:40%">Detail</th><th>Description</th></tr>
+                <tr><td>SKU / Program Code</td><td>ASAP-ALR-2026</td></tr>
+                <tr><td>Duration</td><td>90 &ndash; 120 days (active phase)</td></tr>
+                <tr><td>Support Window</td><td>180 days from enrollment</td></tr>
+                <tr><td>Counseling Sessions</td><td>3 &times; 30-minute sessions included</td></tr>
+                <tr><td>Dispute Rounds</td><td>Up to 4 rounds across all 3 bureaus</td></tr>
+                <tr><td>Tradeline Coordination</td><td>AU strategy + placement guidance</td></tr>
+                <tr><td>Lender Matching</td><td>Pre-qualification with partner lenders</td></tr>
+              </table>
+            </div>
+            <div class="pb-block">
+              <h3>Deliverables</h3>
+              <ul>
+                <li>Full 3-bureau credit analysis and dispute strategy</li>
+                <li>Up to 4 dispute rounds with all credit bureaus and furnishers</li>
+                <li>Authorized User (AU) tradeline strategy and coordination</li>
+                <li>3 one-on-one credit counseling sessions (30 min each)</li>
+                <li>Lender readiness assessment and pre-qualification packet</li>
+                <li>Dealer negotiation prep materials</li>
+                <li>Completion certificate and final credit summary</li>
+              </ul>
+            </div>
+            <div class="pb-block">
+              <h3>Expectations</h3>
+              <div class="pb-callout">
+                <div class="pb-callout-title">Your Commitment</div>
+                <p>Success requires your active participation. Respond to requests within 48 hours, provide accurate documentation, avoid new hard inquiries, keep credit utilization under 30%, and attend all scheduled counseling sessions.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Payment & Enrollment -->
+          <div class="pb-section" id="pb-sec-4">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 4 of 15</div>
+              <h2>Payment &amp; Enrollment</h2>
+            </div>
+            <div class="pb-block">
+              <h3>Payment Schedule</h3>
+              <table class="pb-table">
+                <tr><th>Payment</th><th>Amount</th><th>Due</th><th>Status</th></tr>
+                <tr><td>Enrollment Fee</td><td>--</td><td>At signup</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>First Work Fee</td><td>--</td><td>After onboarding</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Second Work Fee</td><td>--</td><td>At midpoint</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Final Fee</td><td>--</td><td>At completion</td><td><span class="pb-badge gray">Pending</span></td></tr>
+              </table>
+            </div>
+            <div class="pb-callout info">
+              <div class="pb-callout-title">Payment Policy</div>
+              <p>All payments are processed securely. Work does not begin until the enrollment fee is received and onboarding documents are submitted. Refund policy details are included in your service agreement.</p>
+            </div>
+          </div>
+
+          <!-- Section 5: Start Here - Onboarding Gate -->
+          <div class="pb-section" id="pb-sec-5">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 5 of 15</div>
+              <h2>Start Here &mdash; Onboarding Gate</h2>
+            </div>
+            <div class="pb-callout warn">
+              <div class="pb-callout-title">Clock Start</div>
+              <p>Your program timeline does NOT begin until all onboarding items are complete. The faster you submit, the faster we start working.</p>
+            </div>
+            <div class="pb-block">
+              <h3>Onboarding Checklist</h3>
+              <ul class="pb-checklist" id="pb-onboarding-checklist">
+                <li><span class="pb-check">&#10003;</span>Service agreement signed</li>
+                <li><span class="pb-check">&#10003;</span>Enrollment fee received</li>
+                <li><span class="pb-check"></span>Government-issued ID (front + back)</li>
+                <li><span class="pb-check"></span>Proof of address (utility bill, bank statement)</li>
+                <li><span class="pb-check"></span>Social Security card or W-2</li>
+                <li><span class="pb-check"></span>Most recent credit reports (all 3 bureaus)</li>
+                <li><span class="pb-check"></span>Credit monitoring login credentials</li>
+                <li><span class="pb-check"></span>List of accounts to dispute (if known)</li>
+                <li><span class="pb-check"></span>Initial counseling session scheduled</li>
+              </ul>
+            </div>
+            <div class="pb-block">
+              <h3>Onboarding Progress</h3>
+              <p style="font-size:13px;color:#888;margin-bottom:4px;">2 of 9 items complete</p>
+              <div class="pb-progress-bar"><div class="pb-progress-fill" style="width:22%"></div></div>
+            </div>
+          </div>
+
+          <!-- Section 6: Secure Upload Vault -->
+          <div class="pb-section" id="pb-sec-6">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 6 of 15</div>
+              <h2>Secure Upload Vault</h2>
+            </div>
+            <div class="pb-block">
+              <p>Use the vault below to securely upload required documents. All files are encrypted in transit and at rest. Accepted formats: PDF, JPG, PNG (max 25MB per file).</p>
+            </div>
+            <div class="pb-block">
+              <h3>Upload Documents</h3>
+              <div class="pb-upload-zone" id="pb-upload-zone">
+                <p style="font-size:24px;margin-bottom:8px;">&#128274;</p>
+                <p><strong>Drag &amp; drop files here</strong></p>
+                <p style="font-size:12px;color:#aaa;margin-top:4px;">or click to browse &mdash; PDF, JPG, PNG (max 25MB)</p>
+              </div>
+            </div>
+            <div class="pb-block">
+              <h3>Uploaded Documents</h3>
+              <table class="pb-table">
+                <tr><th>Document</th><th>Date</th><th>Status</th></tr>
+                <tr><td colspan="3" style="text-align:center;color:#aaa;padding:20px;">No documents uploaded yet</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section 7: Program Dashboard -->
+          <div class="pb-section" id="pb-sec-7">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 7 of 15</div>
+              <h2>Program Dashboard &mdash; Progress &amp; Status</h2>
+            </div>
+            <div class="pb-block">
+              <h3>Overall Progress</h3>
+              <p style="font-size:13px;color:#888;margin-bottom:4px;">Phase: <span class="pb-badge blue">Onboarding</span></p>
+              <div class="pb-progress-bar"><div class="pb-progress-fill" style="width:10%"></div></div>
+            </div>
+            <div class="pb-block">
+              <h3>Milestone Tracker</h3>
+              <table class="pb-table">
+                <tr><th>Milestone</th><th>Target</th><th>Status</th></tr>
+                <tr><td>Onboarding Complete</td><td>Week 1</td><td><span class="pb-badge blue">In Progress</span></td></tr>
+                <tr><td>First Dispute Round Sent</td><td>Week 2</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>First Results Received</td><td>Week 6 &ndash; 8</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Second Dispute Round</td><td>Week 8</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Tradeline Strategy Active</td><td>Week 4</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Lender Pre-Qualification</td><td>Week 12</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Deal Support &amp; Closing</td><td>Week 14 &ndash; 16</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Program Completion</td><td>Week 16</td><td><span class="pb-badge gray">Pending</span></td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section 8: Score & Credit Tracking -->
+          <div class="pb-section" id="pb-sec-8">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 8 of 15</div>
+              <h2>Score &amp; Credit File Tracking</h2>
+            </div>
+            <div class="pb-block">
+              <h3>Score History</h3>
+              <table class="pb-table">
+                <tr><th>Date</th><th>Equifax</th><th>Experian</th><th>TransUnion</th><th>Notes</th></tr>
+                <tr><td>Baseline</td><td>--</td><td>--</td><td>--</td><td>Initial pull</td></tr>
+              </table>
+              <p style="font-size:12px;color:#aaa;margin-top:8px;">Scores are updated after each dispute cycle and significant credit events.</p>
+            </div>
+            <div class="pb-block">
+              <h3>Credit File Changes</h3>
+              <table class="pb-table">
+                <tr><th>Date</th><th>Bureau</th><th>Change</th><th>Impact</th></tr>
+                <tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px;">No changes recorded yet</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section 9: Credit Sweep & Cleanup -->
+          <div class="pb-section" id="pb-sec-9">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 9 of 15</div>
+              <h2>Credit Sweep &amp; Cleanup Plan</h2>
+            </div>
+            <div class="pb-block">
+              <h3>Dispute Strategy</h3>
+              <p>Your cleanup plan targets negative items across all three bureaus. Each round addresses specific accounts based on priority, likelihood of removal, and scoring impact.</p>
+            </div>
+            <div class="pb-block">
+              <h3>Dispute Rounds</h3>
+              <table class="pb-table">
+                <tr><th>Round</th><th>Sent</th><th>Accounts Targeted</th><th>Results</th><th>Status</th></tr>
+                <tr><td>Round 1</td><td>--</td><td>--</td><td>--</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Round 2</td><td>--</td><td>--</td><td>--</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Round 3</td><td>--</td><td>--</td><td>--</td><td><span class="pb-badge gray">Pending</span></td></tr>
+                <tr><td>Round 4</td><td>--</td><td>--</td><td>--</td><td><span class="pb-badge gray">Pending</span></td></tr>
+              </table>
+            </div>
+            <div class="pb-block">
+              <h3>Items Under Dispute</h3>
+              <table class="pb-table">
+                <tr><th>Account / Creditor</th><th>Bureau(s)</th><th>Type</th><th>Balance</th><th>Status</th></tr>
+                <tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px;">Dispute targets will be identified after credit analysis</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section 10: Tradelines & AU -->
+          <div class="pb-section" id="pb-sec-10">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 10 of 15</div>
+              <h2>Tradelines &amp; Authorized User (AU) Coordination</h2>
+            </div>
+            <div class="pb-block">
+              <p>Authorized User tradelines can significantly boost your credit scores by adding seasoned, positive payment history to your file. We coordinate AU placements based on your specific needs.</p>
+            </div>
+            <div class="pb-block">
+              <h3>AU Strategy</h3>
+              <table class="pb-table">
+                <tr><th>Tradeline</th><th>Credit Limit</th><th>Age</th><th>Bureau(s)</th><th>Added</th><th>Status</th></tr>
+                <tr><td colspan="6" style="text-align:center;color:#aaa;padding:20px;">AU strategy will be developed after initial credit analysis</td></tr>
+              </table>
+            </div>
+            <div class="pb-callout info">
+              <div class="pb-callout-title">Seasoning Timeline</div>
+              <p>Most AU tradelines take 1 &ndash; 2 billing cycles (30 &ndash; 60 days) to report to bureaus after being added. We time placements to align with your dispute results for maximum impact.</p>
+            </div>
+          </div>
+
+          <!-- Section 11: Counseling Sessions -->
+          <div class="pb-section" id="pb-sec-11">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 11 of 15</div>
+              <h2>Counseling Sessions Hub</h2>
+            </div>
+            <div class="pb-block">
+              <p>Your program includes <strong>3 one-on-one counseling sessions</strong> (30 minutes each) with your CreditWithKen advisor. These sessions cover credit strategy, financial habits, lender preparation, and any questions about your case.</p>
+            </div>
+            <div class="pb-session-card">
+              <div class="pb-session-num">1</div>
+              <div class="pb-session-info">
+                <h4>Session 1: Credit Analysis &amp; Strategy Review</h4>
+                <p>Review your credit reports, identify targets, discuss dispute strategy and timeline expectations.</p>
+              </div>
+              <span class="pb-badge gray">Not Scheduled</span>
+            </div>
+            <div class="pb-session-card">
+              <div class="pb-session-num">2</div>
+              <div class="pb-session-info">
+                <h4>Session 2: Midpoint Check-In &amp; AU Planning</h4>
+                <p>Review dispute results, adjust strategy, plan tradeline placements and next steps.</p>
+              </div>
+              <span class="pb-badge gray">Not Scheduled</span>
+            </div>
+            <div class="pb-session-card">
+              <div class="pb-session-num">3</div>
+              <div class="pb-session-info">
+                <h4>Session 3: Lender Readiness &amp; Deal Prep</h4>
+                <p>Final score review, lender matching, dealer negotiation prep, and graduation walkthrough.</p>
+              </div>
+              <span class="pb-badge gray">Not Scheduled</span>
+            </div>
+          </div>
+
+          <!-- Section 12: Lender Readiness -->
+          <div class="pb-section" id="pb-sec-12">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 12 of 15</div>
+              <h2>Lender Readiness Toolkit</h2>
+            </div>
+            <div class="pb-block">
+              <h3>Pre-Qualification Checklist</h3>
+              <ul class="pb-checklist">
+                <li><span class="pb-check"></span>Credit scores at or above 680 target</li>
+                <li><span class="pb-check"></span>No new negative items in past 6 months</li>
+                <li><span class="pb-check"></span>Credit utilization under 30%</li>
+                <li><span class="pb-check"></span>At least 3 active positive tradelines</li>
+                <li><span class="pb-check"></span>Stable income documentation ready</li>
+                <li><span class="pb-check"></span>Down payment funds verified</li>
+                <li><span class="pb-check"></span>Debt-to-income ratio under 45%</li>
+                <li><span class="pb-check"></span>No open disputes at time of application</li>
+              </ul>
+            </div>
+            <div class="pb-block">
+              <h3>Lender Matching</h3>
+              <table class="pb-table">
+                <tr><th>Lender</th><th>Type</th><th>Min Score</th><th>Rate Range</th><th>Match Status</th></tr>
+                <tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px;">Lender matching begins after credit repair phase is complete</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section 13: Dealer & Deal Support -->
+          <div class="pb-section" id="pb-sec-13">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 13 of 15</div>
+              <h2>Dealer &amp; Deal Support</h2>
+            </div>
+            <div class="pb-block">
+              <h3>Negotiation Prep</h3>
+              <p>Before stepping into a dealership, you'll be armed with the knowledge and documents to negotiate from a position of strength. We review every deal before you sign.</p>
+            </div>
+            <div class="pb-block">
+              <h3>Deal Review Checklist</h3>
+              <ul class="pb-checklist">
+                <li><span class="pb-check"></span>Pre-approved financing secured</li>
+                <li><span class="pb-check"></span>Target vehicle identified (year, make, model)</li>
+                <li><span class="pb-check"></span>Fair market value researched (KBB / Edmunds)</li>
+                <li><span class="pb-check"></span>Trade-in value assessed (if applicable)</li>
+                <li><span class="pb-check"></span>Monthly payment budget confirmed</li>
+                <li><span class="pb-check"></span>Dealer markup / add-ons review</li>
+                <li><span class="pb-check"></span>Final deal terms reviewed by CreditWithKen</li>
+              </ul>
+            </div>
+            <div class="pb-callout success">
+              <div class="pb-callout-title">Pro Tip</div>
+              <p>Never tell the dealer your monthly payment budget first. Negotiate the total price of the vehicle, then discuss financing terms separately. Send us the deal sheet before signing &mdash; we'll review it within 24 hours.</p>
+            </div>
+          </div>
+
+          <!-- Section 14: Messages & Q&A -->
+          <div class="pb-section" id="pb-sec-14">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 14 of 15</div>
+              <h2>Messages, Q&amp;A, and Decisions Log</h2>
+            </div>
+            <div class="pb-block">
+              <p>This is your communication record with CreditWithKen. All messages, questions, and decisions made during the program are logged here for reference.</p>
+            </div>
+            <div class="pb-block">
+              <h3>Recent Messages</h3>
+              <table class="pb-table">
+                <tr><th>Date</th><th>From</th><th>Subject</th><th>Status</th></tr>
+                <tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px;">No messages yet &mdash; communication will appear here as your program progresses</td></tr>
+              </table>
+            </div>
+            <div class="pb-block">
+              <h3>Decisions Log</h3>
+              <table class="pb-table">
+                <tr><th>Date</th><th>Decision</th><th>Details</th></tr>
+                <tr><td colspan="3" style="text-align:center;color:#aaa;padding:20px;">No decisions logged yet</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section 15: Completion Packet -->
+          <div class="pb-section" id="pb-sec-15">
+            <div class="pb-section-header">
+              <div class="pb-section-num">Section 15 of 15</div>
+              <h2>Completion Packet</h2>
+            </div>
+            <div class="pb-callout success">
+              <div class="pb-callout-title">Program Graduation</div>
+              <p>Upon successful completion of the ASAP Auto Loan Approval Program, you'll receive your Completion Packet containing all deliverables, final credit summary, and graduation certificate.</p>
+            </div>
+            <div class="pb-block">
+              <h3>Final Deliverables</h3>
+              <ul class="pb-checklist">
+                <li><span class="pb-check"></span>Final 3-bureau credit report summary</li>
+                <li><span class="pb-check"></span>Score improvement documentation</li>
+                <li><span class="pb-check"></span>Dispute results summary (all rounds)</li>
+                <li><span class="pb-check"></span>Tradeline activity report</li>
+                <li><span class="pb-check"></span>Lender pre-qualification letters</li>
+                <li><span class="pb-check"></span>Counseling session notes</li>
+                <li><span class="pb-check"></span>Credit maintenance guide (post-program)</li>
+                <li><span class="pb-check"></span>CreditWithKen Completion Certificate</li>
+              </ul>
+            </div>
+            <div class="pb-block">
+              <h3>Post-Program Support</h3>
+              <p>After graduation, you'll have 30 days of follow-up support for any questions about maintaining your credit, managing your new auto loan, or dealing with any remaining credit file concerns.</p>
+            </div>
+            <div class="pb-divider"></div>
+            <div class="pb-block" style="text-align:center;padding:24px 0;">
+              <p style="font-size:12px;color:#aaa;text-transform:uppercase;letter-spacing:1px;">End of Playbook</p>
+              <p style="font-size:13px;color:var(--gold);font-weight:600;margin-top:4px;">CreditWithKen &mdash; ASAP Auto Loan Approval Program</p>
+            </div>
+          </div>
+
+        </div><!-- /pb-content -->
+      </div><!-- /pb-container -->
+    </div><!-- /sec-playbooks -->
+
   </div><!-- /portal-body -->
 
   <!-- Footer -->
@@ -2252,6 +2796,23 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       document.getElementById(target).classList.add('visible');
       document.querySelector('.menu-tabs').classList.remove('open');
       window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+})();
+
+/* ===== PLAYBOOK SIDEBAR NAV ===== */
+(function(){
+  var tocItems=document.querySelectorAll('.pb-toc-item');
+  var pbSections=document.querySelectorAll('.pb-section');
+  if(tocItems.length===0) return;
+  tocItems.forEach(function(item){
+    item.addEventListener('click',function(){
+      tocItems.forEach(function(t){t.classList.remove('active');});
+      item.classList.add('active');
+      var target=item.getAttribute('data-pb');
+      pbSections.forEach(function(s){s.classList.remove('active');});
+      var el=document.getElementById(target);
+      if(el) el.classList.add('active');
     });
   });
 })();
