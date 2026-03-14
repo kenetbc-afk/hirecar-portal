@@ -643,7 +643,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 
 /* Analytics Dashboard (adapted from featured-section component) */
 .analytics-dash{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
-@media(max-width:900px){.analytics-dash{grid-template-columns:1fr;}}
+@media(max-width:900px){.analytics-dash{grid-template-columns:1fr;}.bot-news-row{flex-direction:column!important;}.bot-news-row #mw-card{flex:1!important;}}
 .ana-card{background:linear-gradient(145deg,#1c2538 0%,#1a2236 100%);border:1px solid rgba(184,146,42,.12);border-radius:14px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
 .ana-card:hover{border-color:rgba(184,146,42,.25);box-shadow:0 4px 20px rgba(0,0,0,.3);}
 .ana-card-head{padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;}
@@ -1367,8 +1367,10 @@ textarea.ev-input{min-height:80px;resize:vertical;}
       <p class="ev-progress-text">Personal Credit Intake &mdash; Complete all sections to generate your dispute assessment. <strong id="ev-count">0 / 12 completed</strong></p>
       <div class="ev-progress"><div class="ev-progress-bar" id="ev-bar"></div></div>
 
+      <!-- ===== TOP ROW: BOT + NEWS ===== -->
+      <div class="bot-news-row" style="display:flex;gap:16px;margin-top:16px;align-items:stretch;">
       <!-- ===== CWK BOT ASSESSOR (TOP) ===== -->
-      <div class="hirecar-bot-container" id="hirecar-bot" style="margin-top:16px;">
+      <div class="hirecar-bot-container" id="hirecar-bot" style="margin-top:0;flex:1;min-width:0;">
         <div class="hirecar-bot-header" style="align-items:flex-start;gap:6px;flex-direction:column;">
           <div class="cwk-bot-avatar" id="cwk-bot-avatar-el" style="height:22px;"><img id="cwk-bot-logo" alt="CWK"></div>
           <div class="hirecar-bot-role" style="font-size:11px;font-weight:700;letter-spacing:.3px;margin:0;">Credit Evidence Assessment Advisor</div>
@@ -1391,7 +1393,101 @@ textarea.ev-input{min-height:80px;resize:vertical;}
         </div>
       </div>
 
-
+      <!-- HireCarMarketWatch News Carousel -->
+      <div class="ana-card" id="mw-card" style="flex:0 0 340px;min-width:0;margin:0;border-radius:14px;overflow:hidden;">
+        <div class="ana-card-body" style="padding:0;position:relative;height:100%;">
+          <div class="mw-carousel-wrap" id="mw-carousel" style="height:100%;">
+            <div class="mw-carousel-track" id="mw-track" style="height:100%;">
+              <!-- Slide 1: Data Breach -->
+              <div class="mw-slide" onclick="showMwComingSoon()" style="height:100%;">
+                <div class="mw-slide-hero">
+                  <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&h=400&fit=crop&crop=center" alt="Cybersecurity data breach" loading="lazy">
+                </div>
+                <div class="mw-slide-body">
+                  <span class="mw-slide-cat mw-cat-breach">DATA BREACH</span>
+                  <h5 class="mw-slide-title">Major Telecom Breach Exposes 73M Customer Records</h5>
+                  <p class="mw-slide-excerpt">Under FCRA &sect;605B, consumers can place expedited fraud alerts and block compromised tradelines. File disputes with all three bureaus.</p>
+                  <div class="mw-slide-meta"><span>MAR 2025</span><span>&bull;</span><span>HIRECAR INTEL</span></div>
+                </div>
+              </div>
+              <!-- Slide 2: Auto Financing -->
+              <div class="mw-slide" onclick="showMwComingSoon()" style="height:100%;">
+                <div class="mw-slide-hero">
+                  <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&h=400&fit=crop&crop=center" alt="Auto financing dealership" loading="lazy">
+                </div>
+                <div class="mw-slide-body">
+                  <span class="mw-slide-cat mw-cat-auto">AUTO FINANCING</span>
+                  <h5 class="mw-slide-title">CFPB Targets Auto Lenders Over Inaccurate Reporting</h5>
+                  <p class="mw-slide-excerpt">Metro 2 reporting errors on repossessions exposed. Under FCRA &sect;623, furnishers must correct inaccurate data within 30 days.</p>
+                  <div class="mw-slide-meta"><span>FEB 2025</span><span>&bull;</span><span>REGULATORY WATCH</span></div>
+                </div>
+              </div>
+              <!-- Slide 3: Student Loans -->
+              <div class="mw-slide" onclick="showMwComingSoon()" style="height:100%;">
+                <div class="mw-slide-hero">
+                  <img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop&crop=center" alt="Student loans education" loading="lazy">
+                </div>
+                <div class="mw-slide-body">
+                  <span class="mw-slide-cat mw-cat-student">STUDENT LOANS</span>
+                  <h5 class="mw-slide-title">Servicer Errors Surge After Transfer Wave</h5>
+                  <p class="mw-slide-excerpt">Duplicate accounts and incorrect balances reported. FCRA disputes and CFPB complaints are your strongest tools.</p>
+                  <div class="mw-slide-meta"><span>MAR 2025</span><span>&bull;</span><span>CONSUMER ALERT</span></div>
+                </div>
+              </div>
+              <!-- Slide 4: Credit Card Disputes -->
+              <div class="mw-slide" onclick="showMwComingSoon()" style="height:100%;">
+                <div class="mw-slide-hero">
+                  <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&crop=center" alt="Credit card payment dispute" loading="lazy">
+                </div>
+                <div class="mw-slide-body">
+                  <span class="mw-slide-cat mw-cat-credit">CREDIT CARD DISPUTES</span>
+                  <h5 class="mw-slide-title">Banks Failing to Investigate Billing Disputes</h5>
+                  <p class="mw-slide-excerpt">FCBA violations rising. Under TILA &sect;161, creditors ignoring timelines face statutory damages.</p>
+                  <div class="mw-slide-meta"><span>MAR 2025</span><span>&bull;</span><span>LEGAL BRIEF</span></div>
+                </div>
+              </div>
+              <!-- Slide 5: Data Breach 2 -->
+              <div class="mw-slide" onclick="showMwComingSoon()" style="height:100%;">
+                <div class="mw-slide-hero">
+                  <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&h=400&fit=crop&crop=center" alt="Healthcare medical records breach" loading="lazy">
+                </div>
+                <div class="mw-slide-body">
+                  <span class="mw-slide-cat mw-cat-breach">DATA BREACH</span>
+                  <h5 class="mw-slide-title">Healthcare Breach Affects 2.3M Patients</h5>
+                  <p class="mw-slide-excerpt">Stolen SSNs used for fraudulent accounts. Place fraud alerts and security freezes immediately.</p>
+                  <div class="mw-slide-meta"><span>JAN 2025</span><span>&bull;</span><span>BREACH TRACKER</span></div>
+                </div>
+              </div>
+              <!-- Slide 6: Auto Financing 2 -->
+              <div class="mw-slide" onclick="showMwComingSoon()" style="height:100%;">
+                <div class="mw-slide-hero">
+                  <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&h=400&fit=crop&crop=center" alt="Legal justice law" loading="lazy">
+                </div>
+                <div class="mw-slide-body">
+                  <span class="mw-slide-cat mw-cat-auto">AUTO FINANCING</span>
+                  <h5 class="mw-slide-title">Wrongful Repo Reports: Challenge Under State Law</h5>
+                  <p class="mw-slide-excerpt">California CCRAA &sect;1785 provides additional remedies. Dual jurisdiction claims multiply damages.</p>
+                  <div class="mw-slide-meta"><span>FEB 2025</span><span>&bull;</span><span>CA LAW UPDATE</span></div>
+                </div>
+              </div>
+            </div>
+            <!-- Navigation dots -->
+            <div class="mw-nav" id="mw-nav"></div>
+            <!-- Arrows -->
+            <div class="mw-arrows">
+              <div class="mw-arr" onclick="event.stopPropagation();mwSlide(-1)">&#8249;</div>
+              <div class="mw-arr" onclick="event.stopPropagation();mwSlide(1)">&#8250;</div>
+            </div>
+            <!-- Coming Soon overlay -->
+            <div class="mw-coming-soon" id="mw-coming-soon">
+              <h5>COMING SOON</h5>
+              <p>Full articles launching Q2 2025</p>
+              <span class="mw-cs-close" onclick="event.stopPropagation();hideMwComingSoon()">Close</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div><!-- end bot-news-row -->
 
       <!-- ===== ANALYTICS DASHBOARD (adapted from featured-section component) ===== -->
       <div id="analytics-dash-wrap" style="margin-top:16px;">
@@ -1459,100 +1555,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
             </div>
           </div>
 
-          <!-- HireCarMarketWatch News Carousel -->
-          <div class="ana-card" id="mw-card">
-            <div class="ana-card-body" style="padding:0;position:relative;">
-              <div class="mw-carousel-wrap" id="mw-carousel">
-                <div class="mw-carousel-track" id="mw-track">
-                  <!-- Slide 1: Data Breach -->
-                  <div class="mw-slide" onclick="showMwComingSoon()">
-                    <div class="mw-slide-hero">
-                      <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&h=400&fit=crop&crop=center" alt="Cybersecurity data breach" loading="lazy">
-                    </div>
-                    <div class="mw-slide-body">
-                      <span class="mw-slide-cat mw-cat-breach">DATA BREACH</span>
-                      <h5 class="mw-slide-title">Major Telecom Breach Exposes 73M Customer Records</h5>
-                      <p class="mw-slide-excerpt">Credit monitoring alone may not be enough. Under FCRA &sect;605B, consumers affected by identity theft can place an expedited fraud alert and request that compromised tradelines be blocked from their credit reports. File disputes directly with all three bureaus and submit an FTC identity theft report to strengthen your case.</p>
-                      <div class="mw-slide-meta"><span>MAR 2025</span><span>&bull;</span><span>HIRECAR INTEL</span></div>
-                    </div>
-                  </div>
-                  <!-- Slide 2: Auto Financing -->
-                  <div class="mw-slide" onclick="showMwComingSoon()">
-                    <div class="mw-slide-hero">
-                      <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&h=400&fit=crop&crop=center" alt="Auto financing dealership" loading="lazy">
-                    </div>
-                    <div class="mw-slide-body">
-                      <span class="mw-slide-cat mw-cat-auto">AUTO FINANCING</span>
-                      <h5 class="mw-slide-title">CFPB Targets Auto Lenders Over Inaccurate Reporting</h5>
-                      <p class="mw-slide-excerpt">New CFPB enforcement actions reveal widespread Metro 2 reporting errors on auto repossessions. Lenders are misreporting account statuses, balance amounts, and payment histories. Under FCRA &sect;623, furnishers must investigate and correct inaccurate data within 30 days or face regulatory penalties and statutory damages.</p>
-                      <div class="mw-slide-meta"><span>FEB 2025</span><span>&bull;</span><span>REGULATORY WATCH</span></div>
-                    </div>
-                  </div>
-                  <!-- Slide 3: Student Loans -->
-                  <div class="mw-slide" onclick="showMwComingSoon()">
-                    <div class="mw-slide-hero">
-                      <img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop&crop=center" alt="Student loans education" loading="lazy">
-                    </div>
-                    <div class="mw-slide-body">
-                      <span class="mw-slide-cat mw-cat-student">STUDENT LOANS</span>
-                      <h5 class="mw-slide-title">Student Loan Servicer Errors Surge After Transfer Wave</h5>
-                      <p class="mw-slide-excerpt">Borrowers report duplicate accounts, incorrect balances, and misapplied payments after the latest wave of servicer transitions. If your student loans were transferred, check all three credit reports for errors. FCRA disputes combined with CFPB complaints are your strongest tools to force corrections and protect your credit score.</p>
-                      <div class="mw-slide-meta"><span>MAR 2025</span><span>&bull;</span><span>CONSUMER ALERT</span></div>
-                    </div>
-                  </div>
-                  <!-- Slide 4: Credit Card Disputes -->
-                  <div class="mw-slide" onclick="showMwComingSoon()">
-                    <div class="mw-slide-hero">
-                      <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&crop=center" alt="Credit card payment dispute" loading="lazy">
-                    </div>
-                    <div class="mw-slide-body">
-                      <span class="mw-slide-cat mw-cat-credit">CREDIT CARD DISPUTES</span>
-                      <h5 class="mw-slide-title">Banks Failing to Investigate Billing Disputes Within 30 Days</h5>
-                      <p class="mw-slide-excerpt">Fair Credit Billing Act violations are surging as major banks fail to acknowledge billing disputes within the required 30-day window. Under TILA &sect;161, creditors who ignore dispute timelines forfeit the right to collect the disputed amount and face statutory damages. Document every communication and send disputes via certified mail.</p>
-                      <div class="mw-slide-meta"><span>MAR 2025</span><span>&bull;</span><span>LEGAL BRIEF</span></div>
-                    </div>
-                  </div>
-                  <!-- Slide 5: Data Breach 2 -->
-                  <div class="mw-slide" onclick="showMwComingSoon()">
-                    <div class="mw-slide-hero">
-                      <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&h=400&fit=crop&crop=center" alt="Healthcare medical records breach" loading="lazy">
-                    </div>
-                    <div class="mw-slide-body">
-                      <span class="mw-slide-cat mw-cat-breach">DATA BREACH</span>
-                      <h5 class="mw-slide-title">Healthcare System Breach Affects 2.3M Patients&rsquo; Financial Data</h5>
-                      <p class="mw-slide-excerpt">Medical debt and identity theft intersect in this massive breach affecting 2.3 million patients. Stolen SSNs and insurance data are being used to open fraudulent accounts. Place expedited fraud alerts and security freezes with all three bureaus immediately. Under the No Surprises Act and FCRA protections, you can dispute any unauthorized medical collections.</p>
-                      <div class="mw-slide-meta"><span>JAN 2025</span><span>&bull;</span><span>BREACH TRACKER</span></div>
-                    </div>
-                  </div>
-                  <!-- Slide 6: Auto Financing 2 -->
-                  <div class="mw-slide" onclick="showMwComingSoon()">
-                    <div class="mw-slide-hero">
-                      <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&h=400&fit=crop&crop=center" alt="Legal justice law" loading="lazy">
-                    </div>
-                    <div class="mw-slide-body">
-                      <span class="mw-slide-cat mw-cat-auto">AUTO FINANCING</span>
-                      <h5 class="mw-slide-title">Wrongful Repossession Reports: How to Challenge Under State Law</h5>
-                      <p class="mw-slide-excerpt">California&rsquo;s CCRAA &sect;1785 provides additional state-level remedies for inaccurate repossession reporting beyond federal FCRA protections. Filing dual jurisdiction claims under both FCRA and the Rosenthal Fair Debt Collection Act can multiply your statutory damages. Consult with a consumer rights attorney to maximize your recovery.</p>
-                      <div class="mw-slide-meta"><span>FEB 2025</span><span>&bull;</span><span>CA LAW UPDATE</span></div>
-                    </div>
-                  </div>
-                </div>
-                <!-- Navigation dots -->
-                <div class="mw-nav" id="mw-nav"></div>
-                <!-- Arrows -->
-                <div class="mw-arrows">
-                  <div class="mw-arr" onclick="event.stopPropagation();mwSlide(-1)">&#8249;</div>
-                  <div class="mw-arr" onclick="event.stopPropagation();mwSlide(1)">&#8250;</div>
-                </div>
-                <!-- Coming Soon overlay -->
-                <div class="mw-coming-soon" id="mw-coming-soon">
-                  <h5>COMING SOON</h5>
-                  <p>Full articles launching Q2 2025</p>
-                  <span class="mw-cs-close" onclick="event.stopPropagation();hideMwComingSoon()">Close</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- MW card moved to top row next to bot -->
 
           <!-- Activity Timeline -->
           <div class="ana-card">
