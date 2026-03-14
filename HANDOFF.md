@@ -159,20 +159,24 @@ Client types in portal  -->  POST /client/:id/messages
 
 ## 7. Portal HTML Structure (index.html)
 
-### Line Map (approximate)
+### Line Map (approximate, as of 2026-03-13)
 | Lines | Content |
 |-------|---------|
 | 1-25 | Head, meta tags, OG image, Google Fonts |
 | 26-35 | CSS variables (`:root`) |
 | 36-430 | All CSS: sidebar, topbar, cards, tables, badges, animations, responsive |
-| 431-540 | Intro screen HTML (matrix rain, PIN entry, logo sequence) |
-| 541-603 | Sidebar HTML (9 nav items, user avatar, collapse toggle) |
-| 604-614 | Topbar HTML (hamburger, brand logos) |
-| 616-1700 | 9 section content blocks |
-| 1700-1900 | Chatbot overlay HTML |
-| 1900-2800 | Intro animation JS, PIN logic, auth flow |
-| 2800-3200 | Tab switching IIFE, sidebar toggle, chatbot JS |
-| 3200-3858 | Message polling (5s interval), document handlers, playbooks JS |
+| ~117-130 | Topbar CSS: hamburger, brands, smart carousel (`.topbar-cycle-wrap`, `.topbar-cycle-track`) |
+| ~325-340 | Mobile responsive CSS (768px breakpoint) |
+| 431-930 | Intro screen HTML (matrix rain, PIN entry, logo sequence) |
+| ~935-950 | Topbar HTML (hamburger with HIRECAR logo, animated SVG menu toggle, "POWERED BY", 3 logo slides) |
+| ~950-1000 | Sidebar HTML (9 nav items, user avatar, collapse toggle) |
+| 1000-3100 | 9 section content blocks + chatbot overlay |
+| ~3110-3120 | CLIENT_PROFILE object (single source of truth for client data) |
+| ~3120-3150 | `updateAllClientElements()` function |
+| ~3900-3940 | Sidebar toggle + hamburger sync JS |
+| ~4045-4054 | `toggleMenuIcon()` — syncs SVG animation with sidebar state |
+| ~4056-4095 | Smart carousel IIFE — inline vs cycling mode based on available width |
+| 4100+ | Message polling, document handlers, playbooks JS |
 
 ### CSS Variables
 ```css
@@ -277,6 +281,12 @@ Sidebar buttons have class `menu-tab` + `data-sec` attribute. JS IIFE (~line 287
 21. **Document control naming** — all 12 on-file documents assigned HC-YYYY-CAT-NNN identifiers (e.g., HC-2025-FIL-001, HC-2025-CRT-001). Category codes: AGR=Agreement, FIL=Filing, CRT=Court, NTC=Notice, EVD=Evidence, FIN=Financial
 22. **Document source attribution** — each doc card displays a source badge: `HIRECAR` (gold) for court filings/notices, `CWK` (blue) for CreditWithKen agreements, `CLIENT` for pending/uploaded items. Source filter dropdown added alongside search.
 23. **Combined document filtering** — tab, source dropdown, and text search now work together as a unified filter system (`_applyDocFilters()`)
+24. **Topbar brand cycling banner** — replaced static text-heavy "POWERED BY | CREDITWITHKEN | HIRECAR" with smart logo carousel. Shows all 3 logos (SeedXchange, CWK, HIRECAR) inline on desktop; auto-switches to horizontal R→L carousel on narrow screens. 4s interval, 1s smooth transition, pause-on-hover.
+25. **White HIRECAR logo** — replaced SeedXchange topbar logo with white HIRECAR logo from `/Users/hirecarken/Desktop/White logo - no background.png`, embedded as base64
+26. **Animated SVG menu toggle** — custom animated SVG hamburger icon in topbar, synced with sidebar collapse/expand state via `toggleMenuIcon()`
+27. **Mobile hamburger with HIRECAR branding** — hamburger button shows white HIRECAR logo + "Member Services" label on mobile
+28. **CLIENT_PROFILE memberSince fix** — fixed broken JS syntax (`'March '25'` → `"March '25"`) caused by sed escaping failure
+29. **Member Since slide removed** — removed from topbar carousel per user request; topbar now shows only the 3 brand logos
 
 ---
 
@@ -355,38 +365,39 @@ The worker sends all fields via `updatePassKitMember()` in `token.js`. PassKit t
 
 ---
 
-### P1 — Topbar Banner Redesign
-Convert the topbar from text-heavy branding to a clean logo-only banner.
+### P1 — Topbar Banner Redesign ✅ COMPLETED
+Topbar converted from text-heavy to clean logo-only banner with smart carousel:
 
-**Current HTML (lines 604-614):**
-```html
-<header class="topbar" id="topbar">
-  <button class="topbar-hamburger" id="topbar-hamburger">&#9776;</button>
-  <div class="topbar-brands">
-    <span>POWERED BY</span>
-    <img src="data:image/png;base64,..." alt="SeedXchange">
-    <span>|</span>
-    <span>CREDITWITHKEN</span>
-    <span>|</span>
-    <span>HIRECAR</span>
-  </div>
-</header>
-```
+**Current Implementation (as of 2026-03-13):**
+- Static "POWERED BY" text on the left
+- 3 brand logo slides: SeedXchange, CreditWithKen, HIRECAR
+- **Smart display mode:** All logos shown inline when space permits; auto-switches to horizontal R→L carousel on narrow screens
+- Carousel: 4s interval, 1s smooth cubic-bezier transition, pause-on-hover
+- CSS class `.cycling` added dynamically to `.topbar-cycle-wrap` when carousel activates
+- All logos normalized to 16px height (13px on mobile)
+- Animated SVG hamburger menu synced with sidebar toggle
+- White HIRECAR logo in hamburger button (mobile only)
+- "Member Since" slide removed from carousel (was causing clutter)
 
-**Action:**
-- Remove all text spans ("POWERED BY", "|", "CREDITWITHKEN", "HIRECAR")
-- Keep only logo images (SeedXchange, CWK)
-- Use the **white** SeedXchange logo variant
-- Center logos in the banner
+**Key CSS (lines ~122-130):**
+- `.topbar-cycle-wrap` — flex container, switches to `position:relative;overflow:hidden` when `.cycling`
+- `.topbar-cycle-track` — flex row of slides, `transition: transform 1s` when cycling
+- `.topbar-cycle-slide` — individual logo container, `flex-shrink:0`
 
-### P2 — Fix Topbar Bleed
-The topbar overlaps or leaves a gap with the content area. Check:
-- `.portal-body` padding-top/margin-top vs `--topbar-height` (56px)
-- Ensure `margin-left: var(--sidebar-width)` + `padding-top: calc(var(--topbar-height) + 20px)` are correct
-- Test with sidebar collapsed vs expanded
+**Key JS (lines ~4056-4095):**
+- Smart carousel IIFE: `needsCarousel()` measures total slide widths vs wrap width
+- `enableCarousel()` / `disableCarousel()` toggle between inline and cycling modes
+- Resize handler recalculates and switches modes dynamically
 
-### P3 — Verify Sidebar Collapse
-Confirm desktop toggle and mobile hamburger both work end-to-end after the sidebar redesign. JS is around line 2872.
+### P2 — Fix Topbar Bleed ✅ COMPLETED
+- `.portal-body` padding-top set to `calc(var(--topbar-height) + 20px)`
+- Sidebar collapse transitions properly with `margin-left` animation
+- Tested with sidebar expanded and collapsed
+
+### P3 — Verify Sidebar Collapse ✅ COMPLETED
+- Desktop toggle and mobile hamburger both work
+- SVG menu icon animation synced with sidebar state
+- Mobile sidebar slides in/out with backdrop overlay
 
 ### P4 — Convert Remaining Gold to Blue (optional)
 Various `badge-gold` instances for "NEEDED", "PARTIAL", "OUTSTANDING" labels. Evaluate case-by-case whether they should become blue to match the new theme.
@@ -479,9 +490,22 @@ Fixed bottom-right (`z-index:1001`), independent of the nav sidebar (`z-index:10
 1. **Dual script scopes** — outer script + IIFE creates fragile cross-scope deps. Consolidate when possible.
 2. **Client-side PIN only** — localStorage PIN is not real auth. Worker API provides server-side auth but the portal intro doesn't use it yet.
 3. **Static client data** — each client is a separate HTML file. Future: dynamic data from KV via API.
-4. **Large file** — 810KB due to base64 images. Could extract to CDN.
+4. **Large file** — ~85k tokens (~5000+ lines) due to base64 images. Could extract to CDN.
 5. **dist/ in gitignore** — force-added. Consider removing from `.gitignore`.
 6. **No service worker** — could add for offline support and cache management.
+7. **Topbar logo visibility** — SeedXchange logo may appear too dark on the dark topbar gradient. Consider brightness filter or white variant.
+
+---
+
+## 18. Pending Feature Requests (from user sessions)
+
+| Priority | Request | Status |
+|----------|---------|--------|
+| Medium | Remove "Five-Layer Dispute Strategy System" section | Not started |
+| Medium | Add example results to evidence matrix section | Not started |
+| Medium | Feature Steps animate only once (play-once on scroll) | Not started |
+| Low | Use the "E" in HIRECAR to start entry animation | Not started |
+| Low | Document section redesign with HC naming + source logos | Plan exists at `~/.claude/plans/distributed-skipping-twilight.md` |
 
 ---
 
