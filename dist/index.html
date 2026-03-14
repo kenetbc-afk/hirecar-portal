@@ -646,6 +646,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 @media(max-width:900px){.analytics-dash{grid-template-columns:1fr;}}
 .ana-card{background:linear-gradient(145deg,#1c2538 0%,#1a2236 100%);border:1px solid rgba(184,146,42,.12);border-radius:14px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
 .ana-card:hover{border-color:rgba(184,146,42,.25);box-shadow:0 4px 20px rgba(0,0,0,.3);}
+#mw-card{border-top:none;}
 .ana-card-head{padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;}
 .ana-card-head h4{font-size:13px;font-weight:600;color:var(--gold);display:flex;align-items:center;gap:8px;}
 .ana-card-head .ana-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;}
@@ -666,7 +667,8 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 .mw-slide{min-width:100%;box-sizing:border-box;cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;max-height:360px;}
 .mw-slide-hero{position:relative;width:100%;height:180px;overflow:hidden;flex-shrink:0;}
 .mw-slide-hero img,.mw-slide-hero svg{width:100%;height:100%;object-fit:cover;display:block;}
-.mw-slide-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(to top,#1c2538,transparent);z-index:1;}
+.mw-slide-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:50px;background:linear-gradient(to bottom,#1c2538,transparent);z-index:1;}
+.mw-slide-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:50px;background:linear-gradient(to top,#1c2538,transparent);z-index:1;}
 .mw-slide-body{padding:10px 16px 12px;background:linear-gradient(180deg,#1c2538 0%,#1a2236 100%);flex:1;display:flex;flex-direction:column;gap:4px;overflow:hidden;}
 .mw-slide-cat{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;font-family:'Share Tech Mono',monospace;padding:2px 8px;border-radius:4px;display:inline-block;width:fit-content;}
 .mw-cat-breach{background:rgba(248,113,113,.15);color:#fca5a5;}
@@ -1460,7 +1462,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 
           <!-- HireCarMarketWatch News Carousel -->
           <div class="ana-card" id="mw-card">
-            <div class="ana-card-head" style="padding:12px 18px 10px;align-items:center;">
+            <div class="ana-card-head" style="padding:12px 18px 10px;align-items:center;position:relative;z-index:3;background:transparent;">
               <div style="display:flex;align-items:center;gap:10px;">
                 <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
                   <rect width="36" height="36" rx="8" fill="#0c111d" stroke="rgba(184,146,42,.3)" stroke-width="1"/>
