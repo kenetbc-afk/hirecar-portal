@@ -646,7 +646,6 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 @media(max-width:900px){.analytics-dash{grid-template-columns:1fr;}}
 .ana-card{background:linear-gradient(145deg,#1c2538 0%,#1a2236 100%);border:1px solid rgba(184,146,42,.12);border-radius:14px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
 .ana-card:hover{border-color:rgba(184,146,42,.25);box-shadow:0 4px 20px rgba(0,0,0,.3);}
-#mw-card{grid-column:1/-1;}
 .ana-card-head{padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;}
 .ana-card-head h4{font-size:13px;font-weight:600;color:var(--gold);display:flex;align-items:center;gap:8px;}
 .ana-card-head .ana-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;}
@@ -662,20 +661,20 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 .strat-card h5{font-size:12px;font-weight:600;color:#e8e0d0;margin-bottom:3px;}
 .strat-card p{font-size:11px;color:var(--muted);line-height:1.4;}
 /* HireCarMarketWatch Carousel */
-.mw-carousel-wrap{position:relative;overflow:hidden;border-radius:0;max-height:400px;}
+.mw-carousel-wrap{position:relative;overflow:hidden;border-radius:12px;max-height:360px;}
 .mw-carousel-track{display:flex;transition:transform .6s cubic-bezier(.4,0,.2,1);will-change:transform;}
-.mw-slide{min-width:100%;box-sizing:border-box;cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;max-height:400px;}
-.mw-slide-hero{position:relative;width:100%;height:200px;overflow:hidden;flex-shrink:0;margin:0;}
+.mw-slide{min-width:100%;box-sizing:border-box;cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;max-height:360px;}
+.mw-slide-hero{position:relative;width:100%;height:180px;overflow:hidden;flex-shrink:0;}
 .mw-slide-hero img,.mw-slide-hero svg{width:100%;height:100%;object-fit:cover;display:block;}
-.mw-slide-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(to top,#1c2538,transparent);z-index:1;}
+.mw-slide-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(to top,#1c2538,transparent);z-index:1;}
 .mw-slide-body{padding:10px 16px 12px;background:linear-gradient(180deg,#1c2538 0%,#1a2236 100%);flex:1;display:flex;flex-direction:column;gap:4px;overflow:hidden;}
 .mw-slide-cat{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;font-family:'Share Tech Mono',monospace;padding:2px 8px;border-radius:4px;display:inline-block;width:fit-content;}
 .mw-cat-breach{background:rgba(248,113,113,.15);color:#fca5a5;}
 .mw-cat-auto{background:rgba(96,165,250,.15);color:#93c5fd;}
 .mw-cat-student{background:rgba(52,211,153,.15);color:#6ee7b7;}
 .mw-cat-credit{background:rgba(184,146,42,.15);color:var(--gold);}
-.mw-slide-title{font-size:17px;font-weight:700;color:#e8e0d0;line-height:1.35;margin:0;}
-.mw-slide-excerpt{font-size:13px;color:var(--muted);line-height:1.5;}
+.mw-slide-title{font-size:14px;font-weight:700;color:#e8e0d0;line-height:1.35;margin:0;}
+.mw-slide-excerpt{font-size:11px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .mw-slide-meta{display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(200,191,168,.4);font-family:'Share Tech Mono',monospace;margin-top:auto;}
 .mw-nav{position:absolute;bottom:10px;right:16px;display:flex;gap:6px;z-index:5;}
 .mw-nav button{width:8px;height:8px;border-radius:50%;border:1px solid rgba(184,146,42,.3);background:transparent;cursor:pointer;padding:0;transition:all .2s;}
@@ -1512,7 +1511,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
                   <!-- Slide 3: Student Loans -->
                   <div class="mw-slide" onclick="showMwComingSoon()">
                     <div class="mw-slide-hero">
-                      <img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop&crop=center" alt="Student loans education" loading="lazy">
+                      <img src="https://images.unsplash.com/photo-1523050854058-8df90110c476?w=600&h=400&fit=crop&crop=center" alt="Student loans education" loading="lazy">
                     </div>
                     <div class="mw-slide-body">
                       <span class="mw-slide-cat mw-cat-student">STUDENT LOANS</span>
