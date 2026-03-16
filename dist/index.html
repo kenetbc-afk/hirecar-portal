@@ -6,21 +6,28 @@
 <meta name="robots" content="noindex, nofollow">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="no-referrer">
+<!-- Browser Chrome: full-black immersive feel -->
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="msapplication-navbutton-color" content="#000000">
 <!-- Open Graph / Link Preview -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="HIRECAR — Member Services">
 <meta property="og:description" content="Secure Client Portal — Authorized Access Only">
-<meta property="og:image" content="https://kenetbc-afk.github.io/hirecar-portal/og-image.png">
+<meta property="og:image" content="https://hirecar-portal.pages.dev/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://kenetbc-afk.github.io/hirecar-portal/">
+<meta property="og:url" content="https://hirecar-portal.pages.dev/">
 <meta property="og:site_name" content="HIRECAR Member Services">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="HIRECAR — Member Services">
 <meta name="twitter:description" content="Secure Client Portal — Authorized Access Only">
-<meta name="twitter:image" content="https://kenetbc-afk.github.io/hirecar-portal/og-image.png">
+<meta name="twitter:image" content="https://hirecar-portal.pages.dev/og-image.png">
 <title>HIRECAR Member Services — Secure Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -329,7 +336,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
   .topbar-member-label{white-space:nowrap!important;}
   .portal-body{margin-left:0!important;padding-top:calc(var(--topbar-height) + 12px);padding-left:16px;padding-right:16px;}
   .topbar-brands{gap:6px;font-size:9px;letter-spacing:0.1em;overflow:hidden;}
-  .topbar-brands>span{display:inline!important;white-space:nowrap;}/* show "POWERED BY" on mobile */
+  .topbar-brands>span{display:inline!important;white-space:nowrap;font-weight:700;}/* show "POWERED BY" on mobile */
   .topbar-cycle-wrap{min-width:0!important;flex:1 1 auto!important;}
   .topbar-cycle-slide img{height:16px!important;width:auto!important;}
 .topbar-cycle-slide{display:none!important;}/* hide all slides on mobile */
@@ -344,6 +351,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
   .ev-row{grid-template-columns:1fr;}
   .msg-container{grid-template-columns:1fr;height:auto;}
   .msg-contacts{display:none;}
+  #msg-mobile-thread-select{display:block!important;}
   #chatbot-panel{width:calc(100% - 32px);right:16px;}
   .card-grid{grid-template-columns:1fr;}
   .stats-row{grid-template-columns:1fr 1fr;}
@@ -353,6 +361,17 @@ textarea.ev-input{min-height:80px;resize:vertical;}
   .stats-row{grid-template-columns:1fr;}
   .numpad button{width:52px;height:48px;font-size:18px;}
 }
+
+/* ========== REDUCED MOTION ========== */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important;}
+  .matrix-canvas,.ambient-glow,.hirecar-subtitle-text,.cwk-logo-img,.ph2-glitch-text{transition:none!important;animation:none!important;}
+}
+
+/* ========== GLOBAL FOCUS RING ========== */
+:focus-visible{outline:2px solid #3b82d6;outline-offset:2px;box-shadow:0 0 0 4px rgba(59,130,214,.25);}
+button:focus-visible,a:focus-visible,.sidebar-item:focus-visible,.doc-tab:focus-visible,.goal-chip:focus-visible,.cb-quick:focus-visible,.msg-contact:focus-visible{outline:2px solid #3b82d6;outline-offset:2px;box-shadow:0 0 0 4px rgba(59,130,214,.25);}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:#3b82d6;box-shadow:0 0 0 3px rgba(59,130,214,.3);}
 
 /* Tab Badges */
 .tab-badge-red{background:var(--error);}
@@ -844,6 +863,8 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 </style>
 </head>
 <body>
+<noscript><div style="background:#000;color:#f0f2f7;padding:40px;text-align:center;font-family:sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;"><div><h1 style="margin-bottom:16px;">HIRECAR Member Services</h1><p>This portal requires JavaScript to function. Please enable JavaScript in your browser settings and reload the page.</p></div></div></noscript>
+<a href="#main-content" class="skip-nav" style="position:absolute;top:-100px;left:16px;background:#2a6bb8;color:#fff;padding:8px 16px;border-radius:0 0 8px 8px;z-index:10002;font-size:14px;text-decoration:none;transition:top .2s;" onfocus="this.style.top='0'" onblur="this.style.top='-100px'">Skip to main content</a>
 
 <!-- ========== ENTRY OVERLAY ========== -->
 <div id="screen-ph2" class="intro-screen" role="dialog" aria-modal="true" aria-label="Secure access code entry">
@@ -893,11 +914,11 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 
 
   <!-- Sidebar Nav -->
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
     <div class="sidebar-brand">
       <div class="sidebar-brand-hc"><img id="sidebar-hc-logo" alt="HIRECAR"><span class="sidebar-member-label">Member Services</span></div>
     </div>
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" aria-label="Portal sections">
       <button class="sidebar-item menu-tab active" data-sec="sec-dashboard">
         <span class="nav-icon"></span><span class="nav-label">Dashboard</span>
       </button>
@@ -959,7 +980,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
     </div>
   </header>
 
-  <div class="portal-body">
+  <div class="portal-body" id="main-content" role="main">
 
     <!-- ===== DASHBOARD ===== -->
     <div id="sec-dashboard" class="section visible">
@@ -1366,9 +1387,9 @@ textarea.ev-input{min-height:80px;resize:vertical;}
     </div>
 
     <!-- Document Upload Modal -->
-    <div class="doc-upload-overlay" id="doc-upload-overlay">
+    <div class="doc-upload-overlay" id="doc-upload-overlay" role="dialog" aria-modal="true" aria-label="Upload document">
       <div class="doc-upload-modal">
-        <h3>Upload Document <button class="modal-close" onclick="closeDocUpload()">&times;</button></h3>
+        <h3>Upload Document <button class="modal-close" onclick="closeDocUpload()" aria-label="Close upload dialog">&times;</button></h3>
         <div class="doc-upload-drop" id="doc-upload-drop" onclick="document.getElementById('doc-file-input').click()">
           <div class="drop-icon">FILE</div>
           <p>Drag &amp; drop your file here, or click to browse</p>
@@ -2235,6 +2256,15 @@ textarea.ev-input{min-height:80px;resize:vertical;}
         <h2>Message Center</h2>
       </div>
       <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Send messages to your HIRECAR Member Services team. Messages are delivered to your dedicated support channel via Slack. You can also attach documents.</p>
+      <!-- Mobile thread selector (visible only on mobile where sidebar contacts are hidden) -->
+      <div id="msg-mobile-thread-select" style="display:none;margin-bottom:12px;">
+        <select style="width:100%;padding:10px 14px;border:1px solid var(--rule);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--cream);color:var(--ink);cursor:pointer;" onchange="switchThread(this.value)" aria-label="Select message thread">
+          <option value="Message Member Services">Message Member Services</option>
+          <option value="SeedXchange Legal">SeedXchange Legal</option>
+          <option value="Court Notifications">Court Notifications</option>
+          <option value="HIRECAR Support">HIRECAR Support</option>
+        </select>
+      </div>
       <div class="msg-container">
         <div class="msg-contacts">
           <div class="msg-contact active" onclick="switchThread('Message Member Services')"><h4>Message Member Services</h4><p style="font-size:11px;color:#60a5fa;">HIRECAR Member Services</p><p>Direct channel &mdash; Slack + email</p></div>
@@ -3151,9 +3181,9 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 </div><!-- /main-portal -->
 
 <!-- Chatbot -->
-<button id="chatbot-btn" onclick="toggleChat()" title="Hire_bot Assistant">?</button>
-<div id="chatbot-panel">
-  <div class="cb-header"><span>Hire_bot Assistant</span><button class="cb-close" onclick="toggleChat()">&times;</button></div>
+<button id="chatbot-btn" onclick="toggleChat()" title="Hire_bot Assistant" aria-label="Open chat assistant">?</button>
+<div id="chatbot-panel" role="dialog" aria-label="Hire_bot Assistant" aria-modal="false">
+  <div class="cb-header"><span>Hire_bot Assistant</span><button class="cb-close" onclick="toggleChat()" aria-label="Close chat assistant">&times;</button></div>
   <div class="cb-messages" id="cb-messages">
     <div class="cb-msg bot">Hi there, I'm your CreditWithKen case assistant. I can help you find documents, check deadlines, or navigate your case. What do you need?</div>
   </div>
@@ -3169,7 +3199,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 </div>
 
 <!-- Toast Container -->
-<div class="toast-container" id="toast-container"></div>
+<div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
 
 <script>
 /* ===== CENTRAL CLIENT PROFILE (Single Source of Truth) ===== */
@@ -3279,7 +3309,9 @@ updateAllClientElements();
     });
   })();
 
-  function escHtml(s){if(typeof s!=='string')return '';var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;}
+  /* Global XSS sanitizer — single definition used across all scopes */
+  window.escHtml=function(s){if(typeof s!=='string')return '';var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;};
+  function escHtml(s){return window.escHtml(s);}
 
   function showNicknamePrompt(){
     var nr=document.getElementById('nickname-row');
@@ -3357,13 +3389,8 @@ updateAllClientElements();
 ;(function(){
   'use strict';
 
-  /* ── XSS Sanitizer ── */
-  function escHtml(s){
-    if(typeof s!=='string')return '';
-    var d=document.createElement('div');
-    d.appendChild(document.createTextNode(s));
-    return d.innerHTML;
-  }
+  /* ── XSS Sanitizer (uses global window.escHtml) ── */
+  var escHtml=window.escHtml;
   /* ── Max file upload size: 25 MB ── */
   var MAX_FILE_BYTES=25*1024*1024;
   function validateFileSize(file){
@@ -4119,10 +4146,11 @@ function toggleMenuIcon(svg){
 /* HireCarMarketWatch Carousel */
 /* ── Topbar Brand Logos — inline or carousel ── */
 (function(){
-  var idx=0,total=3,timer=null,isCycling=false;
+  var idx=0,timer=null,isCycling=false;
   var wrap=document.querySelector('.topbar-cycle-wrap');
   var track=document.getElementById('topbar-cycle-track');
   if(!wrap||!track)return;
+  var total=track.querySelectorAll('.topbar-cycle-slide').length||3;
   function needsCarousel(){
     var slides=track.querySelectorAll('.topbar-cycle-slide');
     var totalW=0;
@@ -4636,7 +4664,9 @@ function submitEvidence(){submitCreditEvidence();}
 /* ===== MESSAGES ===== */
 /* HIRECAR API configuration */
 var HIRECAR_API='https://hirecar-onboarding.hirecar.workers.dev';
-var HIRECAR_CLIENT_ID=localStorage.getItem('hirecar_client_id')||'test-client-001';
+var HIRECAR_CLIENT_ID=localStorage.getItem('hirecar_client_id')||'';
+/* Warn if no client ID — messages will not route correctly */
+if(!HIRECAR_CLIENT_ID){console.warn('[HIRECAR] No client ID found in localStorage. API messaging disabled until authenticated.');}
 
 /* Message file attachment state */
 var _msgAttachedFile=null;
@@ -4659,6 +4689,7 @@ function formatFileSize(bytes){
 }
 
 function sendMsg(){
+  if(!HIRECAR_CLIENT_ID){showToast('Please sign in to send messages.','error');return;}
   var input=document.getElementById('msg-input');
   var val=input.value.trim();
   var hasFile=!!_msgAttachedFile;
@@ -4790,8 +4821,9 @@ function startMsgPolling(){
       _lastMsgCount=data.messages.length;
     }
   }).catch(function(){});
-  /* Poll every 30 seconds */
+  /* Poll every 5 seconds for near-real-time Slack replies */
   if(_msgPollTimer)clearInterval(_msgPollTimer);
+  if(!HIRECAR_CLIENT_ID){return;} /* Skip polling if no client ID */
   _msgPollTimer=setInterval(pollMessages,5000);
 }
 

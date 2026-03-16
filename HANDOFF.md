@@ -1,17 +1,18 @@
 # HIRECAR Member Services Portal — Developer Handoff
 
-**Date:** March 13, 2026
+**Date:** March 15, 2026
 **Author:** Claude (AI assistant) + Ken Eckman (CreditWithKen)
 **Repo:** https://github.com/kenetbc-afk/hirecar-portal.git
-**Live:** https://hirecarken.github.io/hirecar-portal/
+**Live:** https://hirecar-portal.pages.dev
+**Legacy:** https://hirecarken.github.io/hirecar-portal/
 
 ---
 
 ## 1. Project Overview
 
-HIRECAR is an automated credit repair client onboarding pipeline. The portal is a **single-file HTML SPA** (no build step) serving as the client dashboard where members track credit repair progress, exchange documents, and communicate with the admin team via Slack-backed messaging.
+HIRECAR is an automated credit repair client onboarding pipeline. The portal is a **single-file HTML SPA** (no build step) serving as the client dashboard where members track credit repair progress, exchange documents, manage tradelines, and communicate with the admin team via Slack-backed messaging.
 
-**Business entities:** CreditWithKen / ASAP Auto Loan / HIRECAR Member Services / SeedXchange
+**Business entities:** CreditWithKen, LLC / ASAP Auto Loan / HIRECAR Member Services / SeedXchange
 
 ---
 
@@ -21,8 +22,8 @@ HIRECAR is an automated credit repair client onboarding pipeline. The portal is 
 Client Browser
     |
     v
-GitHub Pages (static hosting)
-  /dist/index.html  <-- single-file SPA (3858 lines, ~810 KB)
+Cloudflare Pages (static hosting)
+  /dist/index.html  <-- single-file SPA (~5475 lines)
     |
     v  (fetch API calls)
 Cloudflare Worker ("hirecar-onboarding")
@@ -40,7 +41,7 @@ Cloudflare Worker ("hirecar-onboarding")
 - All JS in `<script>` blocks at the bottom
 - Base64-encoded logos (no external image deps)
 - Zero build step: edit the file and deploy
-- `localStorage` for client-side PIN/nickname/email
+- `localStorage` for client-side PIN/nickname/email, comm files, and tradelines
 
 ---
 
@@ -82,7 +83,8 @@ Cloudflare Worker ("hirecar-onboarding")
 | KV CLIENTS ID | `d26715fa0d904470aecc278a56feeb44` |
 | KV DASHBOARDS ID | `81c38c67872b470f80ae4a5f51bd2001` |
 | R2 bucket | `hirecar-documents` (commented out in wrangler.toml, not yet activated) |
-| CORS origins | `https://portal.hirecar.app`, `http://localhost:3456`, `https://kenetbc-afk.github.io` |
+| Pages project | `hirecar-portal` (Cloudflare Pages) |
+| CORS origins | `https://portal.hirecar.app`, `https://hirecar-portal.pages.dev`, `http://localhost:3456`, `https://kenetbc-afk.github.io` |
 
 ### Secrets (set via `wrangler secret put`)
 - `PASSKIT_WEBHOOK_SECRET` — HMAC key from PassKit
@@ -159,24 +161,27 @@ Client types in portal  -->  POST /client/:id/messages
 
 ## 7. Portal HTML Structure (index.html)
 
-### Line Map (approximate, as of 2026-03-13)
+### Line Map (approximate, as of 2026-03-15)
 | Lines | Content |
 |-------|---------|
 | 1-25 | Head, meta tags, OG image, Google Fonts |
 | 26-35 | CSS variables (`:root`) |
 | 36-430 | All CSS: sidebar, topbar, cards, tables, badges, animations, responsive |
-| ~117-130 | Topbar CSS: hamburger, brands, smart carousel (`.topbar-cycle-wrap`, `.topbar-cycle-track`) |
-| ~325-340 | Mobile responsive CSS (768px breakpoint) |
+| ~117-130 | Topbar CSS: hamburger, brands, smart carousel |
+| ~325-345 | Mobile responsive CSS (768px breakpoint) |
 | 431-930 | Intro screen HTML (matrix rain, PIN entry, logo sequence) |
 | ~935-950 | Topbar HTML (hamburger with HIRECAR logo, animated SVG menu toggle, "POWERED BY", 3 logo slides) |
-| ~950-1000 | Sidebar HTML (9 nav items, user avatar, collapse toggle) |
-| 1000-3100 | 9 section content blocks + chatbot overlay |
+| ~950-940 | Sidebar HTML (10 nav items, user avatar, collapse toggle) |
+| ~980-1000 | Dashboard header: service provider info + last login/update bar |
+| ~2130-2260 | Credit & Funding Communications section (7 channels with file upload) |
+| ~2263-2400 | Tradelines section (stat cards + editable table) |
 | ~3110-3120 | CLIENT_PROFILE object (single source of truth for client data) |
 | ~3120-3150 | `updateAllClientElements()` function |
 | ~3900-3940 | Sidebar toggle + hamburger sync JS |
+| ~3955-3970 | Hash-based deep link routing |
 | ~4045-4054 | `toggleMenuIcon()` — syncs SVG animation with sidebar state |
 | ~4056-4095 | Smart carousel IIFE — inline vs cycling mode based on available width |
-| 4100+ | Message polling, document handlers, playbooks JS |
+| 4100+ | Message polling, document handlers, comms files, tradelines JS |
 
 ### CSS Variables
 ```css
@@ -189,7 +194,7 @@ Client types in portal  -->  POST /client/:id/messages
 }
 ```
 
-### 9 Navigation Sections
+### 10 Navigation Sections
 | # | data-sec | Label | Icon |
 |---|----------|-------|------|
 | 1 | `sec-dashboard` | Dashboard | grid |
@@ -198,12 +203,13 @@ Client types in portal  -->  POST /client/:id/messages
 | 4 | `sec-evidence` | Evidence Vault | shield |
 | 5 | `sec-communications` | Communications | phone |
 | 6 | `sec-messages` | Message Center | chat |
-| 7 | `sec-strategy` | Strategy | target |
-| 8 | `sec-billing` | Billing | credit card |
-| 9 | `sec-playbooks` | Playbooks | book |
+| 7 | `sec-tradelines` | Tradelines | chart-bar |
+| 8 | `sec-strategy` | Strategy | target |
+| 9 | `sec-billing` | Calendar & Billing | credit card |
+| 10 | `sec-playbooks` | Playbooks | book |
 
 ### Tab Switching
-Sidebar buttons have class `menu-tab` + `data-sec` attribute. JS IIFE (~line 2872) adds click listeners:
+Sidebar buttons have class `menu-tab` + `data-sec` attribute. JS IIFE adds click listeners:
 1. Remove `.active` from all sidebar items
 2. Add `.active` to clicked item
 3. Hide all `.section` divs
@@ -216,14 +222,114 @@ Sidebar buttons have class `menu-tab` + `data-sec` attribute. JS IIFE (~line 287
 
 ---
 
-## 8. Intro Animation Flow
+## 8. Credit & Funding Communications (Comms Section)
+
+Redesigned from generic messaging to credit-specific communication channels with persistent file upload/retrieval.
+
+### 7 Communication Channels
+| Code | Channel Name | Purpose |
+|------|-------------|---------|
+| HC | HIRECAR Member Services / Credit Advisor | Primary credit advisor communication |
+| EQ | Equifax | Bureau-specific disputes & correspondence |
+| EX | Experian | Bureau-specific disputes & correspondence |
+| TU | TransUnion | Bureau-specific disputes & correspondence |
+| CK | CreditWithKen / Dispute Strategy | Dispute strategy & analysis |
+| FN | Funding & Lending | Funding applications & approvals |
+| AM | Account Manager | Account management & billing |
+
+### File Persistence
+- Files attached via `attachCommFile()` are stored in `localStorage` key `hc_comm_files`
+- `_commFiles` object maps channel IDs to arrays of file objects
+- Files persist across browser sessions
+- Each file has download and remove capabilities
+- `loadCommFiles()` runs on page init to restore files
+- `saveCommFiles()` called after every attach/remove operation
+
+---
+
+## 9. Tradelines Section
+
+Full CRUD tradeline management with localStorage persistence.
+
+### Summary Stat Cards
+- Open Accounts
+- Total Credit Limit
+- Utilization Rate
+- Negative Items
+
+### Editable Table Columns
+| Column | Type |
+|--------|------|
+| Creditor | Text input |
+| Account Type | Select (Credit Card, Auto Loan, Mortgage, Personal Loan, Student Loan, Other) |
+| Status | Select (Open, Closed, Collection, Charge-Off) |
+| Balance | Text input |
+| Limit | Text input |
+| Reported | Text input (date) |
+| Action | Remove button |
+
+### Tradeline JS Functions
+- `_tradelines` array stored in localStorage key `hc_tradelines`
+- `addTradeline()` — creates new row with default values
+- `removeTradeline(id)` — removes by ID
+- `updateTradeline(id, field, value)` — inline editing
+- `updateTradelineStats()` — recalculates summary cards
+- `renderTradelines()` — renders editable table rows
+- `saveTradelines()` / `loadTradelines()` — localStorage persistence
+
+---
+
+## 10. Topbar Layout
+
+### Desktop
+- **Left:** Animated SVG hamburger menu icon (syncs with sidebar collapse)
+- **Center-left:** "POWERED BY" text + smart logo carousel (SeedXchange, CreditWithKen, HIRECAR)
+- Carousel: 4s interval, 1s smooth transition, pause-on-hover
+- CreditWithKen logo: 22px height
+- HIRECAR logo: 17px height (white, brightness/invert filtered)
+
+### Mobile (≤768px)
+- **Far left:** Menu toggle icon (26x26px, absolutely positioned at left:12px)
+- **Left of brands:** HIRECAR hamburger logo (11px height) + "MEMBER SERVICES" label (static, one line)
+- **"POWERED BY"** text: visible, bold (font-weight:700)
+- Only CreditWithKen logo slide shown (carousel disabled)
+- Topbar has 46px left padding to make room for menu icon
+
+### Key CSS Classes
+- `.topbar-cycle-wrap` — flex container for carousel
+- `.topbar-cycle-track` — flex row of slides
+- `.topbar-cycle-slide` — individual logo container
+- `.topbar-brands` — "POWERED BY" text container
+- `.topbar-hamburger` — HIRECAR logo + Member Services label
+- `.topbar-member-label` — "MEMBER SERVICES" text (white-space:nowrap)
+- `#menu-toggle-icon` — animated SVG hamburger/X icon
+
+---
+
+## 11. Dashboard Info Bar
+
+Located below the service provider header (~line 988-991):
+
+```html
+<div style="...background:rgba(184,146,42,.06);border-left:3px solid var(--gold);">
+  <span>Last login: <strong id="last-login">Loading...</strong></span>
+  <span>Last update from HIRECAR Member Services: <strong id="last-hirecar-update">--</strong></span>
+  <span>Active Session</span>
+</div>
+```
+
+Service provider displays as: **HIRECAR: Member Services / CREDITWITHKEN, LLC**
+
+---
+
+## 12. Intro Animation Flow
 
 1. Matrix rain canvas fills screen (green characters)
 2. HIRECAR logo fades in, red glow intensifies (~3s)
 3. CreditWithKen logo fades in with ambient glow (~5s)
-4. PIN entry appears (4-digit code)
+4. PIN entry appears (5-digit code)
 5. Correct PIN -> intro fades out, main portal fades in
-6. "SKIP" button (fixed bottom-right, z-index:10001) bypasses at any stage
+6. "SKIP ▸" button (fixed bottom-right, z-index:10001) bypasses at any stage
 
 ### PIN Logic
 - First-time: Create 5-digit PIN -> confirm -> saved to `localStorage.hirecar_pin`
@@ -235,10 +341,33 @@ Sidebar buttons have class `menu-tab` + `data-sec` attribute. JS IIFE (~line 287
 | `hirecar_pin` | 5-digit access code |
 | `hirecar_nickname` | Display name |
 | `hirecar_email` | Client email |
+| `hc_comm_files` | Communication channel file attachments (JSON) |
+| `hc_tradelines` | Tradeline data (JSON array) |
 
 ---
 
-## 9. Color System & Design
+## 13. Hash-Based Deep Linking
+
+Portal supports `#section` URL fragments for PassKit back-of-pass navigation:
+
+| Fragment | Target Section |
+|----------|---------------|
+| `#dashboard` | sec-dashboard |
+| `#scores` | sec-dashboard (credit diagnostics card) |
+| `#evidence`, `#claims` | sec-evidence |
+| `#communications` | sec-communications |
+| `#messages`, `#qa` | sec-messages |
+| `#tradelines` | sec-tradelines |
+| `#strategy` | sec-strategy |
+| `#billing` | sec-billing |
+| `#playbook` | sec-playbooks |
+| `#upload` | sec-documents (opens upload modal) |
+
+Routing map at ~line 3959-3960.
+
+---
+
+## 14. Color System & Design
 
 | Role | Color | Notes |
 |------|-------|-------|
@@ -256,48 +385,12 @@ Sidebar buttons have class `menu-tab` + `data-sec` attribute. JS IIFE (~line 287
 
 ---
 
-## 10. Recent Changes (completed as of 2026-03-13)
-
-1. **Sidebar nav redesign** — replaced top nav bar with left sidebar (black-to-blue gradient, 260px, collapsible)
-2. **Topbar added** — thin 56px header with hamburger + brand logos
-3. **Sidebar collapse** — desktop toggle (260px -> 64px icons-only) + mobile hamburger slide-out
-4. **Active Dispute badge** — green badge with `@keyframes dotPulse` slow-flashing green dot
-5. **Active Litigation grayed** — `badge-grayed` class (dimmed, no color)
-6. **Body gradient** — heavy black coverage transitioning to deep navy
-7. **Message bubbles** — changed from gold to blue gradient (`#2563b0 -> #3b82d6`)
-8. **"Ken Eckman" -> "Message Member Services"** — renamed in 4 HTML + 2 JS locations
-9. **Polling interval** — reduced from 30s to 5s for near-real-time messaging
-10. **Dashboard Send button** — gold to blue gradient
-11. **Tab badges** — gold to blue gradient (`.tab-badge-gold` class)
-12. **Playbooks tab** — added as 9th tab with bit.ai-style document viewer + inner sidebar
-13. **Slack interactivity** — `handleSlackInteractivity()` wired for modals + block actions
-14. **GitHub Pages deployment** — live at https://hirecarken.github.io/hirecar-portal/
-15. **PassKit full field mapping** — `updatePassKitMember()` now sends all 10+ pass fields (displayName, activePlans, score, billing, status, etc.) instead of just portalLink
-16. **PassKit auto-sync** — admin dashboard updates to stats/billing now trigger `syncPassFromDashboard()` to keep the wallet pass current
-17. **Credit Score Diagnostics** — added CRDTSNP credit score diagnostic card to dashboard with Equifax/Experian/TransUnion placeholders, average/range/target, positive/negative factors
-18. **Email updated to member@hirecar.la** — all member-facing email references changed from `team@hirecar.la` to `member@hirecar.la` across portal
-19. **Hash-based deep linking** — portal now supports `#section` URL fragments for PassKit back-of-pass navigation (e.g., `#evidence`, `#messages`, `#playbook`, `#scores`, `#upload`)
-20. **Coming Soon page** — `dist/coming-soon.html` created for features under development (Reservations, Funding); accepts `?feature=` param for dynamic title/icon
-21. **Document control naming** — all 12 on-file documents assigned HC-YYYY-CAT-NNN identifiers (e.g., HC-2025-FIL-001, HC-2025-CRT-001). Category codes: AGR=Agreement, FIL=Filing, CRT=Court, NTC=Notice, EVD=Evidence, FIN=Financial
-22. **Document source attribution** — each doc card displays a source badge: `HIRECAR` (gold) for court filings/notices, `CWK` (blue) for CreditWithKen agreements, `CLIENT` for pending/uploaded items. Source filter dropdown added alongside search.
-23. **Combined document filtering** — tab, source dropdown, and text search now work together as a unified filter system (`_applyDocFilters()`)
-24. **Topbar brand cycling banner** — replaced static text-heavy "POWERED BY | CREDITWITHKEN | HIRECAR" with smart logo carousel. Shows all 3 logos (SeedXchange, CWK, HIRECAR) inline on desktop; auto-switches to horizontal R→L carousel on narrow screens. 4s interval, 1s smooth transition, pause-on-hover.
-25. **White HIRECAR logo** — replaced SeedXchange topbar logo with white HIRECAR logo from `/Users/hirecarken/Desktop/White logo - no background.png`, embedded as base64
-26. **Animated SVG menu toggle** — custom animated SVG hamburger icon in topbar, synced with sidebar collapse/expand state via `toggleMenuIcon()`
-27. **Mobile hamburger with HIRECAR branding** — hamburger button shows white HIRECAR logo + "Member Services" label on mobile
-28. **CLIENT_PROFILE memberSince fix** — fixed broken JS syntax (`'March '25'` → `"March '25"`) caused by sed escaping failure
-29. **Member Since slide removed** — removed from topbar carousel per user request; topbar now shows only the 3 brand logos
-
----
-
-## 11. PassKit Access Pass — Field Mapping
+## 15. PassKit Access Pass — Field Mapping
 
 ### Pass Template ID
 `7t4cG3EhKw6EF0GLCxUCBi` (Draft — promote to Live for production)
 
 ### Field Mapping (Worker → PassKit)
-
-The worker sends all fields via `updatePassKitMember()` in `token.js`. PassKit template variables must match these `metaData` keys exactly.
 
 #### Front Face Fields
 | PassKit Template Variable | metaData Key | Source | Example Value |
@@ -309,13 +402,11 @@ The worker sends all fields via `updatePassKitMember()` in `token.js`. PassKit t
 | `PLAYBOOK TYPE` | `playbookType` | Derived from `program` | "A$AP AUTO LOAN APPROVAL" |
 | `CAR RENTAL BILLING $$$` | `carRentalBilling` | `dashboard.billing.amount` | "$149/monthly" or "See Portal" |
 | `NEXT BILLING DUE MM/DD/YY` | `nextBillingDue` | Calculated from billing history | "04/13/26" |
-| Barcode `${pId}` | Auto (PassKit) | PassKit pass ID | Auto-generated |
 
 #### Back Fields
 | PassKit Template Variable | metaData Key | Source | Example Value |
 |--------------------------|-------------|--------|---------------|
 | `[status]` | `status` | `authRecord.status` | "Active" |
-| `${universal.expiryDate}` | Built-in | PassKit expiry config | Auto from program |
 | `[funding]` | `funding` | `clientData.funding` | "None Pending" |
 | `[refer]` | `refer` | `clientData.referralCode` | "Contact Member Services" |
 | Portal link | `portalLink` | Generated URL with token | `https://portal.hirecar.app?t=abc123...` |
@@ -330,89 +421,46 @@ The worker sends all fields via `updatePassKitMember()` in `token.js`. PassKit t
 ### Auto-Sync Behavior
 - **On client creation** (webhook.js): All fields populated via `updatePassKitMember()`
 - **On admin dashboard update** (dashboard.js): If `stats` or `billing` change, pass auto-syncs via `syncPassFromDashboard()`
-- **Sync function** lives in `token.js` — looks up auth + dashboard from KV, rebuilds all fields, sends to PassKit API
 
-### Back-of-Pass Link Routing (set in PassKit dashboard)
+### Back-of-Pass Link Routing
 
-| # | Pass Item | Target URL | Notes |
-|---|-----------|-----------|-------|
-| 4 | Reservations (HireCar Member Services) | `.../coming-soon.html?feature=reservations` | Coming Soon page |
-| 5 | CRDTSNP Score | `.../hirecar-portal/#scores` | Dashboard → credit diagnostics card |
-| 6 | Dispute Tracking | `.../hirecar-portal/#evidence` | "Log into your portfolio, select My Claims" |
-| 7 | Playbook | `.../hirecar-portal/#playbook` | Playbooks section in dashboard |
-| 8 | Client Q&A | `.../hirecar-portal/#messages` | Messages section |
-| 9 | Phone | `tel:+16616510858` | Triggers phone dialer / SMS prompt |
-| 10 | Email | `mailto:member@hirecar.la` | Opens email compose |
-| 11 | Funding Request | `.../coming-soon.html?feature=funding` | Coming Soon page |
-| 12 | Secure Upload Vault | `.../hirecar-portal/#upload` | Documents tab → opens upload modal |
-| 13 | MarketWatch | (keep current link) | Verified working |
-| 14 | Scanner Barcode | `https://hirecar.la` | Disabled/placeholder for now |
+| # | Pass Item | Target URL |
+|---|-----------|-----------|
+| 4 | Reservations | `.../coming-soon.html?feature=reservations` |
+| 5 | CRDTSNP Score | `.../hirecar-portal/#scores` |
+| 6 | Dispute Tracking | `.../hirecar-portal/#evidence` |
+| 7 | Playbook | `.../hirecar-portal/#playbook` |
+| 8 | Client Q&A | `.../hirecar-portal/#messages` |
+| 9 | Phone | `tel:+16616510858` |
+| 10 | Email | `mailto:member@hirecar.la` |
+| 11 | Funding Request | `.../coming-soon.html?feature=funding` |
+| 12 | Secure Upload Vault | `.../hirecar-portal/#upload` |
+| 13 | MarketWatch | (keep current link) |
+| 14 | Scanner Barcode | `https://hirecar.la` (placeholder) |
 
-> **Base URL:** `https://kenetbc-afk.github.io/hirecar-portal/` (or `https://portal.hirecar.app/` once DNS configured)
-
-### Contact Email
-- **Member-facing:** `member@hirecar.la` (PassKit pass, portal, messaging)
-- **Legal:** `legal@hirecar.la` (urgent/legal matters — unchanged)
-
-### PassKit Dashboard TODO (manual changes required)
-1. **Fix typo**: Back field "Client Documents" section says "lease upload" — change to "**Please upload**"
-2. **Remove "----coming soon----"** from MarketWatch field (or hide until ready)
-3. **Fix DBA name**: Push notification says "HIRECAR, LLC dba HIRECREDIT" — should be "HIRECAR, LLC dba CREDITWITHKEN" for consistency
-4. **Promote to Live Project** once all fields verified (draft passes expire after 48 hours)
-5. **Set all back-of-pass links** per the routing table above
-6. **Update contact email** on pass to `member@hirecar.la`
-7. **Scanner barcode** — map to `https://hirecar.la` (placeholder until referral system ready)
+### PassKit Dashboard TODO (manual)
+1. Fix typo: "lease upload" → "**Please upload**"
+2. Remove "----coming soon----" from MarketWatch field
+3. Fix DBA: "HIRECAR, LLC dba HIRECREDIT" → "HIRECAR, LLC dba CREDITWITHKEN"
+4. Promote to Live Project (draft passes expire after 48 hours)
+5. Set all back-of-pass links per routing table
+6. Update contact email on pass to `member@hirecar.la`
+7. Scanner barcode → `https://hirecar.la`
 
 ---
 
-### P1 — Topbar Banner Redesign ✅ COMPLETED
-Topbar converted from text-heavy to clean logo-only banner with smart carousel:
+## 16. Deployment
 
-**Current Implementation (as of 2026-03-13):**
-- Static "POWERED BY" text on the left
-- 3 brand logo slides: SeedXchange, CreditWithKen, HIRECAR
-- **Smart display mode:** All logos shown inline when space permits; auto-switches to horizontal R→L carousel on narrow screens
-- Carousel: 4s interval, 1s smooth cubic-bezier transition, pause-on-hover
-- CSS class `.cycling` added dynamically to `.topbar-cycle-wrap` when carousel activates
-- All logos normalized to 16px height (13px on mobile)
-- Animated SVG hamburger menu synced with sidebar toggle
-- White HIRECAR logo in hamburger button (mobile only)
-- "Member Since" slide removed from carousel (was causing clutter)
+### Portal (Cloudflare Pages — PRIMARY)
+```bash
+cd /Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal
+git add -f dist/index.html && git commit -m "description"
+git push origin main
+npx wrangler pages deploy dist --project-name=hirecar-portal
+# Live at: https://hirecar-portal.pages.dev
+```
 
-**Key CSS (lines ~122-130):**
-- `.topbar-cycle-wrap` — flex container, switches to `position:relative;overflow:hidden` when `.cycling`
-- `.topbar-cycle-track` — flex row of slides, `transition: transform 1s` when cycling
-- `.topbar-cycle-slide` — individual logo container, `flex-shrink:0`
-
-**Key JS (lines ~4056-4095):**
-- Smart carousel IIFE: `needsCarousel()` measures total slide widths vs wrap width
-- `enableCarousel()` / `disableCarousel()` toggle between inline and cycling modes
-- Resize handler recalculates and switches modes dynamically
-
-### P2 — Fix Topbar Bleed ✅ COMPLETED
-- `.portal-body` padding-top set to `calc(var(--topbar-height) + 20px)`
-- Sidebar collapse transitions properly with `margin-left` animation
-- Tested with sidebar expanded and collapsed
-
-### P3 — Verify Sidebar Collapse ✅ COMPLETED
-- Desktop toggle and mobile hamburger both work
-- SVG menu icon animation synced with sidebar state
-- Mobile sidebar slides in/out with backdrop overlay
-
-### P4 — Convert Remaining Gold to Blue (optional)
-Various `badge-gold` instances for "NEEDED", "PARTIAL", "OUTSTANDING" labels. Evaluate case-by-case whether they should become blue to match the new theme.
-
-### P5 — R2 Bucket Activation
-Uncomment `[[r2_buckets]]` section in `wrangler.toml` and redeploy worker when ready.
-
-### P6 — Production Domain
-Set up DNS for `portal.hirecar.app` pointing to the deployment target. Update CORS origins and meta tags.
-
----
-
-## 13. Deployment
-
-### Portal (GitHub Pages)
+### Portal (GitHub Pages — LEGACY)
 ```bash
 cd /Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal
 npx gh-pages -d dist
@@ -428,84 +476,125 @@ npx wrangler deploy
 ### Local Dev
 ```bash
 cd /Users/hirecarken/Desktop/CREDITWITHKEN/PassKit/hirecar-portal
-npx vite preview
-# or: python3 -m http.server 3456 --directory dist/
+npx vite preview --port 3456
 ```
 
-### Browser Caching Warning
-After deploying via `gh-pages`, browsers cache aggressively. Users need hard-refresh (`Cmd+Shift+R`) to see updates. Consider adding cache-busting meta tag or query param.
+### Important Notes
+- `dist/` is in `.gitignore` — must use `git add -f dist/index.html` to stage
+- Browsers cache aggressively — users need hard-refresh (`Cmd+Shift+R`)
+- Preview server runs on port 3456
 
 ---
 
-## 14. Git History
+## 17. Git History (latest)
 
 ```
-671b008 Add Active Dispute badge, fix background bleed, sidebar collapse
-65b2414 Dark slate theme with gradient bleeding + wire Slack messaging
-523afb2 Add Playbooks tab with bit.ai-style document viewer + handoff doc
-dd386b3 Add blank portal template + Santiago Urias client version
-2675425 Replace React SPA with single-page HTML portal matching reference design
-8e017ad HIRECAR Member Services Portal — full redesign matching reference
+e28145e Update portal: credit & funding comms, tradelines section, UI refinements
+bd393ee Hide carousel navigation dots
+7a473a3 Proportion bot and news card: bot larger (3:2 ratio), no blank space
+1099387 Move Market Watch news carousel next to bot container at top
+ca6a48e Remove HIRECAR MARKET WATCH header from MW card
+c057593 Remove top border on MW card, blend image from top and bottom
+1e194a5 Expand Market Watch carousel excerpts to fill blank space
+9c854dd Fix broken student loans image URL
+6c2fd82 Revert "Make Market Watch card full-width with edge-bleed images"
+fb8a706 Make Market Watch card full-width with edge-bleed images
+89bd168 Make carousel hero images taller for portrait-style layout
+95d7bb5 Replace SVG hero illustrations with Unsplash photos in Market Watch carousel
+308549b Make HC Run button glow very subtle
+d39e620 Change all btn-primary buttons to blue color scheme
+25ddd13 Change action buttons to blue with glow on HC Run button
 ```
 
 ---
 
-## 15. Important Architectural Notes
+## 18. Uncommitted Changes (as of 2026-03-15)
+
+- **"POWERED BY" text made bold on mobile** — added `font-weight:700` to `.topbar-brands>span` in mobile media query (line 332)
+- This change is NOT deployed to Cloudflare Pages yet
+
+---
+
+## 19. Important Architectural Notes
 
 ### Two Script Scopes
-The portal has **two separate script scopes** — this is the most important thing to know:
+The portal has **two separate script scopes**:
 1. **Outer `<script>`** — nickname/email prompts, some utility functions
 2. **IIFE `(function(){...})()`** — core portal logic: PIN handling, tab navigation, chatbot, messaging
 
-Functions in the outer scope cannot call IIFE functions unless exposed via `window.functionName`. This has caused bugs before.
+Functions in the outer scope cannot call IIFE functions unless exposed via `window.functionName`.
 
 ### Playbooks Inner Sidebar
-The Playbooks tab has its own sidebar (`.pb-sidebar`) independent of the main nav sidebar. Different CSS classes, separate JS toggle. They don't conflict.
+The Playbooks tab has its own sidebar (`.pb-sidebar`) independent of the main nav sidebar. Different CSS classes, separate JS toggle.
 
 ### Chatbot Overlay
-Fixed bottom-right (`z-index:1001`), independent of the nav sidebar (`z-index:1000`). No overlap issues.
+Fixed bottom-right (`z-index:1001`), independent of the nav sidebar (`z-index:1000`).
 
 ### Message Polling
-`setInterval` at ~line 3251 polls `GET /client/:id/messages` every 5000ms. Admin replies sent via Slack interactivity are stored in KV and picked up on the next poll cycle.
+`setInterval` polls `GET /client/:id/messages` every 5000ms. Admin replies from Slack are picked up on next poll.
+
+### localStorage Persistence Pattern
+Both comms files and tradelines use the same pattern:
+1. Module-level variable (`_commFiles`, `_tradelines`)
+2. `save*()` writes to localStorage as JSON
+3. `load*()` reads from localStorage on page init
+4. All mutations call `save*()` then `render*()`
 
 ---
 
-## 16. Quick Reference
+## 20. Pending Work
+
+| Priority | Task | Status |
+|----------|------|--------|
+| **High** | Push "POWERED BY" bold change + redeploy to Cloudflare | Ready (uncommitted) |
+| **High** | OG/Twitter meta tags updated to Cloudflare Pages URLs | Done (2026-03-15) |
+| **High** | Browser chrome meta tags (theme-color black, Safari status bar) | Done (2026-03-15) |
+| **High** | prefers-reduced-motion CSS added | Done (2026-03-15) |
+| **High** | Skip-nav link + ARIA roles (sidebar, modals, toasts, chatbot) | Done (2026-03-15) |
+| **High** | Global focus-visible rings for keyboard accessibility | Done (2026-03-15) |
+| **High** | Duplicate escHtml consolidated to single global | Done (2026-03-15) |
+| **High** | Hardcoded test-client-001 fallback removed (guards added) | Done (2026-03-15) |
+| **High** | Mobile thread selector for Message Center | Done (2026-03-15) |
+| **High** | Font preconnect hints added | Done (2026-03-15) |
+| **High** | noscript fallback added | Done (2026-03-15) |
+| **High** | dist/ removed from .gitignore | Done (2026-03-15) |
+| **High** | Carousel total derived from DOM instead of hardcoded | Done (2026-03-15) |
+| Medium | R2 Bucket Activation (uncomment in wrangler.toml) | Not started |
+| Medium | Production Domain (portal.hirecar.app DNS) | Not started |
+| Medium | Convert remaining gold badges to blue | Not started |
+| Medium | Remove "Five-Layer Dispute Strategy System" section | Not started |
+| Medium | Add example results to evidence matrix | Not started |
+| Medium | Feature Steps animate only once (play-once on scroll) | Not started |
+| Low | "E" in HIRECAR entry animation | Not started |
+| Low | Document section redesign with HC naming + source logos | Plan exists |
+
+---
+
+## 21. Quick Reference
 
 | Task | Command |
 |------|---------|
 | Edit portal | Open `dist/index.html` in any editor |
-| Deploy portal | `cd hirecar-portal && npx gh-pages -d dist` |
+| Deploy portal (CF Pages) | `npx wrangler pages deploy dist --project-name=hirecar-portal` |
 | Deploy worker | `cd hirecar-worker && npx wrangler deploy` |
 | Set worker secret | `cd hirecar-worker && npx wrangler secret put SECRET_NAME` |
-| Check KV data | Cloudflare Dashboard -> Workers & Pages -> KV |
-| View live site | https://hirecarken.github.io/hirecar-portal/ |
+| Check KV data | Cloudflare Dashboard → Workers & Pages → KV |
+| View live site | https://hirecar-portal.pages.dev |
 | Tail worker logs | `cd hirecar-worker && npx wrangler tail` |
-| Local preview | `cd hirecar-portal && npx vite preview` |
+| Local preview | `cd hirecar-portal && npx vite preview --port 3456` |
+| Git force-add dist | `git add -f dist/index.html` |
 
 ---
 
-## 17. Known Tech Debt
+## 22. Known Tech Debt
 
-1. **Dual script scopes** — outer script + IIFE creates fragile cross-scope deps. Consolidate when possible.
-2. **Client-side PIN only** — localStorage PIN is not real auth. Worker API provides server-side auth but the portal intro doesn't use it yet.
-3. **Static client data** — each client is a separate HTML file. Future: dynamic data from KV via API.
-4. **Large file** — ~85k tokens (~5000+ lines) due to base64 images. Could extract to CDN.
-5. **dist/ in gitignore** — force-added. Consider removing from `.gitignore`.
-6. **No service worker** — could add for offline support and cache management.
-7. **Topbar logo visibility** — SeedXchange logo may appear too dark on the dark topbar gradient. Consider brightness filter or white variant.
-
----
-
-## 18. Pending Feature Requests (from user sessions)
-
-| Priority | Request | Status |
-|----------|---------|--------|
-| Medium | Remove "Five-Layer Dispute Strategy System" section | Not started |
-| Medium | Add example results to evidence matrix section | Not started |
-| Medium | Feature Steps animate only once (play-once on scroll) | Not started |
-| Low | Use the "E" in HIRECAR to start entry animation | Not started |
-| Low | Document section redesign with HC naming + source logos | Plan exists at `~/.claude/plans/distributed-skipping-twilight.md` |
+1. **Dual script scopes** — outer script + IIFE creates fragile cross-scope deps
+2. **Client-side PIN only** — localStorage PIN is not real auth; Worker API has server-side auth but portal doesn't use it
+3. **Static client data** — each client is a separate HTML file; future: dynamic from KV
+4. **Large file** — ~85k tokens (~5475 lines) due to base64 images; could extract to CDN
+5. **dist/ in .gitignore** — force-added; consider removing from `.gitignore`
+6. **No service worker** — could add for offline support
+7. **localStorage limits** — comm files and tradelines stored as JSON strings; large file attachments could exceed ~5MB limit
 
 ---
 
