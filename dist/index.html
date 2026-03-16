@@ -370,7 +370,6 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 
 /* ========== GLOBAL FOCUS RING ========== */
 :focus-visible{outline:2px solid #3b82d6;outline-offset:2px;box-shadow:0 0 0 4px rgba(59,130,214,.25);}
-button:focus-visible,a:focus-visible,.sidebar-item:focus-visible,.doc-tab:focus-visible,.goal-chip:focus-visible,.cb-quick:focus-visible,.msg-contact:focus-visible{outline:2px solid #3b82d6;outline-offset:2px;box-shadow:0 0 0 4px rgba(59,130,214,.25);}
 input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:#3b82d6;box-shadow:0 0 0 3px rgba(59,130,214,.3);}
 
 /* Tab Badges */
@@ -914,7 +913,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
 
 
   <!-- Sidebar Nav -->
-  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-brand-hc"><img id="sidebar-hc-logo" alt="HIRECAR"><span class="sidebar-member-label">Member Services</span></div>
     </div>
@@ -3311,7 +3310,7 @@ updateAllClientElements();
 
   /* Global XSS sanitizer — single definition used across all scopes */
   window.escHtml=function(s){if(typeof s!=='string')return '';var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;};
-  function escHtml(s){return window.escHtml(s);}
+  var escHtml=window.escHtml;
 
   function showNicknamePrompt(){
     var nr=document.getElementById('nickname-row');
@@ -4665,9 +4664,6 @@ function submitEvidence(){submitCreditEvidence();}
 /* HIRECAR API configuration */
 var HIRECAR_API='https://hirecar-onboarding.hirecar.workers.dev';
 var HIRECAR_CLIENT_ID=localStorage.getItem('hirecar_client_id')||'';
-/* Warn if no client ID — messages will not route correctly */
-if(!HIRECAR_CLIENT_ID){console.warn('[HIRECAR] No client ID found in localStorage. API messaging disabled until authenticated.');}
-
 /* Message file attachment state */
 var _msgAttachedFile=null;
 function handleMsgFileAttach(input){
@@ -4812,6 +4808,7 @@ function updateMsgBadge(count){
 }
 
 function startMsgPolling(){
+  if(!HIRECAR_CLIENT_ID){return;} /* Skip entirely if no client ID */
   /* Mark all existing messages as known */
   fetch(HIRECAR_API+'/client/'+HIRECAR_CLIENT_ID+'/messages',{
     headers:{'X-Client-Id':HIRECAR_CLIENT_ID}
@@ -4823,7 +4820,6 @@ function startMsgPolling(){
   }).catch(function(){});
   /* Poll every 5 seconds for near-real-time Slack replies */
   if(_msgPollTimer)clearInterval(_msgPollTimer);
-  if(!HIRECAR_CLIENT_ID){return;} /* Skip polling if no client ID */
   _msgPollTimer=setInterval(pollMessages,5000);
 }
 
@@ -5446,6 +5442,7 @@ function saveSmsSettings(){
 
 /* ===== DASHBOARD QUICK MESSAGE ===== */
 function sendDashMsg(){
+  if(!HIRECAR_CLIENT_ID){showToast('Please sign in to send messages.','error');return;}
   var input=document.getElementById('dash-msg-input');
   var text=input.value.trim();
   if(!text)return;
