@@ -5963,9 +5963,13 @@ updateAllClientElements();
   var sections=document.querySelectorAll('.section');
   tabs.forEach(function(tab){
     tab.addEventListener('click',function(){
+      var target=tab.getAttribute('data-sec');
+      if(target==='sec-dashboard'){
+        window.location.reload();
+        return;
+      }
       tabs.forEach(function(t){t.classList.remove('active');});
       tab.classList.add('active');
-      var target=tab.getAttribute('data-sec');
       sections.forEach(function(s){s.classList.remove('visible');});
       document.getElementById(target).classList.add('visible');
       if(typeof closeMobileSidebar==='function')closeMobileSidebar();
