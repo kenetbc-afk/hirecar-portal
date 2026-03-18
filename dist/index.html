@@ -352,6 +352,7 @@ textarea.ev-input{min-height:80px;resize:vertical;}
 /* Responsive */
 @media(max-width:768px){
   .topbar-notif-bell{display:block!important;}
+  .topbar{padding-right:32px!important;}
   .sidebar{width:280px;transform:translateX(-100%);z-index:1100;}
   .sidebar.mobile-open{transform:translateX(0);}
   .sidebar.collapsed{width:280px;transform:translateX(-100%);}
@@ -1067,9 +1068,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
         </div>
       </div>
     </div>
-    <button class="topbar-notif-bell" onclick="document.querySelector('[data-sec=sec-notifications]').click();" aria-label="Notifications" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;z-index:10;">
-      <svg width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 11a8 8 0 00-16 0c0 8-4 10-4 10h24s-4-2-4-10z"/><path d="M13.7 28a2 2 0 004.6 0"/></svg>
-      <span style="position:absolute;top:2px;right:2px;width:8px;height:8px;background:var(--error);border-radius:50%;"></span>
+    <button class="topbar-notif-bell" onclick="document.querySelector('[data-sec=sec-notifications]').click();" aria-label="Notifications" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;z-index:10;">
+      <svg width="15" height="15" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 11a8 8 0 00-16 0c0 8-4 10-4 10h24s-4-2-4-10z"/><path d="M13.7 28a2 2 0 004.6 0"/></svg>
+      <span style="position:absolute;top:0;right:0;width:6px;height:6px;background:var(--error);border-radius:50%;"></span>
     </button>
   </header>
 
