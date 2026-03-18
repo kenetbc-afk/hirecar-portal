@@ -1039,6 +1039,14 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
           <span class="tab-badge tab-badge-gold">14</span>
         </button>
       </div>
+      <!-- NOTIFICATIONS -->
+      <div class="sidebar-group-label" onclick="toggleSidebarGroup(this)"><span>Notifications</span><span class="sg-chevron">&#9660;</span></div>
+      <div class="sidebar-group-items">
+        <button class="sidebar-item menu-tab" data-sec="sec-notifications">
+          <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 11a8 8 0 00-16 0c0 8-4 10-4 10h24s-4-2-4-10z"/><path d="M13.7 28a2 2 0 004.6 0"/></svg></span><span class="nav-label">Notifications</span>
+          <span class="tab-badge tab-badge-red">0</span>
+        </button>
+      </div>
     </nav>
     <!-- User card and collapse toggle removed — member info in Member Profile -->
   </aside>
@@ -5024,6 +5032,73 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
       </div>
 
     </div><!-- /sec-playbooks -->
+
+    <!-- ===== NOTIFICATIONS ===== -->
+    <div id="sec-notifications" class="section">
+      <div class="sec-header">
+        <div class="accent-bar"></div>
+        <h2>Notifications</h2>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Stay informed about your account activity, program updates, dispute responses, billing alerts, and important deadlines.</p>
+
+      <!-- Notification Filters -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn-primary" style="padding:6px 16px;font-size:12px;" onclick="filterNotifications('all')">All</button>
+        <button style="padding:6px 16px;font-size:12px;background:rgba(42,107,184,.1);border:1px solid rgba(42,107,184,.2);border-radius:8px;color:var(--blue);cursor:pointer;" onclick="filterNotifications('account')">Account</button>
+        <button style="padding:6px 16px;font-size:12px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);border-radius:8px;color:var(--success);cursor:pointer;" onclick="filterNotifications('disputes')">Disputes</button>
+        <button style="padding:6px 16px;font-size:12px;background:rgba(184,146,42,.1);border:1px solid rgba(184,146,42,.2);border-radius:8px;color:var(--amber);cursor:pointer;" onclick="filterNotifications('billing')">Billing</button>
+        <button style="padding:6px 16px;font-size:12px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:8px;color:var(--error);cursor:pointer;" onclick="filterNotifications('urgent')">Urgent</button>
+      </div>
+
+      <!-- Notifications List -->
+      <div id="notifications-list">
+        <div class="card" style="border-left:3px solid var(--blue);margin-bottom:8px;padding:14px 20px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span class="badge badge-blue" style="font-size:9px;">ACCOUNT</span>
+                <span style="font-size:11px;color:var(--muted);">Today</span>
+              </div>
+              <div style="font-size:14px;font-weight:600;color:var(--ink);">Welcome to HIRECAR Member Services</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:4px;">Your PIFR membership is active. Complete your credit file intake to begin the dispute process.</div>
+            </div>
+            <button style="padding:4px 8px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;font-size:11px;flex-shrink:0;" onclick="this.closest('.card').style.opacity='0.4';showToast('Notification dismissed.','info')">Dismiss</button>
+          </div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--amber);margin-bottom:8px;padding:14px 20px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span class="badge badge-gold" style="font-size:9px;">BILLING</span>
+                <span style="font-size:11px;color:var(--muted);">Today</span>
+              </div>
+              <div style="font-size:14px;font-weight:600;color:var(--ink);">Payment Setup Required</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:4px;">Set up your payment method in HIREPAY to ensure uninterrupted service.</div>
+            </div>
+            <button style="padding:4px 8px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;font-size:11px;flex-shrink:0;" onclick="this.closest('.card').style.opacity='0.4';showToast('Notification dismissed.','info')">Dismiss</button>
+          </div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--success);margin-bottom:8px;padding:14px 20px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span class="badge badge-green" style="font-size:9px;">DISPUTES</span>
+                <span style="font-size:11px;color:var(--muted);">Pending</span>
+              </div>
+              <div style="font-size:14px;font-weight:600;color:var(--ink);">Credit File Intake Incomplete</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:4px;">Complete all 5 intake sections in PIFR &rarr; Credit Repair to generate your personalized dispute strategy.</div>
+            </div>
+            <button style="padding:4px 8px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;font-size:11px;flex-shrink:0;" onclick="this.closest('.card').style.opacity='0.4';showToast('Notification dismissed.','info')">Dismiss</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State (hidden when notifications exist) -->
+      <div id="notifications-empty" style="display:none;text-align:center;color:var(--muted);padding:40px;font-size:14px;">
+        <svg width="48" height="48" viewBox="0 0 32 32" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px;opacity:.4;"><path d="M24 11a8 8 0 00-16 0c0 8-4 10-4 10h24s-4-2-4-10z"/><path d="M13.7 28a2 2 0 004.6 0"/></svg>
+        <div>No notifications at this time. You&rsquo;re all caught up.</div>
+      </div>
+    </div>
 
   </div><!-- /portal-body -->
 
