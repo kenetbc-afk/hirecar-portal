@@ -3767,8 +3767,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
         </div>
 
         <div style="display:flex;gap:8px;">
-          <button class="btn-primary" onclick="showToast('Payment commitment saved. Calendar invite and confirmation will be sent to your email and phone.','success')" style="padding:10px 24px;font-size:14px;">Confirm Payment Commitment</button>
-          <button style="padding:10px 24px;font-size:14px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--muted);cursor:pointer;" onclick="showToast('Payment schedule cleared.','info')">Clear</button>
+          <button class="btn-primary" onclick="confirmPaymentCommitment()" style="padding:10px 24px;font-size:14px;">Confirm Payment Commitment</button>
+          <button style="padding:10px 24px;font-size:14px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--muted);cursor:pointer;" onclick="document.getElementById('pay-due-date').value='';document.getElementById('pay-method').value='';document.getElementById('pay-amount').value='';document.getElementById('pay-frequency').value='once';document.getElementById('pay-commit-agree').checked=false;showToast('Payment schedule cleared.','info')">Clear</button>
         </div>
       </div>
 
@@ -7922,6 +7922,496 @@ function showToast(msg,type){
     setTimeout(function(){container.removeChild(t);},400);
   },3500);
 }
+
+/* ===== BILLING & NOTIFICATIONS SYNC ===== */
+(function(){
+  'use strict';
+
+  function _formatCurrency(val) {
+    if (!val && val !== 0) return '$0.00';
+    var n = parseFloat(val);
+    if (isNaN(n)) return val;
+    return '$' + n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  function _formatDate(d) {
+    if (!d) return '---';
+    var dt = new Date(d);
+    if (isNaN(dt.getTime())) return d;
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function _timeAgo(d) {
+    if (!d) return '';
+    var now = Date.now();
+    var diff = now - new Date(d).getTime();
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+    return _formatDate(d);
+  }
+
+  function _escapeHtml(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function _billingBadge(status) {
+    switch (status) {
+      case 'Paid': case 'Kept': case 'Accepted': return 'badge-green';
+      case 'Outstanding': case 'Partial': case 'Pending': case 'Sent': return 'badge-gold';
+      case 'Overdue': case 'Failed': case 'Declined': return 'badge-red';
+      case 'Scheduled': case 'Draft': return 'badge-blue';
+      case 'Recommitted': return 'badge-gold';
+      default: return 'badge-green';
+    }
+  }
+
+  var _lastNotifCount = 0;
+
+  function loadClientBillingData() {
+    renderClientFinancialSummary();
+    renderClientPaymentHistory();
+    renderClientScheduledPayments();
+    renderClientCommitmentHistory();
+    renderClientQuotesAndInvoices();
+    renderClientNotifications();
+    updateNotificationBadge();
+  }
+
+  function renderClientFinancialSummary() {
+    var billing = [];
+    var invoices = [];
+    try { billing = JSON.parse(localStorage.getItem('hc_client_billing') || '[]'); } catch(e) {}
+    try { invoices = JSON.parse(localStorage.getItem('hc_client_invoices') || '[]'); } catch(e) {}
+
+    var totalPaid = 0, totalOwed = 0;
+    billing.forEach(function(b) {
+      totalPaid += (b.paid || 0);
+      if (b.status !== 'Paid') totalOwed += (b.amount - (b.paid || 0));
+    });
+
+    var summaryCards = document.querySelector('#hp-overview .stat-card');
+    if (summaryCards) {
+      var container = summaryCards.parentElement;
+      if (container) {
+        var cards = container.querySelectorAll('.stat-card');
+        if (cards.length >= 3) {
+          cards[0].querySelector('div').textContent = _formatCurrency(totalPaid);
+          cards[2].querySelector('div').textContent = _formatCurrency(totalOwed);
+        }
+      }
+    }
+  }
+
+  function renderClientPaymentHistory() {
+    var billing = [];
+    try { billing = JSON.parse(localStorage.getItem('hc_client_billing') || '[]'); } catch(e) {}
+
+    var tbody = document.querySelector('#hp-payments .coa-table tbody');
+    if (!tbody) return;
+
+    if (billing.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">No payment history available.</td></tr>';
+      return;
+    }
+
+    var html = '';
+    billing.forEach(function(b) {
+      html += '<tr>';
+      html += '<td>' + _formatDate(b.createdAt) + '</td>';
+      html += '<td>' + _escapeHtml(b.service) + '</td>';
+      html += '<td style="font-weight:700;">' + _formatCurrency(b.amount) + '</td>';
+      html += '<td><span class="badge ' + _billingBadge(b.status) + '" style="font-size:9px;">' + _escapeHtml(b.status).toUpperCase() + '</span></td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function renderClientScheduledPayments() {
+    var commitments = [];
+    try { commitments = JSON.parse(localStorage.getItem('hc_client_commitments') || '[]'); } catch(e) {}
+
+    var tbody = document.getElementById('scheduled-payments-body');
+    if (!tbody) return;
+
+    var scheduled = commitments.filter(function(pc) { return pc.status === 'Scheduled'; });
+
+    if (scheduled.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">No scheduled payments yet. Use the form above to set your first payment commitment.</td></tr>';
+      return;
+    }
+
+    var html = '';
+    scheduled.forEach(function(pc) {
+      html += '<tr>';
+      html += '<td>' + _formatDate(pc.dueDate) + '</td>';
+      html += '<td style="font-weight:700;">' + _formatCurrency(pc.amount) + '</td>';
+      html += '<td>' + _escapeHtml(pc.method || '---') + '</td>';
+      html += '<td>' + _escapeHtml(pc.frequency || 'once') + '</td>';
+      html += '<td><span class="badge badge-blue" style="font-size:9px;">SCHEDULED</span></td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function renderClientCommitmentHistory() {
+    var commitments = [];
+    try { commitments = JSON.parse(localStorage.getItem('hc_client_commitments') || '[]'); } catch(e) {}
+
+    // Find the commitment history table (2nd coa-table after scheduled payments)
+    var tables = document.querySelectorAll('#hp-payments .coa-table');
+    // Payment History is first table, scheduled is in a card further down, commitment history is the last table in hp-payments
+    var historyTable = null;
+    for (var i = 0; i < tables.length; i++) {
+      var thead = tables[i].querySelector('thead tr');
+      if (thead && thead.textContent.indexOf('Outcome') !== -1) {
+        historyTable = tables[i];
+        break;
+      }
+    }
+    if (!historyTable) return;
+    var tbody = historyTable.querySelector('tbody');
+    if (!tbody) return;
+
+    if (commitments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">No commitment history yet.</td></tr>';
+      return;
+    }
+
+    var html = '';
+    commitments.forEach(function(pc) {
+      html += '<tr>';
+      html += '<td>' + _formatDate(pc.dueDate) + '</td>';
+      html += '<td style="font-weight:700;">' + _formatCurrency(pc.amount) + '</td>';
+      html += '<td>' + _escapeHtml(pc.method || '---') + '</td>';
+      html += '<td>' + _escapeHtml(pc.frequency || 'One-Time') + '</td>';
+      html += '<td><span class="badge ' + _billingBadge(pc.status) + '" style="font-size:9px;">' + _escapeHtml(pc.status).toUpperCase() + '</span></td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function renderClientQuotesAndInvoices() {
+    var quotes = [];
+    var invoices = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch(e) {}
+    try { invoices = JSON.parse(localStorage.getItem('hc_client_invoices') || '[]'); } catch(e) {}
+
+    // Find the Quotes & Invoices table
+    var quotesTable = null;
+    var allTables = document.querySelectorAll('#sec-billing .coa-table');
+    for (var i = 0; i < allTables.length; i++) {
+      var thead = allTables[i].querySelector('thead tr');
+      if (thead && thead.textContent.indexOf('Quote') !== -1 && thead.textContent.indexOf('Action') !== -1) {
+        quotesTable = allTables[i];
+        break;
+      }
+    }
+    if (!quotesTable) return;
+    var tbody = quotesTable.querySelector('tbody');
+    if (!tbody) return;
+
+    // Update badges
+    var acceptedCount = quotes.filter(function(q) { return q.status === 'Accepted'; }).length;
+    var pendingCount = quotes.filter(function(q) { return q.status === 'Pending' || q.status === 'Sent'; }).length;
+    var badgeContainer = quotesTable.closest('.card');
+    if (badgeContainer) {
+      var badges = badgeContainer.querySelectorAll('.badge');
+      badges.forEach(function(b) {
+        if (b.textContent.indexOf('ACCEPTED') !== -1) b.textContent = acceptedCount + ' ACCEPTED';
+        if (b.textContent.indexOf('PENDING') !== -1) b.textContent = pendingCount + ' PENDING';
+      });
+    }
+
+    var allItems = [];
+    quotes.forEach(function(q) { allItems.push({ type: 'quote', data: q }); });
+    invoices.forEach(function(inv) { allItems.push({ type: 'invoice', data: inv }); });
+
+    if (allItems.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">No quotes or invoices yet.</td></tr>';
+      return;
+    }
+
+    var html = '';
+    allItems.forEach(function(item) {
+      var d = item.data;
+      var num = item.type === 'quote' ? d.number : d.number;
+      var type = item.type === 'quote' ? d.service : 'Invoice';
+      var desc = item.type === 'quote' ? d.description : d.description;
+      var amount = d.amount;
+      var status = d.status;
+
+      html += '<tr>';
+      html += '<td style="font-family:\'Share Tech Mono\',monospace;font-size:12px;">' + _escapeHtml(num) + '</td>';
+      html += '<td>' + _escapeHtml(type) + '</td>';
+      html += '<td>' + _escapeHtml(desc) + '</td>';
+      html += '<td style="font-weight:700;">' + _formatCurrency(amount) + '</td>';
+      html += '<td><span class="badge ' + _billingBadge(status) + '" style="font-size:9px;">' + _escapeHtml(status).toUpperCase() + '</span></td>';
+      html += '<td>';
+      if (item.type === 'quote' && (status === 'Pending' || status === 'Sent')) {
+        html += '<div style="display:flex;gap:4px;">';
+        html += '<button class="btn-primary" style="padding:4px 12px;font-size:11px;" onclick="acceptQuote(\'' + _escapeHtml(d.id) + '\')">Accept</button>';
+        html += '<button style="padding:4px 12px;font-size:11px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;" onclick="declineQuote(\'' + _escapeHtml(d.id) + '\')">Decline</button>';
+        html += '</div>';
+      } else {
+        html += '<button style="padding:4px 12px;font-size:11px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;">View</button>';
+      }
+      html += '</td>';
+      html += '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function renderClientNotifications() {
+    var notifs = [];
+    try { notifs = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]'); } catch(e) {}
+
+    var container = document.getElementById('notifications-list');
+    if (!container) return;
+
+    // Build default static notifications HTML
+    var staticHtml = '';
+    staticHtml += '<div class="card notification-card" data-category="account" style="border-left:3px solid var(--blue);margin-bottom:8px;padding:14px 20px;">';
+    staticHtml += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">';
+    staticHtml += '<div style="flex:1;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span class="badge badge-blue" style="font-size:9px;">ACCOUNT</span><span style="font-size:11px;color:var(--muted);">Today</span></div>';
+    staticHtml += '<div style="font-size:14px;font-weight:600;color:var(--ink);">Welcome to HIRECAR Member Services</div>';
+    staticHtml += '<div style="font-size:13px;color:var(--muted);margin-top:4px;">Your PIFR membership is active. Complete your credit file intake to begin the dispute process.</div>';
+    staticHtml += '</div><button style="padding:4px 8px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;font-size:11px;flex-shrink:0;" onclick="this.closest(\'.card\').style.opacity=\'0.4\';showToast(\'Notification dismissed.\',\'info\')">Dismiss</button></div></div>';
+
+    // Dynamic notifications from admin
+    var dynamicHtml = '';
+    notifs.forEach(function(n) {
+      var borderColor = 'var(--blue)';
+      var badgeClass = 'badge-blue';
+      var categoryLabel = 'ACCOUNT';
+      var category = n.type || 'account';
+
+      if (n.type === 'billing' || n.type === 'invoice') { borderColor = 'var(--amber)'; badgeClass = 'badge-gold'; categoryLabel = 'BILLING'; category = 'billing'; }
+      else if (n.type === 'quote') { borderColor = 'var(--blue)'; badgeClass = 'badge-blue'; categoryLabel = 'BILLING'; category = 'billing'; }
+      else if (n.type === 'commitment') { borderColor = 'var(--success)'; badgeClass = 'badge-green'; categoryLabel = 'BILLING'; category = 'billing'; }
+      else if (n.type === 'urgent') { borderColor = 'var(--error)'; badgeClass = 'badge-red'; categoryLabel = 'URGENT'; category = 'urgent'; }
+
+      dynamicHtml += '<div class="card notification-card" data-category="' + category + '" style="border-left:3px solid ' + borderColor + ';margin-bottom:8px;padding:14px 20px;">';
+      dynamicHtml += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">';
+      dynamicHtml += '<div style="flex:1;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">';
+      dynamicHtml += '<span class="badge ' + badgeClass + '" style="font-size:9px;">' + categoryLabel + '</span>';
+      dynamicHtml += '<span style="font-size:11px;color:var(--muted);">' + _timeAgo(n.timestamp) + '</span>';
+      if (!n.read) dynamicHtml += '<span style="width:6px;height:6px;background:var(--error);border-radius:50%;display:inline-block;"></span>';
+      dynamicHtml += '</div>';
+      dynamicHtml += '<div style="font-size:14px;font-weight:600;color:var(--ink);">' + _escapeHtml(n.title) + '</div>';
+      dynamicHtml += '<div style="font-size:13px;color:var(--muted);margin-top:4px;">' + _escapeHtml(n.message) + '</div>';
+      dynamicHtml += '</div>';
+      dynamicHtml += '<button style="padding:4px 8px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;font-size:11px;flex-shrink:0;" onclick="dismissNotification(\'' + _escapeHtml(n.id) + '\',this)">Dismiss</button>';
+      dynamicHtml += '</div></div>';
+    });
+
+    container.innerHTML = dynamicHtml + staticHtml;
+
+    var emptyEl = document.getElementById('notifications-empty');
+    if (emptyEl) emptyEl.style.display = (notifs.length === 0) ? 'none' : 'none';
+  }
+
+  function updateNotificationBadge() {
+    var notifs = [];
+    try { notifs = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]'); } catch(e) {}
+    var unread = notifs.filter(function(n) { return !n.read; }).length;
+
+    // Update sidebar badge
+    var navItems = document.querySelectorAll('.sidebar-item');
+    navItems.forEach(function(item) {
+      if (item.getAttribute('data-sec') === 'sec-notifications') {
+        var badge = item.querySelector('.tab-badge');
+        if (badge) {
+          badge.textContent = unread;
+          badge.style.display = unread > 0 ? '' : 'none';
+        }
+      }
+    });
+  }
+
+  function checkForNewNotifications() {
+    var notifs = [];
+    try { notifs = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]'); } catch(e) {}
+    var currentCount = notifs.length;
+
+    if (currentCount > _lastNotifCount && _lastNotifCount > 0) {
+      var newest = notifs[0];
+      if (newest && typeof showToast === 'function') {
+        showToast(newest.title || 'New notification received', 'info');
+      }
+      renderClientNotifications();
+    }
+
+    _lastNotifCount = currentCount;
+    updateNotificationBadge();
+  }
+
+  // Expose functions globally
+  window.acceptQuote = function(quoteId) {
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch(e) {}
+    var q = quotes.find(function(x) { return x.id === quoteId; });
+    if (!q) { showToast('Quote not found', 'error'); return; }
+
+    q.status = 'Accepted';
+    try { localStorage.setItem('hc_client_quotes', JSON.stringify(quotes)); } catch(e) {}
+
+    // Also update in admin clients data
+    try {
+      var clients = JSON.parse(localStorage.getItem('hc_admin_clients') || '[]');
+      clients.forEach(function(c) {
+        (c.quotes || []).forEach(function(cq) {
+          if (cq.id === quoteId) cq.status = 'Accepted';
+        });
+      });
+      localStorage.setItem('hc_admin_clients', JSON.stringify(clients));
+    } catch(e) {}
+
+    showToast('Quote ' + q.number + ' accepted! Confirmation sent.', 'success');
+    loadClientBillingData();
+  };
+
+  window.declineQuote = function(quoteId) {
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch(e) {}
+    var q = quotes.find(function(x) { return x.id === quoteId; });
+    if (!q) { showToast('Quote not found', 'error'); return; }
+
+    q.status = 'Declined';
+    try { localStorage.setItem('hc_client_quotes', JSON.stringify(quotes)); } catch(e) {}
+
+    try {
+      var clients = JSON.parse(localStorage.getItem('hc_admin_clients') || '[]');
+      clients.forEach(function(c) {
+        (c.quotes || []).forEach(function(cq) {
+          if (cq.id === quoteId) cq.status = 'Declined';
+        });
+      });
+      localStorage.setItem('hc_admin_clients', JSON.stringify(clients));
+    } catch(e) {}
+
+    showToast('Quote declined.', 'info');
+    loadClientBillingData();
+  };
+
+  window.dismissNotification = function(notifId, btnEl) {
+    if (btnEl) btnEl.closest('.card').style.opacity = '0.4';
+    var notifs = [];
+    try { notifs = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]'); } catch(e) {}
+    notifs = notifs.filter(function(n) { return n.id !== notifId; });
+    try { localStorage.setItem('hc_client_notifications', JSON.stringify(notifs)); } catch(e) {}
+    updateNotificationBadge();
+    showToast('Notification dismissed.', 'info');
+  };
+
+  window.filterNotifications = function(category) {
+    var cards = document.querySelectorAll('#notifications-list .notification-card');
+    cards.forEach(function(card) {
+      if (category === 'all') {
+        card.style.display = '';
+      } else {
+        var cat = card.getAttribute('data-category') || '';
+        card.style.display = (cat === category) ? '' : 'none';
+      }
+    });
+  };
+
+  window.confirmPaymentCommitment = function() {
+    var dueDate = document.getElementById('pay-due-date').value;
+    var method = document.getElementById('pay-method').value;
+    var amount = document.getElementById('pay-amount').value;
+    var frequency = document.getElementById('pay-frequency').value;
+    var agree = document.getElementById('pay-commit-agree').checked;
+
+    if (!dueDate || !method || !amount) {
+      showToast('Please fill in all payment commitment fields.', 'error');
+      return;
+    }
+    if (!agree) {
+      showToast('Please agree to the payment terms before confirming.', 'error');
+      return;
+    }
+
+    var amountNum = parseFloat(amount.replace(/[^0-9.]/g, ''));
+    if (isNaN(amountNum) || amountNum <= 0) {
+      showToast('Please enter a valid payment amount.', 'error');
+      return;
+    }
+
+    // Save to localStorage
+    var commitments = [];
+    try { commitments = JSON.parse(localStorage.getItem('hc_client_commitments') || '[]'); } catch(e) {}
+
+    var newCommitment = {
+      id: 'cpc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      clientId: '',
+      clientName: '',
+      amount: amountNum,
+      method: method,
+      dueDate: new Date(dueDate).toISOString(),
+      frequency: frequency,
+      status: 'Scheduled',
+      createdAt: new Date().toISOString()
+    };
+    commitments.push(newCommitment);
+    try { localStorage.setItem('hc_client_commitments', JSON.stringify(commitments)); } catch(e) {}
+
+    // Also add a notification
+    var notifs = [];
+    try { notifs = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]'); } catch(e) {}
+    notifs.unshift({
+      id: 'n_' + Date.now().toString(36),
+      type: 'commitment',
+      title: 'Payment Commitment Confirmed',
+      message: 'You committed to pay ' + _formatCurrency(amountNum) + ' via ' + method + ' on ' + _formatDate(dueDate) + '. A calendar invite and payment link will be sent.',
+      timestamp: new Date().toISOString(),
+      read: false,
+      data: { commitmentId: newCommitment.id }
+    });
+    try { localStorage.setItem('hc_client_notifications', JSON.stringify(notifs)); } catch(e) {}
+
+    showToast('Payment commitment saved. Calendar invite and confirmation will be sent to your email and phone.', 'success');
+
+    // Reset form
+    document.getElementById('pay-due-date').value = '';
+    document.getElementById('pay-method').value = '';
+    document.getElementById('pay-amount').value = '';
+    document.getElementById('pay-frequency').value = 'once';
+    document.getElementById('pay-commit-agree').checked = false;
+
+    loadClientBillingData();
+  };
+
+  window.loadClientBillingData = loadClientBillingData;
+  window.renderClientNotifications = renderClientNotifications;
+  window.updateNotificationBadge = updateNotificationBadge;
+  window.checkForNewNotifications = checkForNewNotifications;
+
+  // Initialize on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        loadClientBillingData();
+        _lastNotifCount = 0;
+        try { _lastNotifCount = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]').length; } catch(e) {}
+      }, 500);
+      // Poll every 30 seconds
+      setInterval(checkForNewNotifications, 30000);
+    });
+  } else {
+    setTimeout(function() {
+      loadClientBillingData();
+      _lastNotifCount = 0;
+      try { _lastNotifCount = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]').length; } catch(e) {}
+    }, 500);
+    setInterval(checkForNewNotifications, 30000);
+  }
+
+})();
 
 /* ==========================================================================
    SMARTCREDIT (ConsumerDirect) CO-BRAND API INTEGRATION

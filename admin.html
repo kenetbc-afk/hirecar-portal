@@ -684,6 +684,32 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== BILLING / QUOTES / INVOICES / COMMITMENTS ===== */
+.billing-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+.billing-stat{padding:16px;background:var(--cream);border-radius:10px;border:1px solid rgba(255,255,255,.04);}
+.billing-stat .bs-num{font-size:24px;font-weight:700;font-family:'Share Tech Mono',monospace;}
+.billing-stat .bs-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;}
+.billing-amount{font-weight:700;font-family:'Share Tech Mono',monospace;font-size:14px;}
+.billing-amount.positive{color:var(--success);}
+.billing-amount.negative{color:var(--error);}
+.billing-amount.pending{color:var(--amber);}
+.billing-filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.billing-filter-bar select,.billing-filter-bar input{padding:8px 14px;background:var(--cream);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--ink);font-size:13px;}
+.overdue-row{background:rgba(248,113,113,.04);}
+.overdue-row td:first-child{border-left:3px solid var(--error);}
+.quote-actions,.invoice-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.quote-actions .btn,.invoice-actions .btn{padding:4px 12px;font-size:11px;}
+.badge-draft{background:rgba(42,107,184,.12);color:var(--blue);border:1px solid rgba(42,107,184,.25);}
+.badge-sent{background:rgba(42,107,184,.15);color:var(--blue);border:1px solid rgba(42,107,184,.3);}
+.badge-partial{background:rgba(184,146,42,.12);color:var(--amber);border:1px solid rgba(184,146,42,.25);}
+.badge-scheduled{background:rgba(42,107,184,.12);color:var(--blue);border:1px solid rgba(42,107,184,.25);}
+.badge-kept{background:rgba(52,211,153,.12);color:var(--success);border:1px solid rgba(52,211,153,.25);}
+.badge-failed{background:rgba(248,113,113,.12);color:var(--error);border:1px solid rgba(248,113,113,.25);}
+.badge-recommitted{background:rgba(184,146,42,.12);color:var(--amber);border:1px solid rgba(184,146,42,.25);}
+.billing-detail-section{margin-top:12px;padding:16px;background:var(--cream);border-radius:10px;border:1px solid rgba(255,255,255,.04);}
+.billing-detail-section h4{font-size:14px;margin-bottom:10px;color:var(--cyan);}
+.billing-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
 </style>
 </head>
 <body>
@@ -732,6 +758,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       </button>
       <button class="nav-item" data-section="funding" onclick="showSection('funding')">
         <span class="ni-icon">&#36;</span> Funding Requests
+      </button>
+      <button class="nav-item" data-section="billing" onclick="showSection('billing')">
+        <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span> Billing
+      </button>
+      <button class="nav-item" data-section="quotes" onclick="showSection('quotes')">
+        <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span> Quotes
+      </button>
+      <button class="nav-item" data-section="invoices" onclick="showSection('invoices')">
+        <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/><path d="M12 18v-6"/></svg></span> Invoices
+      </button>
+      <button class="nav-item" data-section="commitments" onclick="showSection('commitments')">
+        <span class="ni-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></span> Commitments
       </button>
       <button class="nav-item" data-section="documents" onclick="showSection('documents')">
         <span class="ni-icon">&#128196;</span> Documents
@@ -818,6 +856,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <div class="activity-feed" id="activity-feed">
             <div style="font-size:13px; color:var(--muted); padding:20px 0; text-align:center;">No recent activity</div>
           </div>
+        </div>
+      </div>
+      <div class="a-card" style="margin-top:16px;">
+        <h3 style="font-size:16px; margin-bottom:14px; color:var(--cyan);">Billing Summary</h3>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;" id="dash-billing-stats">
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;">Total Revenue</div><div style="font-size:24px;font-weight:600;color:var(--success);">$0</div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;">Outstanding</div><div style="font-size:24px;font-weight:600;color:var(--amber);">$0</div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;">Overdue Invoices</div><div style="font-size:24px;font-weight:600;color:var(--error);">0</div></div>
         </div>
       </div>
       <div class="a-card" style="margin-top:16px;">
@@ -1105,7 +1151,240 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       </div>
     </div>
 
+    <!-- ====== BILLING MANAGEMENT ====== -->
+    <div class="admin-section" id="sec-billing">
+      <div class="sec-head" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="accent-bar"></div>
+          <h2>Billing Management</h2>
+        </div>
+        <button class="btn btn-primary" onclick="openAddBillingModal()">+ Add Billing Entry</button>
+      </div>
+      <div class="billing-stats-grid">
+        <div class="billing-stat"><div class="bs-num s-cyan" id="bill-stat-revenue">$0</div><div class="bs-label">Total Revenue</div></div>
+        <div class="billing-stat"><div class="bs-num s-amber" id="bill-stat-outstanding">$0</div><div class="bs-label">Outstanding Balance</div></div>
+        <div class="billing-stat"><div class="bs-num s-green" id="bill-stat-month">$0</div><div class="bs-label">Payments This Month</div></div>
+        <div class="billing-stat"><div class="bs-num s-red" id="bill-stat-overdue">0</div><div class="bs-label">Overdue Accounts</div></div>
+      </div>
+      <div class="billing-filter-bar">
+        <select id="billing-filter-status" onchange="renderBilling()">
+          <option value="">All Statuses</option>
+          <option value="Paid">Paid</option>
+          <option value="Outstanding">Outstanding</option>
+          <option value="Overdue">Overdue</option>
+          <option value="Partial">Partial</option>
+        </select>
+      </div>
+      <div class="a-card">
+        <div style="overflow-x:auto;">
+          <table class="a-table">
+            <thead><tr><th>Client</th><th>Service</th><th>Amount</th><th>Paid</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="billing-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== QUOTE MANAGEMENT ====== -->
+    <div class="admin-section" id="sec-quotes">
+      <div class="sec-head" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="accent-bar"></div>
+          <h2>Quote Management</h2>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateQuoteModal()">+ Create Quote</button>
+      </div>
+      <div class="billing-stats-grid">
+        <div class="billing-stat"><div class="bs-num s-cyan" id="quote-stat-total">0</div><div class="bs-label">Total Quotes</div></div>
+        <div class="billing-stat"><div class="bs-num s-amber" id="quote-stat-pending">0</div><div class="bs-label">Pending</div></div>
+        <div class="billing-stat"><div class="bs-num s-green" id="quote-stat-accepted">0</div><div class="bs-label">Accepted</div></div>
+        <div class="billing-stat"><div class="bs-num s-red" id="quote-stat-declined">0</div><div class="bs-label">Declined</div></div>
+      </div>
+      <div class="a-card">
+        <div style="overflow-x:auto;">
+          <table class="a-table">
+            <thead><tr><th>Quote #</th><th>Client</th><th>Service</th><th>Description</th><th>Amount</th><th>Created</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="quotes-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== INVOICE MANAGEMENT ====== -->
+    <div class="admin-section" id="sec-invoices">
+      <div class="sec-head" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="accent-bar"></div>
+          <h2>Invoice Management</h2>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateInvoiceModal()">+ Create Invoice</button>
+      </div>
+      <div class="billing-stats-grid">
+        <div class="billing-stat"><div class="bs-num s-cyan" id="inv-stat-total">$0</div><div class="bs-label">Total Invoiced</div></div>
+        <div class="billing-stat"><div class="bs-num s-green" id="inv-stat-paid">$0</div><div class="bs-label">Paid</div></div>
+        <div class="billing-stat"><div class="bs-num s-amber" id="inv-stat-outstanding">$0</div><div class="bs-label">Outstanding</div></div>
+        <div class="billing-stat"><div class="bs-num s-red" id="inv-stat-overdue">$0</div><div class="bs-label">Overdue</div></div>
+      </div>
+      <div class="a-card">
+        <div style="overflow-x:auto;">
+          <table class="a-table">
+            <thead><tr><th>Invoice #</th><th>Client</th><th>Description</th><th>Amount</th><th>Issued</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="invoices-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PAYMENT COMMITMENTS ====== -->
+    <div class="admin-section" id="sec-commitments">
+      <div class="sec-head">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="accent-bar"></div>
+          <h2>Payment Commitments</h2>
+        </div>
+      </div>
+      <div class="billing-stats-grid">
+        <div class="billing-stat"><div class="bs-num s-cyan" id="commit-stat-active">0</div><div class="bs-label">Active Commitments</div></div>
+        <div class="billing-stat"><div class="bs-num s-amber" id="commit-stat-upcoming">0</div><div class="bs-label">Upcoming This Week</div></div>
+        <div class="billing-stat"><div class="bs-num s-green" id="commit-stat-kept">0</div><div class="bs-label">Kept (On Time)</div></div>
+        <div class="billing-stat"><div class="bs-num s-red" id="commit-stat-failed">0</div><div class="bs-label">Failed (Missed)</div></div>
+      </div>
+      <div class="a-card">
+        <div style="overflow-x:auto;">
+          <table class="a-table">
+            <thead><tr><th>Client</th><th>Amount</th><th>Method</th><th>Due Date</th><th>Frequency</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="commitments-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
+</div>
+
+<!-- ADD BILLING MODAL -->
+<div class="modal-overlay" id="modal-add-billing">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Add Billing Entry</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-billing')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Client</label>
+      <select class="form-select" id="billing-client-select"></select>
+    </div>
+    <div class="form-group">
+      <label>Service</label>
+      <input type="text" class="form-input" id="billing-service" placeholder="e.g. Credit Repair Program">
+    </div>
+    <div class="form-group">
+      <label>Amount</label>
+      <input type="number" class="form-input" id="billing-amount" placeholder="0.00" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>Amount Paid</label>
+      <input type="number" class="form-input" id="billing-paid" placeholder="0.00" step="0.01" value="0">
+    </div>
+    <div class="form-group">
+      <label>Due Date</label>
+      <input type="date" class="form-input" id="billing-due-date">
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select class="form-select" id="billing-status">
+        <option value="Outstanding">Outstanding</option>
+        <option value="Paid">Paid</option>
+        <option value="Overdue">Overdue</option>
+        <option value="Partial">Partial</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea class="form-textarea" id="billing-notes" placeholder="Optional notes..." rows="2"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-billing')">Cancel</button>
+      <button class="btn btn-primary" onclick="addBillingEntry()">Add Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE QUOTE MODAL -->
+<div class="modal-overlay" id="modal-create-quote">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Create Quote</h3>
+      <button class="modal-close" onclick="closeModal('modal-create-quote')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Client</label>
+      <select class="form-select" id="quote-client-select"></select>
+    </div>
+    <div class="form-group">
+      <label>Service Type</label>
+      <input type="text" class="form-input" id="quote-service" placeholder="e.g. Credit Repair">
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea class="form-textarea" id="quote-description" placeholder="Describe the service..." rows="2"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Amount</label>
+      <input type="number" class="form-input" id="quote-amount" placeholder="0.00" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>Valid Until</label>
+      <input type="date" class="form-input" id="quote-expires">
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea class="form-textarea" id="quote-notes" placeholder="Optional notes..." rows="2"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-quote')">Cancel</button>
+      <button class="btn btn-primary" onclick="createQuote()">Create Quote</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE INVOICE MODAL -->
+<div class="modal-overlay" id="modal-create-invoice">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Create Invoice</h3>
+      <button class="modal-close" onclick="closeModal('modal-create-invoice')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Client</label>
+      <select class="form-select" id="invoice-client-select"></select>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea class="form-textarea" id="invoice-description" placeholder="Invoice description..." rows="2"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Amount</label>
+      <input type="number" class="form-input" id="invoice-amount" placeholder="0.00" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>Due Date</label>
+      <input type="date" class="form-input" id="invoice-due-date">
+    </div>
+    <div class="form-group">
+      <label>From Quote (optional)</label>
+      <select class="form-select" id="invoice-from-quote">
+        <option value="">-- None --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea class="form-textarea" id="invoice-notes" placeholder="Optional notes..." rows="2"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-invoice')">Cancel</button>
+      <button class="btn btn-primary" onclick="createInvoice()">Create Invoice</button>
+    </div>
+  </div>
 </div>
 
 <!-- ADD CLIENT MODAL -->
@@ -1640,6 +1919,10 @@ function showSection(name) {
     reports: 'Credit Reports',
     messages: 'Messages',
     funding: 'Funding Requests',
+    billing: 'Billing Management',
+    quotes: 'Quote Management',
+    invoices: 'Invoice Management',
+    commitments: 'Payment Commitments',
     documents: 'Documents',
     settings: 'Settings'
   };
@@ -1657,6 +1940,10 @@ function showSection(name) {
     case 'reports': renderReports(); break;
     case 'messages': renderMessages(); break;
     case 'funding': renderFunding(); break;
+    case 'billing': renderBilling(); break;
+    case 'quotes': renderQuotes(); break;
+    case 'invoices': renderInvoices(); break;
+    case 'commitments': renderCommitments(); break;
     case 'documents': renderDocuments(); break;
     case 'settings': renderSettings(); break;
   }
@@ -1730,6 +2017,25 @@ function renderDashboard() {
   });
   var totalAvg = allScores.length > 0 ? Math.round(allScores.reduce(function(a, b) { return a + b; }, 0) / allScores.length) : 0;
   document.getElementById('stat-avg-score').textContent = totalAvg > 0 ? totalAvg : '---';
+
+  // Billing summary for dashboard
+  var totalRevenue = 0, outstandingBalance = 0, overdueInvoices = 0;
+  clients.forEach(function(c) {
+    if (c.billing) c.billing.forEach(function(b) {
+      totalRevenue += (b.paid || 0);
+      if (b.status === 'Outstanding' || b.status === 'Partial') outstandingBalance += (b.amount - (b.paid || 0));
+      if (b.status === 'Overdue') { outstandingBalance += (b.amount - (b.paid || 0)); overdueInvoices++; }
+    });
+    if (c.invoices) c.invoices.forEach(function(inv) {
+      if (inv.status === 'Overdue') overdueInvoices++;
+    });
+  });
+  var dashBillEl = document.getElementById('dash-billing-stats');
+  if (dashBillEl) {
+    dashBillEl.innerHTML = '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;">Total Revenue</div><div style="font-size:24px;font-weight:600;color:var(--success);">' + formatCurrency(totalRevenue) + '</div></div>' +
+      '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;">Outstanding</div><div style="font-size:24px;font-weight:600;color:var(--amber);">' + formatCurrency(outstandingBalance) + '</div></div>' +
+      '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;">Overdue Invoices</div><div style="font-size:24px;font-weight:600;color:var(--error);">' + overdueInvoices + '</div></div>';
+  }
 
   // Stage breakdown
   var stageCounts = {};
@@ -1971,6 +2277,63 @@ function buildClientDetailHtml(c) {
     });
     h += '</div></div>';
   }
+
+  /* ---- Billing & Payments Section ---- */
+  var cBilling = c.billing || [];
+  var cQuotes = c.quotes || [];
+  var cInvoices = c.invoices || [];
+  var cCommitments = c.paymentCommitments || [];
+
+  h += '<div class="billing-detail-section">';
+  h += '<h4>Billing & Payments</h4>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px;">';
+
+  var activeQuotes = cQuotes.filter(function(q){ return q.status === 'Pending' || q.status === 'Sent'; }).length;
+  var outstandingInvAmt = 0;
+  cInvoices.forEach(function(inv){ if(inv.status !== 'Paid') outstandingInvAmt += inv.amount; });
+  var upcomingCommits = cCommitments.filter(function(pc){ return pc.status === 'Scheduled'; }).length;
+
+  h += '<div style="padding:8px;background:rgba(42,107,184,.06);border-radius:6px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--blue);">' + activeQuotes + '</div><div style="font-size:10px;color:var(--muted);">Active Quotes</div></div>';
+  h += '<div style="padding:8px;background:rgba(184,146,42,.06);border-radius:6px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--amber);">' + formatCurrency(outstandingInvAmt) + '</div><div style="font-size:10px;color:var(--muted);">Outstanding</div></div>';
+  h += '<div style="padding:8px;background:rgba(52,211,153,.06);border-radius:6px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--success);">' + upcomingCommits + '</div><div style="font-size:10px;color:var(--muted);">Upcoming Commits</div></div>';
+  h += '</div>';
+
+  if (cQuotes.length > 0) {
+    h += '<div style="margin-bottom:8px;"><strong style="font-size:12px;color:var(--muted);">Quotes:</strong></div>';
+    h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
+    cQuotes.forEach(function(q) {
+      var bc = q.status === 'Accepted' ? 'badge-green' : q.status === 'Declined' ? 'badge-red' : 'badge-amber';
+      h += '<div style="padding:6px 10px;background:var(--cream);border-radius:6px;font-size:11px;">' + escapeHtml(q.number) + ' - ' + escapeHtml(q.service) + ' <span class="badge ' + bc + '" style="margin-left:4px;">' + escapeHtml(q.status) + '</span></div>';
+    });
+    h += '</div>';
+  }
+
+  if (cInvoices.length > 0) {
+    h += '<div style="margin-bottom:8px;"><strong style="font-size:12px;color:var(--muted);">Invoices:</strong></div>';
+    h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
+    cInvoices.forEach(function(inv) {
+      var bc = inv.status === 'Paid' ? 'badge-green' : inv.status === 'Overdue' ? 'badge-red' : inv.status === 'Draft' ? 'badge-blue' : 'badge-amber';
+      h += '<div style="padding:6px 10px;background:var(--cream);border-radius:6px;font-size:11px;">' + escapeHtml(inv.number) + ' - ' + formatCurrency(inv.amount) + ' <span class="badge ' + bc + '" style="margin-left:4px;">' + escapeHtml(inv.status) + '</span></div>';
+    });
+    h += '</div>';
+  }
+
+  if (cCommitments.length > 0) {
+    h += '<div style="margin-bottom:8px;"><strong style="font-size:12px;color:var(--muted);">Payment Commitments:</strong></div>';
+    h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
+    cCommitments.forEach(function(pc) {
+      var bc = pc.status === 'Kept' ? 'badge-green' : pc.status === 'Failed' ? 'badge-red' : pc.status === 'Scheduled' ? 'badge-blue' : 'badge-amber';
+      h += '<div style="padding:6px 10px;background:var(--cream);border-radius:6px;font-size:11px;">' + formatCurrency(pc.amount) + ' due ' + formatDate(pc.dueDate) + ' <span class="badge ' + bc + '" style="margin-left:4px;">' + escapeHtml(pc.status) + '</span></div>';
+    });
+    h += '</div>';
+  }
+
+  h += '<div class="billing-quick-actions">';
+  h += '<button class="btn btn-sm btn-primary" onclick="openCreateQuoteForClient(\'' + cid + '\')">Create Quote</button>';
+  h += '<button class="btn btn-sm btn-ghost" onclick="openCreateInvoiceForClient(\'' + cid + '\')">Create Invoice</button>';
+  h += '<button class="btn btn-sm btn-ghost" onclick="openAddBillingForClient(\'' + cid + '\')">Add Payment</button>';
+  h += '</div>';
+  h += '</div>';
 
   h += '</div>';
   return h;
@@ -2633,6 +2996,22 @@ function seedDemoDataIfEmpty() {
       ],
       creditReports: [
         { id: 'r1', name: 'Experian Full Report', status: 'Pending Review', uploadedAt: new Date(Date.now() - 86400000 * 2).toISOString() }
+      ],
+      billing: [
+        { id: 'b1', service: 'Credit Repair Program', amount: 1500, paid: 500, dueDate: new Date(Date.now() + 86400000 * 15).toISOString(), status: 'Outstanding', createdAt: new Date(Date.now() - 86400000 * 40).toISOString(), notes: 'Initial program fee' },
+        { id: 'b2', service: 'Tradeline Consultation', amount: 300, paid: 300, dueDate: new Date(Date.now() - 86400000 * 10).toISOString(), status: 'Paid', createdAt: new Date(Date.now() - 86400000 * 20).toISOString(), notes: '' }
+      ],
+      quotes: [
+        { id: 'q1', number: 'HC-Q-0001', service: 'Credit Repair', description: 'Full credit restoration program - all 3 bureaus', amount: 1500, createdAt: new Date(Date.now() - 86400000 * 44).toISOString(), expiresAt: new Date(Date.now() - 86400000 * 14).toISOString(), status: 'Accepted', sentToClient: true },
+        { id: 'q2', number: 'HC-Q-0005', service: 'Tradeline Boost', description: 'Add 2 authorized user tradelines', amount: 800, createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), expiresAt: new Date(Date.now() + 86400000 * 25).toISOString(), status: 'Pending', sentToClient: true }
+      ],
+      invoices: [
+        { id: 'i1', number: 'HC-INV-0001', description: 'Credit Repair - Initial Payment', amount: 500, issuedAt: new Date(Date.now() - 86400000 * 40).toISOString(), dueDate: new Date(Date.now() - 86400000 * 25).toISOString(), status: 'Paid', fromQuote: 'q1' },
+        { id: 'i2', number: 'HC-INV-0004', description: 'Credit Repair - 2nd Installment', amount: 500, issuedAt: new Date(Date.now() - 86400000 * 10).toISOString(), dueDate: new Date(Date.now() + 86400000 * 5).toISOString(), status: 'Sent', fromQuote: 'q1' }
+      ],
+      paymentCommitments: [
+        { id: 'pc1', amount: 250, method: 'zelle', dueDate: new Date(Date.now() + 86400000 * 5).toISOString(), frequency: 'monthly', status: 'Scheduled', createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
+        { id: 'pc2', amount: 500, method: 'cashapp', dueDate: new Date(Date.now() - 86400000 * 25).toISOString(), frequency: 'once', status: 'Kept', createdAt: new Date(Date.now() - 86400000 * 30).toISOString() }
       ]
     },
     {
@@ -2661,6 +3040,18 @@ function seedDemoDataIfEmpty() {
       creditReports: [
         { id: 'r2', name: 'Equifax Report', status: 'Parsed', uploadedAt: new Date(Date.now() - 86400000 * 20).toISOString() },
         { id: 'r3', name: 'TransUnion Report', status: 'Parsed', uploadedAt: new Date(Date.now() - 86400000 * 20).toISOString() }
+      ],
+      billing: [
+        { id: 'b3', service: 'Full Suite Program', amount: 2500, paid: 750, dueDate: new Date(Date.now() + 86400000 * 10).toISOString(), status: 'Outstanding', createdAt: new Date(Date.now() - 86400000 * 28).toISOString(), notes: 'Full suite enrollment' }
+      ],
+      quotes: [
+        { id: 'q3', number: 'HC-Q-0002', service: 'Full Suite', description: 'Complete credit repair, tradelines, and funding readiness', amount: 2500, createdAt: new Date(Date.now() - 86400000 * 29).toISOString(), expiresAt: new Date(Date.now() + 86400000 * 1).toISOString(), status: 'Accepted', sentToClient: true }
+      ],
+      invoices: [
+        { id: 'i3', number: 'HC-INV-0002', description: 'Full Suite - Down Payment', amount: 750, issuedAt: new Date(Date.now() - 86400000 * 28).toISOString(), dueDate: new Date(Date.now() - 86400000 * 21).toISOString(), status: 'Paid', fromQuote: 'q3' }
+      ],
+      paymentCommitments: [
+        { id: 'pc3', amount: 350, method: 'venmo', dueDate: new Date(Date.now() + 86400000 * 3).toISOString(), frequency: 'biweekly', status: 'Scheduled', createdAt: new Date(Date.now() - 86400000 * 14).toISOString() }
       ]
     },
     {
@@ -2685,6 +3076,18 @@ function seedDemoDataIfEmpty() {
       ],
       creditReports: [
         { id: 'r4', name: 'Full 3-Bureau Report', status: 'Parsed', uploadedAt: new Date(Date.now() - 86400000 * 30).toISOString() }
+      ],
+      billing: [
+        { id: 'b4', service: 'Tradeline Boost', amount: 1200, paid: 1200, dueDate: new Date(Date.now() - 86400000 * 30).toISOString(), status: 'Paid', createdAt: new Date(Date.now() - 86400000 * 85).toISOString(), notes: 'Tradeline program - paid in full' }
+      ],
+      quotes: [
+        { id: 'q4', number: 'HC-Q-0003', service: 'Tradeline Boost', description: 'Premium tradeline addition with score monitoring', amount: 1200, createdAt: new Date(Date.now() - 86400000 * 88).toISOString(), expiresAt: new Date(Date.now() - 86400000 * 58).toISOString(), status: 'Accepted', sentToClient: true }
+      ],
+      invoices: [
+        { id: 'i4', number: 'HC-INV-0003', description: 'Tradeline Boost - Full Payment', amount: 1200, issuedAt: new Date(Date.now() - 86400000 * 85).toISOString(), dueDate: new Date(Date.now() - 86400000 * 70).toISOString(), status: 'Paid', fromQuote: 'q4' }
+      ],
+      paymentCommitments: [
+        { id: 'pc4', amount: 1200, method: 'ach', dueDate: new Date(Date.now() - 86400000 * 70).toISOString(), frequency: 'once', status: 'Kept', createdAt: new Date(Date.now() - 86400000 * 85).toISOString() }
       ]
     },
     {
@@ -2709,7 +3112,21 @@ function seedDemoDataIfEmpty() {
       fundingRequests: [
         { id: 'f3', amount: 75000, purpose: 'Business expansion', submittedAt: new Date(Date.now() - 86400000 * 30).toISOString(), status: 'Approved' }
       ],
-      creditReports: []
+      creditReports: [],
+      billing: [
+        { id: 'b5', service: 'Funding Ready Program', amount: 3500, paid: 3500, dueDate: new Date(Date.now() - 86400000 * 60).toISOString(), status: 'Paid', createdAt: new Date(Date.now() - 86400000 * 115).toISOString(), notes: 'All payments completed' }
+      ],
+      quotes: [
+        { id: 'q5', number: 'HC-Q-0004', service: 'Funding Ready', description: 'Full funding readiness program with business credit setup', amount: 3500, createdAt: new Date(Date.now() - 86400000 * 118).toISOString(), expiresAt: new Date(Date.now() - 86400000 * 88).toISOString(), status: 'Accepted', sentToClient: true }
+      ],
+      invoices: [
+        { id: 'i5', number: 'HC-INV-0005', description: 'Funding Ready - Payment 1 of 2', amount: 1750, issuedAt: new Date(Date.now() - 86400000 * 115).toISOString(), dueDate: new Date(Date.now() - 86400000 * 100).toISOString(), status: 'Paid', fromQuote: 'q5' },
+        { id: 'i6', number: 'HC-INV-0006', description: 'Funding Ready - Payment 2 of 2', amount: 1750, issuedAt: new Date(Date.now() - 86400000 * 75).toISOString(), dueDate: new Date(Date.now() - 86400000 * 60).toISOString(), status: 'Paid', fromQuote: 'q5' }
+      ],
+      paymentCommitments: [
+        { id: 'pc5', amount: 1750, method: 'stripe', dueDate: new Date(Date.now() - 86400000 * 100).toISOString(), frequency: 'once', status: 'Kept', createdAt: new Date(Date.now() - 86400000 * 115).toISOString() },
+        { id: 'pc6', amount: 1750, method: 'stripe', dueDate: new Date(Date.now() - 86400000 * 60).toISOString(), frequency: 'once', status: 'Kept', createdAt: new Date(Date.now() - 86400000 * 75).toISOString() }
+      ]
     },
     {
       id: generateId(), portalClientId: '', name: 'Robert Taylor', email: 'rob.taylor@email.com', phone: '(214) 555-0421',
@@ -2727,7 +3144,13 @@ function seedDemoDataIfEmpty() {
       ],
       documents: [],
       fundingRequests: [],
-      creditReports: []
+      creditReports: [],
+      billing: [],
+      quotes: [
+        { id: 'q6', number: 'HC-Q-0006', service: 'Credit Repair', description: 'Initial credit repair assessment and program', amount: 1200, createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), expiresAt: new Date(Date.now() + 86400000 * 28).toISOString(), status: 'Pending', sentToClient: true }
+      ],
+      invoices: [],
+      paymentCommitments: []
     },
     {
       id: generateId(), portalClientId: '', name: 'Maria Gonzalez', email: 'maria.g@email.com', phone: '(832) 555-0533',
@@ -2752,11 +3175,26 @@ function seedDemoDataIfEmpty() {
       creditReports: [
         { id: 'r5', name: 'Equifax Report Jan 2026', status: 'Parsed', uploadedAt: new Date(Date.now() - 86400000 * 65).toISOString() },
         { id: 'r6', name: 'Updated TransUnion', status: 'Needs Reupload', uploadedAt: new Date(Date.now() - 86400000 * 30).toISOString() }
+      ],
+      billing: [
+        { id: 'b6', service: 'Full Suite Program', amount: 2200, paid: 800, dueDate: new Date(Date.now() - 86400000 * 7).toISOString(), status: 'Overdue', createdAt: new Date(Date.now() - 86400000 * 70).toISOString(), notes: 'Paused - outstanding balance remains' }
+      ],
+      quotes: [
+        { id: 'q7', number: 'HC-Q-0007', service: 'Full Suite', description: 'Credit repair and funding readiness bundle', amount: 2200, createdAt: new Date(Date.now() - 86400000 * 74).toISOString(), expiresAt: new Date(Date.now() - 86400000 * 44).toISOString(), status: 'Accepted', sentToClient: true }
+      ],
+      invoices: [
+        { id: 'i7', number: 'HC-INV-0007', description: 'Full Suite - Down Payment', amount: 800, issuedAt: new Date(Date.now() - 86400000 * 70).toISOString(), dueDate: new Date(Date.now() - 86400000 * 63).toISOString(), status: 'Paid', fromQuote: 'q7' },
+        { id: 'i8', number: 'HC-INV-0008', description: 'Full Suite - Remaining Balance', amount: 1400, issuedAt: new Date(Date.now() - 86400000 * 30).toISOString(), dueDate: new Date(Date.now() - 86400000 * 7).toISOString(), status: 'Overdue', fromQuote: 'q7' }
+      ],
+      paymentCommitments: [
+        { id: 'pc7', amount: 800, method: 'zelle', dueDate: new Date(Date.now() - 86400000 * 63).toISOString(), frequency: 'once', status: 'Kept', createdAt: new Date(Date.now() - 86400000 * 70).toISOString() },
+        { id: 'pc8', amount: 700, method: 'zelle', dueDate: new Date(Date.now() - 86400000 * 7).toISOString(), frequency: 'monthly', status: 'Failed', createdAt: new Date(Date.now() - 86400000 * 30).toISOString() }
       ]
     }
   ];
 
   saveClients(demoClients);
+  syncToClientPortal(demoClients);
   addActivity('System initialized with client data', 'green');
   addActivity('Ken logged in', 'green');
   addActivity('Client "Marcus Johnson" score updated: EQ=612, EX=598, TU=625', 'amber');
@@ -2764,6 +3202,638 @@ function seedDemoDataIfEmpty() {
   addActivity('Funding approved for Keisha Brown - $75,000', 'green');
   addActivity('New client "Robert Taylor" enrolled in Credit Repair', 'green');
   addActivity('Maria Gonzalez program paused per client request', 'amber');
+}
+
+/* ========== BILLING / QUOTES / INVOICES / COMMITMENTS ========== */
+
+function billingBadgeClass(status) {
+  switch (status) {
+    case 'Paid': case 'Kept': case 'Accepted': return 'badge-green';
+    case 'Outstanding': case 'Partial': case 'Pending': return 'badge-amber';
+    case 'Overdue': case 'Failed': case 'Declined': return 'badge-red';
+    case 'Scheduled': case 'Draft': case 'Sent': return 'badge-blue';
+    case 'Recommitted': return 'badge-amber';
+    default: return 'badge-muted';
+  }
+}
+
+function generateQuoteNumber() {
+  var clients = loadClients();
+  var maxNum = 0;
+  clients.forEach(function(c) {
+    (c.quotes || []).forEach(function(q) {
+      var m = q.number.match(/HC-Q-(\d+)/);
+      if (m) { var n = parseInt(m[1]); if (n > maxNum) maxNum = n; }
+    });
+  });
+  return 'HC-Q-' + ('0000' + (maxNum + 1)).slice(-4);
+}
+
+function generateInvoiceNumber() {
+  var clients = loadClients();
+  var maxNum = 0;
+  clients.forEach(function(c) {
+    (c.invoices || []).forEach(function(inv) {
+      var m = inv.number.match(/HC-INV-(\d+)/);
+      if (m) { var n = parseInt(m[1]); if (n > maxNum) maxNum = n; }
+    });
+  });
+  return 'HC-INV-' + ('0000' + (maxNum + 1)).slice(-4);
+}
+
+function populateClientDropdown(selectId) {
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  var clients = loadClients();
+  sel.innerHTML = '<option value="">-- Select Client --</option>';
+  clients.forEach(function(c) {
+    sel.innerHTML += '<option value="' + c.id + '">' + escapeHtml(c.name) + ' (' + escapeHtml(c.caseNumber) + ')</option>';
+  });
+}
+
+function syncToClientPortal(clients) {
+  // Aggregate data and write to shared localStorage keys for client portal
+  var allNotifications = [];
+  var allBilling = [];
+  var allQuotes = [];
+  var allInvoices = [];
+  var allCommitments = [];
+  try { allNotifications = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]'); } catch(e) {}
+
+  clients.forEach(function(c) {
+    var cName = c.name;
+    (c.billing || []).forEach(function(b) {
+      allBilling.push({ clientId: c.id, clientName: cName, id: b.id, service: b.service, amount: b.amount, paid: b.paid, dueDate: b.dueDate, status: b.status, createdAt: b.createdAt });
+    });
+    (c.quotes || []).filter(function(q) { return q.sentToClient; }).forEach(function(q) {
+      allQuotes.push({ clientId: c.id, clientName: cName, id: q.id, number: q.number, service: q.service, description: q.description, amount: q.amount, createdAt: q.createdAt, expiresAt: q.expiresAt, status: q.status });
+    });
+    (c.invoices || []).filter(function(inv) { return inv.status !== 'Draft'; }).forEach(function(inv) {
+      allInvoices.push({ clientId: c.id, clientName: cName, id: inv.id, number: inv.number, description: inv.description, amount: inv.amount, issuedAt: inv.issuedAt, dueDate: inv.dueDate, status: inv.status, fromQuote: inv.fromQuote });
+    });
+    (c.paymentCommitments || []).forEach(function(pc) {
+      allCommitments.push({ clientId: c.id, clientName: cName, id: pc.id, amount: pc.amount, method: pc.method, dueDate: pc.dueDate, frequency: pc.frequency, status: pc.status, createdAt: pc.createdAt });
+    });
+  });
+
+  try {
+    localStorage.setItem('hc_client_billing', JSON.stringify(allBilling));
+    localStorage.setItem('hc_client_quotes', JSON.stringify(allQuotes));
+    localStorage.setItem('hc_client_invoices', JSON.stringify(allInvoices));
+    localStorage.setItem('hc_client_commitments', JSON.stringify(allCommitments));
+    localStorage.setItem('hc_client_notifications', JSON.stringify(allNotifications));
+  } catch(e) {}
+}
+
+function addClientNotification(type, title, message, data) {
+  var notifs = [];
+  try { notifs = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]'); } catch(e) {}
+  notifs.unshift({
+    id: generateId(),
+    type: type,
+    title: title,
+    message: message,
+    timestamp: new Date().toISOString(),
+    read: false,
+    data: data || {}
+  });
+  try { localStorage.setItem('hc_client_notifications', JSON.stringify(notifs)); } catch(e) {}
+}
+
+/* ---- RENDER BILLING ---- */
+function renderBilling() {
+  var clients = loadClients();
+  var filterStatus = (document.getElementById('billing-filter-status') || {}).value || '';
+  var tbody = document.getElementById('billing-tbody');
+  if (!tbody) return;
+
+  var totalRevenue = 0, outstandingBal = 0, monthPayments = 0, overdueCount = 0;
+  var now = new Date();
+  var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  var rows = [];
+
+  clients.forEach(function(c) {
+    (c.billing || []).forEach(function(b) {
+      totalRevenue += (b.paid || 0);
+      if (b.status === 'Outstanding' || b.status === 'Partial') outstandingBal += (b.amount - (b.paid || 0));
+      if (b.status === 'Overdue') { outstandingBal += (b.amount - (b.paid || 0)); overdueCount++; }
+      if (b.status === 'Paid' && b.createdAt && new Date(b.createdAt) >= monthStart) monthPayments += (b.paid || 0);
+
+      if (!filterStatus || b.status === filterStatus) {
+        rows.push({ client: c, billing: b });
+      }
+    });
+  });
+
+  document.getElementById('bill-stat-revenue').textContent = formatCurrency(totalRevenue);
+  document.getElementById('bill-stat-outstanding').textContent = formatCurrency(outstandingBal);
+  document.getElementById('bill-stat-month').textContent = formatCurrency(monthPayments);
+  document.getElementById('bill-stat-overdue').textContent = overdueCount;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">No billing records found.</td></tr>';
+    return;
+  }
+
+  var html = '';
+  rows.forEach(function(r) {
+    var b = r.billing;
+    var isOverdue = b.status === 'Overdue';
+    html += '<tr class="' + (isOverdue ? 'overdue-row' : '') + '">';
+    html += '<td>' + escapeHtml(r.client.name) + '</td>';
+    html += '<td>' + escapeHtml(b.service) + '</td>';
+    html += '<td class="billing-amount">' + formatCurrency(b.amount) + '</td>';
+    html += '<td class="billing-amount positive">' + formatCurrency(b.paid || 0) + '</td>';
+    html += '<td>' + formatDate(b.dueDate) + '</td>';
+    html += '<td><span class="badge ' + billingBadgeClass(b.status) + '">' + escapeHtml(b.status) + '</span></td>';
+    html += '<td><button class="btn btn-sm btn-ghost" onclick="deleteBillingEntry(\'' + r.client.id + '\',\'' + b.id + '\')">Delete</button></td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+
+  syncToClientPortal(clients);
+}
+
+function openAddBillingModal() {
+  populateClientDropdown('billing-client-select');
+  document.getElementById('billing-service').value = '';
+  document.getElementById('billing-amount').value = '';
+  document.getElementById('billing-paid').value = '0';
+  document.getElementById('billing-due-date').value = '';
+  document.getElementById('billing-status').value = 'Outstanding';
+  document.getElementById('billing-notes').value = '';
+  openModal('modal-add-billing');
+}
+
+function openAddBillingForClient(clientId) {
+  openAddBillingModal();
+  document.getElementById('billing-client-select').value = clientId;
+}
+
+function addBillingEntry() {
+  var clientId = document.getElementById('billing-client-select').value;
+  var service = document.getElementById('billing-service').value.trim();
+  var amount = parseFloat(document.getElementById('billing-amount').value);
+  var paid = parseFloat(document.getElementById('billing-paid').value) || 0;
+  var dueDate = document.getElementById('billing-due-date').value;
+  var status = document.getElementById('billing-status').value;
+  var notes = document.getElementById('billing-notes').value.trim();
+
+  if (!clientId || !service || isNaN(amount) || amount <= 0 || !dueDate) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) { showToast('Client not found', 'error'); return; }
+
+  if (!c.billing) c.billing = [];
+  var entry = {
+    id: generateId(),
+    service: service,
+    amount: amount,
+    paid: paid,
+    dueDate: new Date(dueDate).toISOString(),
+    status: status,
+    createdAt: new Date().toISOString(),
+    notes: notes
+  };
+  c.billing.push(entry);
+  saveClients(clients);
+  addActivity('Billing entry added for ' + c.name + ': ' + formatCurrency(amount), 'green');
+  showToast('Billing entry added for ' + c.name, 'success');
+  closeModal('modal-add-billing');
+  syncToClientPortal(clients);
+  renderBilling();
+}
+
+function deleteBillingEntry(clientId, billingId) {
+  if (!confirm('Delete this billing entry?')) return;
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c || !c.billing) return;
+  c.billing = c.billing.filter(function(b) { return b.id !== billingId; });
+  saveClients(clients);
+  showToast('Billing entry deleted', 'info');
+  syncToClientPortal(clients);
+  renderBilling();
+}
+
+/* ---- RENDER QUOTES ---- */
+function renderQuotes() {
+  var clients = loadClients();
+  var tbody = document.getElementById('quotes-tbody');
+  if (!tbody) return;
+
+  var totalQ = 0, pendingQ = 0, acceptedQ = 0, declinedQ = 0;
+  var rows = [];
+
+  clients.forEach(function(c) {
+    (c.quotes || []).forEach(function(q) {
+      totalQ++;
+      if (q.status === 'Pending' || q.status === 'Sent') pendingQ++;
+      else if (q.status === 'Accepted') acceptedQ++;
+      else if (q.status === 'Declined') declinedQ++;
+      rows.push({ client: c, quote: q });
+    });
+  });
+
+  document.getElementById('quote-stat-total').textContent = totalQ;
+  document.getElementById('quote-stat-pending').textContent = pendingQ;
+  document.getElementById('quote-stat-accepted').textContent = acceptedQ;
+  document.getElementById('quote-stat-declined').textContent = declinedQ;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">No quotes found.</td></tr>';
+    return;
+  }
+
+  var html = '';
+  rows.forEach(function(r) {
+    var q = r.quote;
+    html += '<tr>';
+    html += '<td style="font-family:\'Share Tech Mono\',monospace;font-size:12px;">' + escapeHtml(q.number) + '</td>';
+    html += '<td>' + escapeHtml(r.client.name) + '</td>';
+    html += '<td>' + escapeHtml(q.service) + '</td>';
+    html += '<td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(q.description) + '</td>';
+    html += '<td class="billing-amount">' + formatCurrency(q.amount) + '</td>';
+    html += '<td>' + formatDate(q.createdAt) + '</td>';
+    html += '<td>' + formatDate(q.expiresAt) + '</td>';
+    html += '<td><span class="badge ' + billingBadgeClass(q.status) + '">' + escapeHtml(q.status) + '</span></td>';
+    html += '<td><div class="quote-actions">';
+    if (q.status === 'Pending' && !q.sentToClient) {
+      html += '<button class="btn btn-sm btn-primary" onclick="sendQuoteToClient(\'' + r.client.id + '\',\'' + q.id + '\')">Send</button>';
+    }
+    if (q.status === 'Pending' || q.status === 'Sent') {
+      html += '<button class="btn btn-sm btn-ghost" onclick="deleteQuote(\'' + r.client.id + '\',\'' + q.id + '\')">Delete</button>';
+    }
+    html += '</div></td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function openCreateQuoteModal() {
+  populateClientDropdown('quote-client-select');
+  document.getElementById('quote-service').value = '';
+  document.getElementById('quote-description').value = '';
+  document.getElementById('quote-amount').value = '';
+  var exp = new Date(Date.now() + 86400000 * 30);
+  document.getElementById('quote-expires').value = exp.toISOString().split('T')[0];
+  document.getElementById('quote-notes').value = '';
+  openModal('modal-create-quote');
+}
+
+function openCreateQuoteForClient(clientId) {
+  openCreateQuoteModal();
+  document.getElementById('quote-client-select').value = clientId;
+}
+
+function createQuote() {
+  var clientId = document.getElementById('quote-client-select').value;
+  var service = document.getElementById('quote-service').value.trim();
+  var description = document.getElementById('quote-description').value.trim();
+  var amount = parseFloat(document.getElementById('quote-amount').value);
+  var expiresAt = document.getElementById('quote-expires').value;
+  var notes = document.getElementById('quote-notes').value.trim();
+
+  if (!clientId || !service || !description || isNaN(amount) || amount <= 0) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) { showToast('Client not found', 'error'); return; }
+
+  if (!c.quotes) c.quotes = [];
+  var quote = {
+    id: generateId(),
+    number: generateQuoteNumber(),
+    service: service,
+    description: description,
+    amount: amount,
+    createdAt: new Date().toISOString(),
+    expiresAt: expiresAt ? new Date(expiresAt).toISOString() : new Date(Date.now() + 86400000 * 30).toISOString(),
+    status: 'Pending',
+    sentToClient: false,
+    notes: notes
+  };
+  c.quotes.push(quote);
+  saveClients(clients);
+  addActivity('Quote ' + quote.number + ' created for ' + c.name + ': ' + formatCurrency(amount), 'blue');
+  showToast('Quote ' + quote.number + ' created', 'success');
+  closeModal('modal-create-quote');
+  syncToClientPortal(clients);
+  renderQuotes();
+}
+
+function sendQuoteToClient(clientId, quoteId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  var q = (c.quotes || []).find(function(x) { return x.id === quoteId; });
+  if (!q) return;
+
+  q.sentToClient = true;
+  q.status = 'Sent';
+  saveClients(clients);
+
+  addClientNotification('quote', 'New Quote: ' + q.number, 'You have a new quote for ' + q.service + ' - ' + formatCurrency(q.amount) + '. Review and accept in your billing section.', { quoteId: q.id, quoteNumber: q.number, amount: q.amount });
+  addActivity('Quote ' + q.number + ' sent to ' + c.name, 'green');
+  showToast('Quote sent to ' + c.name, 'success');
+  syncToClientPortal(clients);
+  renderQuotes();
+}
+
+function deleteQuote(clientId, quoteId) {
+  if (!confirm('Delete this quote?')) return;
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c || !c.quotes) return;
+  c.quotes = c.quotes.filter(function(q) { return q.id !== quoteId; });
+  saveClients(clients);
+  showToast('Quote deleted', 'info');
+  syncToClientPortal(clients);
+  renderQuotes();
+}
+
+/* ---- RENDER INVOICES ---- */
+function renderInvoices() {
+  var clients = loadClients();
+  var tbody = document.getElementById('invoices-tbody');
+  if (!tbody) return;
+
+  var totalInv = 0, paidInv = 0, outstandingInv = 0, overdueInv = 0;
+  var rows = [];
+
+  clients.forEach(function(c) {
+    (c.invoices || []).forEach(function(inv) {
+      totalInv += inv.amount;
+      if (inv.status === 'Paid') paidInv += inv.amount;
+      else if (inv.status === 'Overdue') overdueInv += inv.amount;
+      else outstandingInv += inv.amount;
+      rows.push({ client: c, invoice: inv });
+    });
+  });
+
+  document.getElementById('inv-stat-total').textContent = formatCurrency(totalInv);
+  document.getElementById('inv-stat-paid').textContent = formatCurrency(paidInv);
+  document.getElementById('inv-stat-outstanding').textContent = formatCurrency(outstandingInv);
+  document.getElementById('inv-stat-overdue').textContent = formatCurrency(overdueInv);
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">No invoices found.</td></tr>';
+    return;
+  }
+
+  var html = '';
+  rows.forEach(function(r) {
+    var inv = r.invoice;
+    var isOverdue = inv.status === 'Overdue';
+    html += '<tr class="' + (isOverdue ? 'overdue-row' : '') + '">';
+    html += '<td style="font-family:\'Share Tech Mono\',monospace;font-size:12px;">' + escapeHtml(inv.number) + '</td>';
+    html += '<td>' + escapeHtml(r.client.name) + '</td>';
+    html += '<td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(inv.description) + '</td>';
+    html += '<td class="billing-amount">' + formatCurrency(inv.amount) + '</td>';
+    html += '<td>' + formatDate(inv.issuedAt) + '</td>';
+    html += '<td>' + formatDate(inv.dueDate) + '</td>';
+    html += '<td><span class="badge ' + billingBadgeClass(inv.status) + '">' + escapeHtml(inv.status) + '</span></td>';
+    html += '<td><div class="invoice-actions">';
+    if (inv.status === 'Draft') {
+      html += '<button class="btn btn-sm btn-primary" onclick="sendInvoiceToClient(\'' + r.client.id + '\',\'' + inv.id + '\')">Send</button>';
+    }
+    if (inv.status !== 'Paid') {
+      html += '<button class="btn btn-sm btn-ghost" onclick="markInvoicePaid(\'' + r.client.id + '\',\'' + inv.id + '\')">Mark Paid</button>';
+    }
+    html += '</div></td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function openCreateInvoiceModal() {
+  populateClientDropdown('invoice-client-select');
+  document.getElementById('invoice-description').value = '';
+  document.getElementById('invoice-amount').value = '';
+  var due = new Date(Date.now() + 86400000 * 30);
+  document.getElementById('invoice-due-date').value = due.toISOString().split('T')[0];
+  document.getElementById('invoice-notes').value = '';
+
+  // Populate from-quote dropdown with accepted quotes
+  var sel = document.getElementById('invoice-from-quote');
+  sel.innerHTML = '<option value="">-- None --</option>';
+  var clients = loadClients();
+  clients.forEach(function(c) {
+    (c.quotes || []).filter(function(q) { return q.status === 'Accepted'; }).forEach(function(q) {
+      sel.innerHTML += '<option value="' + c.id + '|' + q.id + '">' + escapeHtml(q.number) + ' - ' + escapeHtml(c.name) + ' (' + formatCurrency(q.amount) + ')</option>';
+    });
+  });
+
+  openModal('modal-create-invoice');
+}
+
+function openCreateInvoiceForClient(clientId) {
+  openCreateInvoiceModal();
+  document.getElementById('invoice-client-select').value = clientId;
+}
+
+function createInvoice() {
+  var clientId = document.getElementById('invoice-client-select').value;
+  var description = document.getElementById('invoice-description').value.trim();
+  var amount = parseFloat(document.getElementById('invoice-amount').value);
+  var dueDate = document.getElementById('invoice-due-date').value;
+  var notes = document.getElementById('invoice-notes').value.trim();
+  var fromQuoteVal = document.getElementById('invoice-from-quote').value;
+
+  var fromQuoteId = '';
+  if (fromQuoteVal) {
+    var parts = fromQuoteVal.split('|');
+    clientId = parts[0];
+    fromQuoteId = parts[1];
+  }
+
+  if (!clientId || !description || isNaN(amount) || amount <= 0 || !dueDate) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) { showToast('Client not found', 'error'); return; }
+
+  if (!c.invoices) c.invoices = [];
+  var inv = {
+    id: generateId(),
+    number: generateInvoiceNumber(),
+    description: description,
+    amount: amount,
+    issuedAt: new Date().toISOString(),
+    dueDate: new Date(dueDate).toISOString(),
+    status: 'Draft',
+    fromQuote: fromQuoteId,
+    notes: notes
+  };
+  c.invoices.push(inv);
+  saveClients(clients);
+  addActivity('Invoice ' + inv.number + ' created for ' + c.name + ': ' + formatCurrency(amount), 'blue');
+  showToast('Invoice ' + inv.number + ' created', 'success');
+  closeModal('modal-create-invoice');
+  syncToClientPortal(clients);
+  renderInvoices();
+}
+
+function sendInvoiceToClient(clientId, invoiceId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  var inv = (c.invoices || []).find(function(x) { return x.id === invoiceId; });
+  if (!inv) return;
+
+  inv.status = 'Sent';
+  saveClients(clients);
+
+  // Also create billing entry if one doesn't exist
+  if (!c.billing) c.billing = [];
+  var existingBilling = c.billing.find(function(b) { return b.id === 'bill_' + inv.id; });
+  if (!existingBilling) {
+    c.billing.push({
+      id: 'bill_' + inv.id,
+      service: inv.description,
+      amount: inv.amount,
+      paid: 0,
+      dueDate: inv.dueDate,
+      status: 'Outstanding',
+      createdAt: new Date().toISOString(),
+      notes: 'Auto-created from Invoice ' + inv.number
+    });
+    saveClients(clients);
+  }
+
+  addClientNotification('invoice', 'New Invoice: ' + inv.number, 'You have a new invoice for ' + formatCurrency(inv.amount) + ' due ' + formatDate(inv.dueDate) + '. View details in your billing section.', { invoiceId: inv.id, invoiceNumber: inv.number, amount: inv.amount });
+  addActivity('Invoice ' + inv.number + ' sent to ' + c.name, 'green');
+  showToast('Invoice sent to ' + c.name, 'success');
+  syncToClientPortal(clients);
+  renderInvoices();
+}
+
+function markInvoicePaid(clientId, invoiceId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  var inv = (c.invoices || []).find(function(x) { return x.id === invoiceId; });
+  if (!inv) return;
+
+  inv.status = 'Paid';
+
+  // Update corresponding billing entry
+  if (c.billing) {
+    var billEntry = c.billing.find(function(b) { return b.id === 'bill_' + inv.id; });
+    if (billEntry) { billEntry.status = 'Paid'; billEntry.paid = billEntry.amount; }
+  }
+
+  saveClients(clients);
+  addActivity('Invoice ' + inv.number + ' marked as paid for ' + c.name, 'green');
+  addClientNotification('billing', 'Payment Received', 'Your payment of ' + formatCurrency(inv.amount) + ' for invoice ' + inv.number + ' has been received. Thank you!', { invoiceId: inv.id });
+  showToast('Invoice marked as paid', 'success');
+  syncToClientPortal(clients);
+  renderInvoices();
+  renderBilling();
+}
+
+/* ---- RENDER COMMITMENTS ---- */
+function renderCommitments() {
+  var clients = loadClients();
+  var tbody = document.getElementById('commitments-tbody');
+  if (!tbody) return;
+
+  var activeC = 0, upcomingWeek = 0, keptC = 0, failedC = 0;
+  var now = Date.now();
+  var weekFromNow = now + 86400000 * 7;
+  var rows = [];
+
+  clients.forEach(function(c) {
+    (c.paymentCommitments || []).forEach(function(pc) {
+      if (pc.status === 'Scheduled') {
+        activeC++;
+        var dueTime = new Date(pc.dueDate).getTime();
+        if (dueTime <= weekFromNow && dueTime >= now) upcomingWeek++;
+      }
+      if (pc.status === 'Kept') keptC++;
+      if (pc.status === 'Failed') failedC++;
+      rows.push({ client: c, commitment: pc });
+    });
+  });
+
+  document.getElementById('commit-stat-active').textContent = activeC;
+  document.getElementById('commit-stat-upcoming').textContent = upcomingWeek;
+  document.getElementById('commit-stat-kept').textContent = keptC;
+  document.getElementById('commit-stat-failed').textContent = failedC;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">No payment commitments found.</td></tr>';
+    return;
+  }
+
+  // Sort: scheduled first, then by due date
+  rows.sort(function(a, b) {
+    if (a.commitment.status === 'Scheduled' && b.commitment.status !== 'Scheduled') return -1;
+    if (b.commitment.status === 'Scheduled' && a.commitment.status !== 'Scheduled') return 1;
+    return new Date(a.commitment.dueDate) - new Date(b.commitment.dueDate);
+  });
+
+  var html = '';
+  rows.forEach(function(r) {
+    var pc = r.commitment;
+    html += '<tr>';
+    html += '<td>' + escapeHtml(r.client.name) + '</td>';
+    html += '<td class="billing-amount">' + formatCurrency(pc.amount) + '</td>';
+    html += '<td>' + escapeHtml(pc.method || '---') + '</td>';
+    html += '<td>' + formatDate(pc.dueDate) + '</td>';
+    html += '<td>' + escapeHtml(pc.frequency || 'once') + '</td>';
+    html += '<td><span class="badge ' + billingBadgeClass(pc.status) + '">' + escapeHtml(pc.status) + '</span></td>';
+    html += '<td><div class="quote-actions">';
+    if (pc.status === 'Scheduled') {
+      html += '<button class="btn btn-sm btn-primary" onclick="markCommitmentKept(\'' + r.client.id + '\',\'' + pc.id + '\')">Mark Kept</button>';
+      html += '<button class="btn btn-sm btn-ghost" style="color:var(--error);" onclick="markCommitmentFailed(\'' + r.client.id + '\',\'' + pc.id + '\')">Mark Failed</button>';
+    }
+    html += '</div></td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function markCommitmentKept(clientId, commitmentId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  var pc = (c.paymentCommitments || []).find(function(x) { return x.id === commitmentId; });
+  if (!pc) return;
+
+  pc.status = 'Kept';
+  saveClients(clients);
+  addActivity('Payment commitment of ' + formatCurrency(pc.amount) + ' kept by ' + c.name, 'green');
+  addClientNotification('commitment', 'Payment Received', 'Your payment commitment of ' + formatCurrency(pc.amount) + ' has been marked as received. Thank you for staying on track!', { commitmentId: pc.id });
+  showToast('Commitment marked as kept', 'success');
+  syncToClientPortal(clients);
+  renderCommitments();
+}
+
+function markCommitmentFailed(clientId, commitmentId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  var pc = (c.paymentCommitments || []).find(function(x) { return x.id === commitmentId; });
+  if (!pc) return;
+
+  pc.status = 'Failed';
+  saveClients(clients);
+  addActivity('Payment commitment of ' + formatCurrency(pc.amount) + ' missed by ' + c.name, 'red');
+  addClientNotification('billing', 'Missed Payment Commitment', 'Your payment commitment of ' + formatCurrency(pc.amount) + ' due ' + formatDate(pc.dueDate) + ' was missed. Please contact your advisor to reschedule.', { commitmentId: pc.id });
+  showToast('Commitment marked as failed', 'error');
+  syncToClientPortal(clients);
+  renderCommitments();
 }
 
 /* ========== INIT ========== */
@@ -2821,6 +3891,26 @@ window.openModal = openModal;
 window.closeModal = closeModal;
 window.startInlineEdit = startInlineEdit;
 window.updateClientField = updateClientField;
+window.renderBilling = renderBilling;
+window.renderQuotes = renderQuotes;
+window.renderInvoices = renderInvoices;
+window.renderCommitments = renderCommitments;
+window.openAddBillingModal = openAddBillingModal;
+window.openAddBillingForClient = openAddBillingForClient;
+window.addBillingEntry = addBillingEntry;
+window.deleteBillingEntry = deleteBillingEntry;
+window.openCreateQuoteModal = openCreateQuoteModal;
+window.openCreateQuoteForClient = openCreateQuoteForClient;
+window.createQuote = createQuote;
+window.sendQuoteToClient = sendQuoteToClient;
+window.deleteQuote = deleteQuote;
+window.openCreateInvoiceModal = openCreateInvoiceModal;
+window.openCreateInvoiceForClient = openCreateInvoiceForClient;
+window.createInvoice = createInvoice;
+window.sendInvoiceToClient = sendInvoiceToClient;
+window.markInvoicePaid = markInvoicePaid;
+window.markCommitmentKept = markCommitmentKept;
+window.markCommitmentFailed = markCommitmentFailed;
 
 init();
 
