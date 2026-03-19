@@ -427,6 +427,39 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 }
 .detail-label { color: var(--muted); min-width: 80px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 .detail-val { color: var(--ink); }
+.detail-val.editable {
+  cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all .2s;
+  border: 1px solid transparent; min-width: 60px; display: inline-block;
+}
+.detail-val.editable:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); }
+.detail-val.editable.editing { background: rgba(255,255,255,.06); border-color: var(--gold); }
+.detail-val .inline-edit {
+  background: rgba(255,255,255,.04); border: 1px solid var(--gold); border-radius: 4px;
+  color: var(--ink); padding: 2px 6px; font-size: 13px; font-family: inherit; width: 100%;
+  outline: none;
+}
+
+/* STAGE BADGES */
+.stage-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 16px;
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px;
+  white-space: nowrap;
+}
+.stage-intake { background: rgba(234,179,8,.12); color: #eab308; border: 1px solid rgba(234,179,8,.3); }
+.stage-disputes { background: rgba(96,165,250,.12); color: #60a5fa; border: 1px solid rgba(96,165,250,.3); }
+.stage-monitoring { background: rgba(34,211,238,.12); color: #22d3ee; border: 1px solid rgba(34,211,238,.3); }
+.stage-resolution { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.3); }
+.stage-funding { background: rgba(45,212,191,.12); color: #2dd4bf; border: 1px solid rgba(45,212,191,.3); }
+.stage-onboarding { background: rgba(234,179,8,.12); color: #eab308; border: 1px solid rgba(234,179,8,.3); }
+.stage-default { background: rgba(160,174,192,.08); color: var(--muted); border: 1px solid rgba(160,174,192,.2); }
+
+/* STAGE BREAKDOWN */
+.stage-breakdown { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.stage-breakdown-item {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px;
+  background: rgba(255,255,255,.03); border-radius: 6px; border: 1px solid rgba(255,255,255,.05);
+}
+.stage-breakdown-item .sbi-count { font-weight: 700; font-size: 16px; }
 
 /* SCORES DISPLAY */
 .scores-row {
@@ -787,6 +820,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           </div>
         </div>
       </div>
+      <div class="a-card" style="margin-top:16px;">
+        <h3 style="font-size:16px; margin-bottom:14px; color:var(--cyan);">Clients by Workflow Stage</h3>
+        <div class="stage-breakdown" id="stage-breakdown"></div>
+      </div>
     </div>
 
     <!-- ====== CLIENT MANAGEMENT ====== -->
@@ -813,6 +850,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <option value="Tradeline Boost">Tradeline Boost</option>
           <option value="Funding Ready">Funding Ready</option>
           <option value="Full Suite">Full Suite</option>
+        </select>
+        <select id="client-filter-stage" onchange="filterClients()">
+          <option value="">All Stages</option>
+          <option value="Intake & Document Collection">Intake & Document Collection</option>
+          <option value="Disputes Filed">Disputes Filed</option>
+          <option value="Monitoring">Monitoring</option>
+          <option value="Resolution">Resolution</option>
+          <option value="Funding Ready">Funding Ready</option>
         </select>
       </div>
       <div class="a-card" style="padding:0; overflow:visible;">
@@ -1189,9 +1234,11 @@ var msgModalClientId = null;
 
 /* ========== UTILITIES ========== */
 function generateCaseNumber() {
-  var y = new Date().getFullYear().toString().slice(-2);
-  var r = Math.floor(1000 + Math.random() * 9000);
-  return 'CR-' + y + r + '-' + Math.floor(1000 + Math.random() * 9000);
+  var d = new Date();
+  var y = d.getFullYear().toString().slice(-2);
+  var m = ('0' + (d.getMonth() + 1)).slice(-2);
+  var dd = ('0' + d.getDate()).slice(-2);
+  return 'CR-' + y + m + dd + '-' + Math.floor(1000 + Math.random() * 9000);
 }
 
 function generatePin() {
@@ -1248,6 +1295,81 @@ function statusBadgeClass(status) {
     case 'Archived': return 'badge-muted';
     default: return 'badge-muted';
   }
+}
+
+/* Workflow stage constants matching the main portal's hirecar_stage values */
+var WORKFLOW_STAGES = [
+  'Intake & Document Collection',
+  'Disputes Filed',
+  'Monitoring',
+  'Resolution',
+  'Funding Ready'
+];
+
+function stageBadgeClass(stage) {
+  switch (stage) {
+    case 'Intake & Document Collection': return 'stage-intake';
+    case 'Disputes Filed': return 'stage-disputes';
+    case 'Monitoring': return 'stage-monitoring';
+    case 'Resolution': return 'stage-resolution';
+    case 'Funding Ready': return 'stage-funding';
+    case 'Onboarding': return 'stage-onboarding';
+    default: return 'stage-default';
+  }
+}
+
+function formatCurrency(val) {
+  if (!val) return '---';
+  var n = parseFloat(val);
+  if (isNaN(n)) return val;
+  return '$' + n.toLocaleString('en-US');
+}
+
+/**
+ * updateClientField - Updates a single field on a client object in hc_admin_clients.
+ *
+ * NOTE: The main client portal stores individual fields using separate localStorage keys
+ * (hirecar_phone, hirecar_dob, hirecar_address, etc.). The admin dashboard stores all
+ * client data in the hc_admin_clients array. In a future version, these two storage
+ * patterns would sync via an API layer. For now, admin edits are saved to hc_admin_clients
+ * and portal edits are saved to hirecar_* keys independently.
+ */
+function updateClientField(clientId, field, value) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  c[field] = value;
+  c.lastActive = new Date().toISOString();
+  saveClients(clients);
+}
+
+function startInlineEdit(clientId, field, el) {
+  if (el.querySelector('.inline-edit')) return;
+  el.classList.add('editing');
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  var currentVal = c[field] || '';
+  var input = document.createElement('input');
+  input.className = 'inline-edit';
+  input.value = currentVal;
+  el.textContent = '';
+  el.appendChild(input);
+  input.focus();
+  input.select();
+
+  function finishEdit() {
+    var newVal = input.value.trim();
+    updateClientField(clientId, field, newVal);
+    el.classList.remove('editing');
+    el.textContent = newVal || '---';
+  }
+
+  input.addEventListener('blur', finishEdit);
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { el.classList.remove('editing'); el.textContent = currentVal || '---'; }
+  });
 }
 
 /* ========== TOAST ========== */
@@ -1362,16 +1484,30 @@ function importFromPortal() {
         portalClientId: portalClientId || '',
         name: portalName,
         email: portalEmail,
-        phone: '',
+        phone: localStorage.getItem('hirecar_phone') || '',
         caseNumber: portalCase || generateCaseNumber(),
         pin: localStorage.getItem('hirecar_pin') || generatePin(),
         program: 'Credit Repair',
-        stage: 'Onboarding',
+        stage: localStorage.getItem('hirecar_stage') || 'Intake & Document Collection',
         scores: portalScores,
         status: 'Active',
         lastActive: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         notes: 'Imported from client portal.',
+        dob: localStorage.getItem('hirecar_dob') || '',
+        address: localStorage.getItem('hirecar_address') || '',
+        city_state: localStorage.getItem('hirecar_city_state') || '',
+        zip: localStorage.getItem('hirecar_zip') || '',
+        employer: localStorage.getItem('hirecar_employer') || '',
+        job_title: localStorage.getItem('hirecar_job_title') || '',
+        employment_duration: localStorage.getItem('hirecar_employment_duration') || '',
+        monthly_income: localStorage.getItem('hirecar_monthly_income') || '',
+        vehicle: localStorage.getItem('hirecar_vehicle') || '',
+        vin: localStorage.getItem('hirecar_vin') || '',
+        emergency_name: localStorage.getItem('hirecar_emergency_name') || '',
+        emergency_phone: localStorage.getItem('hirecar_emergency_phone') || '',
+        emergency_relationship: localStorage.getItem('hirecar_emergency_relationship') || '',
+        last_admin_msg: localStorage.getItem('hirecar_last_admin_msg') || '',
         messages: [],
         documents: [],
         fundingRequests: [],
@@ -1565,7 +1701,7 @@ function renderDashboard() {
         msgAwaiting++;
       }
     }
-    if (c.stage === 'Onboarding' || c.stage === 'Documents Needed') {
+    if (c.stage === 'Intake & Document Collection' || c.stage === 'Onboarding' || c.stage === 'Documents Needed') {
       pendingActions++;
     }
     if (c.creditReports) {
@@ -1594,6 +1730,33 @@ function renderDashboard() {
   });
   var totalAvg = allScores.length > 0 ? Math.round(allScores.reduce(function(a, b) { return a + b; }, 0) / allScores.length) : 0;
   document.getElementById('stat-avg-score').textContent = totalAvg > 0 ? totalAvg : '---';
+
+  // Stage breakdown
+  var stageCounts = {};
+  WORKFLOW_STAGES.forEach(function(s) { stageCounts[s] = 0; });
+  stageCounts['Other'] = 0;
+  clients.forEach(function(c) {
+    var st = c.stage || 'Other';
+    if (stageCounts[st] !== undefined) { stageCounts[st]++; }
+    else { stageCounts['Other']++; }
+  });
+  var sbEl = document.getElementById('stage-breakdown');
+  if (sbEl) {
+    var sbHtml = '';
+    WORKFLOW_STAGES.forEach(function(s) {
+      sbHtml += '<div class="stage-breakdown-item">';
+      sbHtml += '<span class="stage-badge ' + stageBadgeClass(s) + '" style="font-size:9px;">' + escapeHtml(s) + '</span>';
+      sbHtml += '<span class="sbi-count">' + stageCounts[s] + '</span>';
+      sbHtml += '</div>';
+    });
+    if (stageCounts['Other'] > 0) {
+      sbHtml += '<div class="stage-breakdown-item">';
+      sbHtml += '<span class="stage-badge stage-default" style="font-size:9px;">OTHER</span>';
+      sbHtml += '<span class="sbi-count">' + stageCounts['Other'] + '</span>';
+      sbHtml += '</div>';
+    }
+    sbEl.innerHTML = sbHtml;
+  }
 
   document.getElementById('badge-clients').textContent = clients.length;
   var badgeMsg = document.getElementById('badge-messages');
@@ -1626,11 +1789,13 @@ function renderClients() {
   var search = (document.getElementById('client-search').value || '').toLowerCase();
   var filterStatus = document.getElementById('client-filter-status').value;
   var filterProgram = document.getElementById('client-filter-program').value;
+  var filterStage = document.getElementById('client-filter-stage').value;
 
   var filtered = clients.filter(function(c) {
     if (search && c.name.toLowerCase().indexOf(search) === -1 && c.email.toLowerCase().indexOf(search) === -1 && c.caseNumber.toLowerCase().indexOf(search) === -1) return false;
     if (filterStatus && c.status !== filterStatus) return false;
     if (filterProgram && c.program !== filterProgram) return false;
+    if (filterStage && c.stage !== filterStage) return false;
     return true;
   });
 
@@ -1650,7 +1815,7 @@ function renderClients() {
     html += '<td style="font-size:13px;color:var(--muted);">' + escapeHtml(c.email) + '</td>';
     html += '<td style="font-family:\'Share Tech Mono\',monospace;font-size:12px;">' + escapeHtml(c.caseNumber) + '</td>';
     html += '<td>' + escapeHtml(c.program) + '</td>';
-    html += '<td>' + escapeHtml(c.stage) + '</td>';
+    html += '<td><span class="stage-badge ' + stageBadgeClass(c.stage) + '">' + escapeHtml(c.stage) + '</span></td>';
     html += '<td style="font-weight:600;color:var(--amber);">' + (avg > 0 ? avg : '---') + '</td>';
     html += '<td><span class="badge ' + statusBadgeClass(c.status) + '">' + escapeHtml(c.status) + '</span></td>';
     html += '<td style="font-size:12px;color:var(--muted);">' + timeAgo(c.lastActive) + '</td>';
@@ -1680,21 +1845,32 @@ function toggleClientDetail(clientId) {
 
 function buildClientDetailHtml(c) {
   var avg = calcAvgScore(c);
+  var cid = c.id;
   var h = '<div class="client-detail-panel visible">';
   h += '<div class="detail-grid">';
 
+  /* ---- Column 1: Client Profile ---- */
   h += '<div class="detail-section">';
   h += '<h4>Client Profile</h4>';
   h += '<div class="detail-row"><span class="detail-label">Name</span><span class="detail-val">' + escapeHtml(c.name) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val">' + escapeHtml(c.email) + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val">' + escapeHtml(c.phone || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Case #</span><span class="detail-val" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.caseNumber) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">PIN</span><span class="detail-val" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.pin) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Program</span><span class="detail-val">' + escapeHtml(c.program) + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Stage</span><span class="detail-val">' + escapeHtml(c.stage) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Created</span><span class="detail-val">' + formatDate(c.createdAt) + '</span></div>';
   h += '</div>';
 
+  /* ---- Column 2: Personal Info (editable) ---- */
+  h += '<div class="detail-section">';
+  h += '<h4>Personal Info</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'phone\',this)">' + escapeHtml(c.phone || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">DOB</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'dob\',this)">' + escapeHtml(c.dob || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Address</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'address\',this)">' + escapeHtml(c.address || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">City/State</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'city_state\',this)">' + escapeHtml(c.city_state || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">ZIP</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'zip\',this)">' + escapeHtml(c.zip || '---') + '</span></div>';
+  h += '</div>';
+
+  /* ---- Column 3: Credit Scores ---- */
   h += '<div class="detail-section">';
   h += '<h4>Credit Scores</h4>';
   h += '<div class="scores-row">';
@@ -1704,31 +1880,66 @@ function buildClientDetailHtml(c) {
   h += '<div class="score-box"><div class="sb-bureau">Average</div><div class="sb-val" style="color:var(--cyan);">' + (avg || '---') + '</div></div>';
   h += '</div>';
   h += '<div style="margin-top:10px;">';
-  h += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + c.id + '\')">Update Scores</button>';
-  h += ' <button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + c.id + '\')">Send Message</button>';
+  h += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + cid + '\')">Update Scores</button>';
+  h += ' <button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + cid + '\')">Send Message</button>';
   h += '</div>';
   h += '</div>';
 
+  h += '</div>'; // end first detail-grid row
+
+  /* ---- Second row: Employment, Vehicle, Emergency Contact, Status ---- */
+  h += '<div class="detail-grid" style="margin-top:12px;">';
+
+  /* ---- Employment (editable) ---- */
   h += '<div class="detail-section">';
-  h += '<h4>Status &amp; Notes</h4>';
+  h += '<h4>Employment</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Employer</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'employer\',this)">' + escapeHtml(c.employer || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Job Title</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'job_title\',this)">' + escapeHtml(c.job_title || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Duration</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'employment_duration\',this)">' + escapeHtml(c.employment_duration || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Monthly Income</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'monthly_income\',this)">' + escapeHtml(c.monthly_income ? formatCurrency(c.monthly_income) : '---') + '</span></div>';
+  h += '</div>';
+
+  /* ---- Vehicle Info (editable) ---- */
+  h += '<div class="detail-section">';
+  h += '<h4>Vehicle Info</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Vehicle</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'vehicle\',this)">' + escapeHtml(c.vehicle || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">VIN</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'vin\',this)" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.vin || '---') + '</span></div>';
+  h += '</div>';
+
+  /* ---- Emergency Contact (editable) ---- */
+  h += '<div class="detail-section">';
+  h += '<h4>Emergency Contact</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Name</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'emergency_name\',this)">' + escapeHtml(c.emergency_name || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'emergency_phone\',this)">' + escapeHtml(c.emergency_phone || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Relationship</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'emergency_relationship\',this)">' + escapeHtml(c.emergency_relationship || '---') + '</span></div>';
+  h += '</div>';
+
+  h += '</div>'; // end second detail-grid row
+
+  /* ---- Status, Stage & Notes ---- */
+  h += '<div class="detail-grid" style="margin-top:12px;">';
+
+  h += '<div class="detail-section">';
+  h += '<h4>Status &amp; Stage</h4>';
   h += '<div class="form-group" style="margin-bottom:10px;">';
   h += '<label>Status</label>';
-  h += '<select class="form-select" onchange="updateClientStatus(\'' + c.id + '\', this.value)" style="max-width:200px;">';
+  h += '<select class="form-select" onchange="updateClientStatus(\'' + cid + '\', this.value)" style="max-width:200px;">';
   ['Active', 'Paused', 'Completed', 'Archived'].forEach(function(s) {
     h += '<option value="' + s + '"' + (c.status === s ? ' selected' : '') + '>' + s + '</option>';
   });
   h += '</select></div>';
   h += '<div class="form-group">';
-  h += '<label>Stage</label>';
-  h += '<select class="form-select" onchange="updateClientStage(\'' + c.id + '\', this.value)" style="max-width:200px;">';
-  ['Onboarding', 'Documents Needed', 'In Review', 'Disputes Filed', 'Active Repair', 'Monitoring', 'Completed'].forEach(function(s) {
+  h += '<label>Workflow Stage</label>';
+  h += '<select class="form-select" onchange="updateClientStage(\'' + cid + '\', this.value)" style="max-width:260px;">';
+  WORKFLOW_STAGES.forEach(function(s) {
     h += '<option value="' + s + '"' + (c.stage === s ? ' selected' : '') + '>' + s + '</option>';
   });
   h += '</select></div>';
-  h += '<div class="form-group">';
-  h += '<label>Admin Notes</label>';
-  h += '<textarea class="form-textarea" style="min-height:60px;" onblur="updateClientNotes(\'' + c.id + '\', this.value)" placeholder="Add notes...">' + escapeHtml(c.notes || '') + '</textarea>';
   h += '</div>';
+
+  h += '<div class="detail-section" style="grid-column: span 2;">';
+  h += '<h4>Admin Notes</h4>';
+  h += '<textarea class="form-textarea" style="min-height:60px;" onblur="updateClientNotes(\'' + cid + '\', this.value)" placeholder="Add notes...">' + escapeHtml(c.notes || '') + '</textarea>';
   h += '</div>';
 
   h += '</div>';
@@ -1786,6 +1997,8 @@ function updateClientStage(clientId, stage) {
   saveClients(clients);
   addActivity('Stage updated to "' + stage + '" for ' + c.name, 'blue');
   showToast('Stage updated to ' + stage, 'success');
+  renderClients();
+  renderDashboard();
 }
 
 function updateClientNotes(clientId, notes) {
@@ -1854,12 +2067,17 @@ function addNewClient() {
     caseNumber: caseNum,
     pin: pin,
     program: program,
-    stage: 'Onboarding',
+    stage: 'Intake & Document Collection',
     scores: { eq: 0, ex: 0, tu: 0 },
     status: 'Active',
     lastActive: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     notes: '',
+    dob: '', address: '', city_state: '', zip: '',
+    employer: '', job_title: '', employment_duration: '', monthly_income: '',
+    vehicle: '', vin: '',
+    emergency_name: '', emergency_phone: '', emergency_relationship: '',
+    last_admin_msg: '',
     messages: [],
     documents: [],
     fundingRequests: [],
@@ -2392,10 +2610,15 @@ function seedDemoDataIfEmpty() {
   var demoClients = [
     {
       id: generateId(), portalClientId: '', name: 'Marcus Johnson', email: 'marcus.j@email.com', phone: '(404) 555-0142',
-      caseNumber: 'CR-260312-4821', pin: '7729', program: 'Credit Repair', stage: 'Active Repair',
+      caseNumber: 'CR-260312-4821', pin: '7729', program: 'Credit Repair', stage: 'Disputes Filed',
       scores: { eq: 612, ex: 598, tu: 625 }, status: 'Active',
       lastActive: new Date(Date.now() - 3600000).toISOString(), createdAt: new Date(Date.now() - 86400000 * 45).toISOString(),
       notes: 'Making good progress. 3 disputes resolved this month.',
+      dob: '1988-06-15', address: '1425 Peachtree Ln NE', city_state: 'Atlanta, GA', zip: '30309',
+      employer: 'Delta Air Lines', job_title: 'Operations Manager', employment_duration: '4 years', monthly_income: '6200',
+      vehicle: '2022 Honda Accord Sport', vin: '1HGCV1F34NA012345',
+      emergency_name: 'Tanya Johnson', emergency_phone: '(404) 555-0199', emergency_relationship: 'Spouse',
+      last_admin_msg: new Date(Date.now() - 86400000 * 2 + 3600000).toISOString(),
       messages: [
         { from: 'client', text: 'Hi, I uploaded my latest Experian report. Can you review it?', time: new Date(Date.now() - 86400000 * 2).toISOString() },
         { from: 'admin', text: 'Got it Marcus. I\'ll review and update your scores shortly.', time: new Date(Date.now() - 86400000 * 2 + 3600000).toISOString(), adminName: 'Ken' },
@@ -2418,6 +2641,11 @@ function seedDemoDataIfEmpty() {
       scores: { eq: 548, ex: 562, tu: 541 }, status: 'Active',
       lastActive: new Date(Date.now() - 7200000).toISOString(), createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
       notes: 'Has 7 negative items across all 3 bureaus. Disputes filed on 5 so far.',
+      dob: '1992-03-22', address: '8814 Westheimer Rd', city_state: 'Houston, TX', zip: '77063',
+      employer: 'Memorial Hermann Health', job_title: 'Registered Nurse', employment_duration: '6 years', monthly_income: '5800',
+      vehicle: '2021 Toyota Camry LE', vin: '4T1G11AK5MU123456',
+      emergency_name: 'James Williams Sr.', emergency_phone: '(713) 555-0344', emergency_relationship: 'Father',
+      last_admin_msg: new Date(Date.now() - 86400000 * 15).toISOString(),
       messages: [
         { from: 'admin', text: 'Welcome Aisha! I\'ve reviewed your initial reports and have a plan ready.', time: new Date(Date.now() - 86400000 * 28).toISOString(), adminName: 'Ken' },
         { from: 'client', text: 'Great, looking forward to getting started!', time: new Date(Date.now() - 86400000 * 27).toISOString() },
@@ -2441,6 +2669,11 @@ function seedDemoDataIfEmpty() {
       scores: { eq: 710, ex: 695, tu: 722 }, status: 'Active',
       lastActive: new Date(Date.now() - 86400000 * 3).toISOString(), createdAt: new Date(Date.now() - 86400000 * 90).toISOString(),
       notes: 'Tradeline added in January. Scores have improved significantly. Close to 750 target.',
+      dob: '1985-11-08', address: '2200 Market St, Apt 14B', city_state: 'San Francisco, CA', zip: '94114',
+      employer: 'Salesforce Inc.', job_title: 'Senior Software Engineer', employment_duration: '3 years', monthly_income: '12500',
+      vehicle: '2023 Tesla Model 3', vin: '5YJ3E1EA7PF234567',
+      emergency_name: 'Linda Chen', emergency_phone: '(415) 555-0201', emergency_relationship: 'Mother',
+      last_admin_msg: '',
       messages: [
         { from: 'client', text: 'Scores are looking great. When can I apply for the business credit card?', time: new Date(Date.now() - 86400000 * 3).toISOString() }
       ],
@@ -2456,10 +2689,15 @@ function seedDemoDataIfEmpty() {
     },
     {
       id: generateId(), portalClientId: '', name: 'Keisha Brown', email: 'keisha.b@email.com', phone: '(305) 555-0364',
-      caseNumber: 'CR-251201-8832', pin: '9912', program: 'Funding Ready', stage: 'Completed',
+      caseNumber: 'CR-251201-8832', pin: '9912', program: 'Funding Ready', stage: 'Funding Ready',
       scores: { eq: 758, ex: 742, tu: 761 }, status: 'Completed',
       lastActive: new Date(Date.now() - 86400000 * 14).toISOString(), createdAt: new Date(Date.now() - 86400000 * 120).toISOString(),
       notes: 'Successfully funded. $75K in business credit obtained. Program complete.',
+      dob: '1990-09-30', address: '450 Brickell Ave, Unit 2201', city_state: 'Miami, FL', zip: '33131',
+      employer: 'Self-Employed (Brown Consulting LLC)', job_title: 'CEO / Consultant', employment_duration: '8 years', monthly_income: '9500',
+      vehicle: '2024 BMW X5 xDrive40i', vin: '5UXCR6C05R9S45678',
+      emergency_name: 'Derek Brown', emergency_phone: '(305) 555-0412', emergency_relationship: 'Brother',
+      last_admin_msg: new Date(Date.now() - 86400000 * 14).toISOString(),
       messages: [
         { from: 'admin', text: 'Congratulations Keisha! Your funding has been approved. All accounts are set up.', time: new Date(Date.now() - 86400000 * 14).toISOString(), adminName: 'Ken' },
         { from: 'client', text: 'Amazing! Thank you so much for everything. This has been life-changing.', time: new Date(Date.now() - 86400000 * 14 + 1800000).toISOString() }
@@ -2475,10 +2713,15 @@ function seedDemoDataIfEmpty() {
     },
     {
       id: generateId(), portalClientId: '', name: 'Robert Taylor', email: 'rob.taylor@email.com', phone: '(214) 555-0421',
-      caseNumber: 'CR-260301-1199', pin: '6654', program: 'Credit Repair', stage: 'Onboarding',
+      caseNumber: 'CR-260301-1199', pin: '6654', program: 'Credit Repair', stage: 'Intake & Document Collection',
       scores: { eq: 0, ex: 0, tu: 0 }, status: 'Active',
       lastActive: new Date(Date.now() - 86400000).toISOString(), createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
       notes: 'New client. Awaiting initial credit report uploads.',
+      dob: '1995-01-17', address: '3901 Elm St', city_state: 'Dallas, TX', zip: '75226',
+      employer: 'FedEx Freight', job_title: 'Logistics Coordinator', employment_duration: '2 years', monthly_income: '4300',
+      vehicle: '2020 Ford F-150 XLT', vin: '1FTEW1EP5LFA67890',
+      emergency_name: 'Patricia Taylor', emergency_phone: '(214) 555-0488', emergency_relationship: 'Mother',
+      last_admin_msg: new Date(Date.now() - 86400000 * 2).toISOString(),
       messages: [
         { from: 'admin', text: 'Welcome Robert! Please upload your credit reports and ID to get started.', time: new Date(Date.now() - 86400000 * 2).toISOString(), adminName: 'Ken' }
       ],
@@ -2488,10 +2731,15 @@ function seedDemoDataIfEmpty() {
     },
     {
       id: generateId(), portalClientId: '', name: 'Maria Gonzalez', email: 'maria.g@email.com', phone: '(832) 555-0533',
-      caseNumber: 'CR-260112-6647', pin: '2278', program: 'Full Suite', stage: 'Active Repair',
+      caseNumber: 'CR-260112-6647', pin: '2278', program: 'Full Suite', stage: 'Resolution',
       scores: { eq: 580, ex: 595, tu: 572 }, status: 'Paused',
       lastActive: new Date(Date.now() - 86400000 * 21).toISOString(), createdAt: new Date(Date.now() - 86400000 * 75).toISOString(),
       notes: 'Client requested pause due to personal matters. Resume in April.',
+      dob: '1987-12-04', address: '1100 Louisiana St, Apt 8F', city_state: 'Houston, TX', zip: '77002',
+      employer: 'Houston ISD', job_title: 'Bilingual Teacher', employment_duration: '9 years', monthly_income: '4800',
+      vehicle: '2019 Nissan Rogue SV', vin: '5N1AT2MV2KC789012',
+      emergency_name: 'Carlos Gonzalez', emergency_phone: '(832) 555-0601', emergency_relationship: 'Spouse',
+      last_admin_msg: new Date(Date.now() - 86400000 * 21 + 3600000).toISOString(),
       messages: [
         { from: 'client', text: 'I need to pause my program for a few weeks. Family emergency.', time: new Date(Date.now() - 86400000 * 21).toISOString() },
         { from: 'admin', text: 'Of course, Maria. Take the time you need. Your progress is saved and we can resume whenever you are ready.', time: new Date(Date.now() - 86400000 * 21 + 3600000).toISOString(), adminName: 'Ken' }
@@ -2571,6 +2819,8 @@ window.changeAdminPin = changeAdminPin;
 window.toggleMaintenance = toggleMaintenance;
 window.openModal = openModal;
 window.closeModal = closeModal;
+window.startInlineEdit = startInlineEdit;
+window.updateClientField = updateClientField;
 
 init();
 

@@ -897,6 +897,16 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
 .derog-table thead th,.derog-table tbody td{padding:6px 8px;}
 }
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+/* Editable profile fields */
+.editable-field{cursor:pointer;position:relative;transition:background .2s,color .2s;border-bottom:1px dashed rgba(255,255,255,.15);padding-bottom:1px;}
+.editable-field:hover{background:rgba(42,107,184,.08);color:var(--blue);border-bottom-color:var(--blue);}
+.editable-field::after{content:' \270F';font-size:10px;opacity:.3;margin-left:4px;}
+.editable-field:hover::after{opacity:.7;}
+.editable-field-input{background:transparent;border:1px solid var(--blue);border-radius:4px;padding:2px 6px;color:var(--ink);font-size:inherit;font-family:inherit;width:auto;min-width:80px;max-width:200px;}
+.workflow-step-active{background:rgba(42,107,184,.15) !important;border:1px solid rgba(42,107,184,.3) !important;}
+.workflow-step-active div{color:var(--blue) !important;font-weight:700 !important;}
+.workflow-step-done{background:rgba(52,211,153,.1) !important;border:1px solid rgba(52,211,153,.25) !important;}
+.workflow-step-done div{color:var(--success) !important;}
 </style>
 </head>
 <body>
@@ -1103,7 +1113,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
           <div class="case-row"><span class="case-label">Program</span><span class="case-val">ASAP Auto Loan Approval</span></div>
           <div class="case-row"><span class="case-label">Assigned Advisor</span><span class="case-val">Ken Eckman</span></div>
           <div class="case-row"><span class="case-label">Service Provider</span><span class="case-val">HIRECAR Member Services / CreditWithKen</span></div>
-          <div class="case-row"><span class="case-label">Current Stage</span><span class="case-val" style="font-weight:600;color:var(--blue);">Intake &amp; Document Collection</span></div>
+          <div class="case-row"><span class="case-label">Current Stage</span><span class="case-val" id="current-stage" style="font-weight:600;color:var(--blue);">Intake &amp; Document Collection</span></div>
         </div>
       </div>
 
@@ -1136,29 +1146,29 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;background:rgba(96,165,250,.04);border:1px solid rgba(96,165,250,.1);border-radius:8px;">
-          <div style="flex:1;"><div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Average Score</div><div style="font-family:'DM Sans',sans-serif;font-size:22px;font-weight:700;color:var(--blue);">---</div></div>
+          <div style="flex:1;"><div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Average Score</div><div id="dash-avg-score" style="font-family:'DM Sans',sans-serif;font-size:22px;font-weight:700;color:var(--blue);">---</div></div>
           <div style="flex:1;"><div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Target Score</div><div style="font-size:14px;font-weight:700;color:var(--success);">680+</div></div>
-          <div style="flex:1;"><div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Last Updated</div><div style="font-size:14px;font-weight:600;color:var(--muted);">--</div></div>
+          <div style="flex:1;"><div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Last Updated</div><div id="dash-last-updated" style="font-size:14px;font-weight:600;color:var(--muted);">--</div></div>
         </div>
       </div>
 
       <!-- Workflow Progress -->
       <div class="card">
         <h3 style="margin-bottom:12px;">Workflow Progress</h3>
-        <div style="display:flex;align-items:center;gap:0;margin-bottom:8px;">
-          <div style="flex:1;text-align:center;padding:10px 4px;background:rgba(42,107,184,.15);border-radius:8px 0 0 8px;border:1px solid rgba(42,107,184,.3);">
+        <div id="workflow-steps" style="display:flex;align-items:center;gap:0;margin-bottom:8px;">
+          <div id="wf-step-intake" class="workflow-step-active" style="flex:1;text-align:center;padding:10px 4px;border-radius:8px 0 0 8px;border:1px solid rgba(42,107,184,.3);">
             <div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.1em;">Intake</div>
           </div>
-          <div style="flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div id="wf-step-disputes" style="flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
             <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Disputes</div>
           </div>
-          <div style="flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div id="wf-step-monitoring" style="flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
             <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Monitoring</div>
           </div>
-          <div style="flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div id="wf-step-resolution" style="flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
             <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Resolution</div>
           </div>
-          <div style="flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.03);border-radius:0 8px 8px 0;border:1px solid rgba(255,255,255,.06);">
+          <div id="wf-step-funding" style="flex:1;text-align:center;padding:10px 4px;background:rgba(255,255,255,.03);border-radius:0 8px 8px 0;border:1px solid rgba(255,255,255,.06);">
             <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Funding Ready</div>
           </div>
         </div>
@@ -1250,18 +1260,18 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
         <div class="card" style="border-left:4px solid var(--success);">
           <h3 style="margin-bottom:8px;font-size:15px;">Funding Readiness</h3>
           <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Your current financing readiness status.</p>
-          <div style="padding:12px 16px;background:rgba(52,211,153,.04);border-radius:8px;border:1px solid rgba(52,211,153,.15);">
-            <div style="font-size:14px;font-weight:600;color:var(--ink);">In Progress</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Complete intake to unlock readiness score</div>
+          <div id="funding-readiness" style="padding:12px 16px;background:rgba(52,211,153,.04);border-radius:8px;border:1px solid rgba(52,211,153,.15);">
+            <div class="funding-status" style="font-size:14px;font-weight:600;color:var(--ink);">In Progress</div>
+            <div class="funding-detail" style="font-size:12px;color:var(--muted);margin-top:4px;">Complete intake to unlock readiness score</div>
           </div>
           <a href="#" onclick="document.querySelector('[data-sec=sec-funding]').click();return false;" style="display:inline-block;margin-top:12px;font-size:13px;color:var(--gold);">View Funding Details &rarr;</a>
         </div>
         <div class="card" style="border-left:4px solid var(--blue);">
           <h3 style="margin-bottom:8px;font-size:15px;">Auto Approval Readiness</h3>
           <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Your path toward vehicle financing.</p>
-          <div style="padding:12px 16px;background:rgba(96,165,250,.04);border-radius:8px;border:1px solid rgba(96,165,250,.15);">
-            <div style="font-size:14px;font-weight:600;color:var(--ink);">Pending</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Score target: 680+ | Down payment: TBD</div>
+          <div id="auto-readiness" style="padding:12px 16px;background:rgba(96,165,250,.04);border-radius:8px;border:1px solid rgba(96,165,250,.15);">
+            <div class="auto-status" style="font-size:14px;font-weight:600;color:var(--ink);">Pending</div>
+            <div class="auto-detail" style="font-size:12px;color:var(--muted);margin-top:4px;">Score target: 680+ | Down payment: TBD</div>
           </div>
           <a href="#" onclick="document.querySelector('[data-sec=sec-playbooks]').click();return false;" style="display:inline-block;margin-top:12px;font-size:13px;color:var(--gold);">View Playbook &rarr;</a>
         </div>
@@ -1316,8 +1326,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
           <div class="case-row"><span class="case-label">Full Name</span><span class="case-val"><span class="client-name-dynamic">New Client</span></span></div>
           <div class="case-row"><span class="case-label">Role</span><span class="case-val">Member</span></div>
           <div class="case-row"><span class="case-label">Email</span><span class="case-val client-field" data-field="email">--</span></div>
-          <div class="case-row"><span class="case-label">Phone</span><span class="case-val client-field" data-field="phone">--</span></div>
-          <div class="case-row"><span class="case-label">Date of Birth</span><span class="case-val">--</span></div>
+          <div class="case-row"><span class="case-label">Phone</span><span class="case-val editable-field client-field" data-field="phone">--</span></div>
+          <div class="case-row"><span class="case-label">Date of Birth</span><span class="case-val editable-field" data-field="dob">--</span></div>
           <div class="case-row"><span class="case-label">SSN (last 4)</span><span class="case-val">****</span></div>
           <div class="case-row"><span class="case-label">Government ID</span><span class="case-val"><span class="badge badge-gold" style="font-size:9px;">UPLOAD NEEDED</span></span></div>
           <div class="case-row"><span class="case-label">Preferred Language</span><span class="case-val">English</span></div>
@@ -1345,9 +1355,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
         <h3 style="margin-bottom:4px;">Address &amp; Location Details</h3>
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Keep your residential, mailing, rental, and service-related location details current to support accurate processing, underwriting, and document preparation.</p>
         <div class="case-overview">
-          <div class="case-row"><span class="case-label">Current Address</span><span class="case-val client-field" data-field="address">--</span></div>
-          <div class="case-row"><span class="case-label">City / State</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">ZIP Code</span><span class="case-val">--</span></div>
+          <div class="case-row"><span class="case-label">Current Address</span><span class="case-val editable-field client-field" data-field="address">--</span></div>
+          <div class="case-row"><span class="case-label">City / State</span><span class="case-val editable-field" data-field="city_state">--</span></div>
+          <div class="case-row"><span class="case-label">ZIP Code</span><span class="case-val editable-field" data-field="zip">--</span></div>
           <div class="case-row"><span class="case-label">Mailing Address</span><span class="case-val">Same as above</span></div>
           <div class="case-row"><span class="case-label">Rental Property</span><span class="case-val">--</span></div>
           <div class="case-row"><span class="case-label">Address Duration</span><span class="case-val">--</span></div>
@@ -1360,10 +1370,10 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
         <h3 style="margin-bottom:12px;">Employment &amp; Income</h3>
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Income and employment details used for funding readiness and lender qualification.</p>
         <div class="case-overview">
-          <div class="case-row"><span class="case-label">Employment Status</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Employer</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Job Title</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Monthly Income</span><span class="case-val">--</span></div>
+          <div class="case-row"><span class="case-label">Employment Status</span><span class="case-val editable-field" data-field="employment_duration">--</span></div>
+          <div class="case-row"><span class="case-label">Employer</span><span class="case-val editable-field" data-field="employer">--</span></div>
+          <div class="case-row"><span class="case-label">Job Title</span><span class="case-val editable-field" data-field="job_title">--</span></div>
+          <div class="case-row"><span class="case-label">Monthly Income</span><span class="case-val editable-field" data-field="monthly_income">--</span></div>
           <div class="case-row"><span class="case-label">Income Verified</span><span class="case-val"><span class="badge badge-gold" style="font-size:9px;">PENDING</span></span></div>
           <div class="case-row"><span class="case-label">Additional Income</span><span class="case-val">--</span></div>
         </div>
@@ -1374,10 +1384,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
         <h3 style="margin-bottom:12px;">Vehicle Information</h3>
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Current and target vehicle details for the auto loan approval program.</p>
         <div class="case-overview">
-          <div class="case-row"><span class="case-label">Current Vehicle</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Target Vehicle</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Budget Range</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Down Payment</span><span class="case-val">--</span></div>
+          <div class="case-row"><span class="case-label">Current Vehicle</span><span class="case-val editable-field" data-field="vehicle">--</span></div>
+          <div class="case-row"><span class="case-label">Target Vehicle</span><span class="case-val editable-field" data-field="target_vehicle">--</span></div>
+          <div class="case-row"><span class="case-label">Budget Range</span><span class="case-val editable-field" data-field="budget_range">--</span></div>
+          <div class="case-row"><span class="case-label">Down Payment</span><span class="case-val editable-field" data-field="down_payment">--</span></div>
+          <div class="case-row"><span class="case-label">VIN</span><span class="case-val editable-field" data-field="vin">--</span></div>
           <div class="case-row"><span class="case-label">Insurance Status</span><span class="case-val"><span class="badge badge-gold" style="font-size:9px;">PENDING</span></span></div>
           <div class="case-row"><span class="case-label">Driver License</span><span class="case-val"><span class="badge badge-gold" style="font-size:9px;">UPLOAD NEEDED</span></span></div>
         </div>
@@ -1387,10 +1398,10 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
       <div class="card">
         <h3 style="margin-bottom:12px;">Emergency Contact</h3>
         <div class="case-overview">
-          <div class="case-row"><span class="case-label">Contact Name</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Relationship</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Phone</span><span class="case-val">--</span></div>
-          <div class="case-row"><span class="case-label">Email</span><span class="case-val">--</span></div>
+          <div class="case-row"><span class="case-label">Contact Name</span><span class="case-val editable-field" data-field="emergency_name">--</span></div>
+          <div class="case-row"><span class="case-label">Relationship</span><span class="case-val editable-field" data-field="emergency_relationship">--</span></div>
+          <div class="case-row"><span class="case-label">Phone</span><span class="case-val editable-field" data-field="emergency_phone">--</span></div>
+          <div class="case-row"><span class="case-label">Email</span><span class="case-val editable-field" data-field="emergency_email">--</span></div>
         </div>
       </div>
 
@@ -1401,13 +1412,13 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div style="padding:14px;background:rgba(42,107,184,.04);border:1px solid rgba(42,107,184,.1);border-radius:8px;">
             <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Reference 1</div>
-            <div style="font-size:14px;color:var(--ink);">--</div>
-            <div style="font-size:11px;color:var(--muted);">Phone: -- | Relationship: --</div>
+            <div style="font-size:14px;color:var(--ink);"><span class="editable-field" data-field="ref1_name">--</span></div>
+            <div style="font-size:11px;color:var(--muted);">Phone: <span class="editable-field" data-field="ref1_phone">--</span> | Relationship: <span class="editable-field" data-field="ref1_relationship">--</span></div>
           </div>
           <div style="padding:14px;background:rgba(42,107,184,.04);border:1px solid rgba(42,107,184,.1);border-radius:8px;">
             <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Reference 2</div>
-            <div style="font-size:14px;color:var(--ink);">--</div>
-            <div style="font-size:11px;color:var(--muted);">Phone: -- | Relationship: --</div>
+            <div style="font-size:14px;color:var(--ink);"><span class="editable-field" data-field="ref2_name">--</span></div>
+            <div style="font-size:11px;color:var(--muted);">Phone: <span class="editable-field" data-field="ref2_phone">--</span> | Relationship: <span class="editable-field" data-field="ref2_relationship">--</span></div>
           </div>
         </div>
       </div>
@@ -1535,7 +1546,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
           <div class="case-row"><span class="case-label">Full Name</span><span class="case-val"><span id="display-name" class="client-name-dynamic">New Client</span></span></div>
           <div class="case-row"><span class="case-label">Role</span><span class="case-val">Client / Former Tenant</span></div>
           <div class="case-row"><span class="case-label">Address</span><span class="case-val client-field" data-field="address">--</span></div>
-          <div class="case-row"><span class="case-label">Phone</span><span class="case-val client-field" data-field="phone">--</span></div>
+          <div class="case-row"><span class="case-label">Phone</span><span class="case-val editable-field client-field" data-field="phone">--</span></div>
           <div class="case-row"><span class="case-label">Email</span><span class="case-val client-field" data-field="email">--</span></div>
           <div class="case-row"><span class="case-label">Rental Property</span><span class="case-val">--</span></div>
           <div class="case-row"><span class="case-label">Lease Period</span><span class="case-val">-- &ndash; -- (vacated)</span></div>
@@ -2627,7 +2638,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
             <input type="text" id="msg-input" placeholder="Type a message to Member Services..." onkeydown="if(event.key==='Enter')sendMsg()">
             <button class="msg-send-btn" onclick="sendMsg()">&gt;</button>
           </div>
-          <div class="msg-twilio-note">Powered by HIRECAR Member Services &mdash; routed via Slack &nbsp;|&nbsp; <span class="client-name-dynamic">New Client</span>: client@email.com &nbsp;|&nbsp; Messages delivered to your dedicated HIRECAR support team.</div>
+          <div class="msg-twilio-note">Powered by HIRECAR Member Services &mdash; routed via Slack &nbsp;|&nbsp; <span class="client-name-dynamic">New Client</span>: <span data-field="email">--</span> &nbsp;|&nbsp; Messages delivered to your dedicated HIRECAR support team.</div>
         </div>
       </div>
     </div>
@@ -3268,8 +3279,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
           </button>
           <input type="file" id="cwk-coach-file-input" style="display:none;" onchange="showToast('Document attached. Send a message to include it.','info')">
           <label for="cwk-coach-input" class="sr-only">Message your coach</label>
-          <input type="text" id="cwk-coach-input" placeholder="Message your CreditWithKen coach..." style="flex:1;padding:10px 14px;border:1px solid var(--rule);border-radius:20px;font-size:14px;background:var(--cream);color:var(--ink);" onkeydown="if(event.key==='Enter'){showToast('Message sent to your coach via Slack.','success');this.value='';}">
-          <button style="padding:10px 18px;background:linear-gradient(135deg,#e31e2d,#b8162a);color:#fff;border:none;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;" onclick="showToast('Message sent to your coach via Slack.','success');document.getElementById('cwk-coach-input').value='';">Send</button>
+          <input type="text" id="cwk-coach-input" placeholder="Message your CreditWithKen coach..." style="flex:1;padding:10px 14px;border:1px solid var(--rule);border-radius:20px;font-size:14px;background:var(--cream);color:var(--ink);" onkeydown="if(event.key==='Enter')sendCoachMsg()">
+          <button style="padding:10px 18px;background:linear-gradient(135deg,#e31e2d,#b8162a);color:#fff;border:none;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;" onclick="sendCoachMsg()">Send</button>
         </div>
         <div style="padding:8px 20px 12px;font-size:11px;color:var(--muted);">Messages are delivered to your CreditWithKen coach via Slack. Document uploads are stored in your Secure Upload Vault.</div>
       </div>
@@ -5226,6 +5237,11 @@ function updateAllClientElements(){
   for(var k=0;k<msEls.length;k++) msEls[k].textContent='Member since '+CLIENT_PROFILE.memberSince;
   var avatarEl=document.getElementById('avatar-initials');
   if(avatarEl){var parts=dn.split(' ');avatarEl.textContent=parts.length>1?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():dn.substring(0,2).toUpperCase();}
+  var profileAv=document.getElementById('profile-avatar');
+  if(profileAv){var parts2=dn.split(' ');profileAv.textContent=parts2.length>1?(parts2[0][0]+parts2[parts2.length-1][0]).toUpperCase():dn.substring(0,2).toUpperCase();}
+  /* Update editable profile fields from localStorage */
+  var editFields=['phone','address','dob','city_state','zip','employer','job_title','employment_duration','monthly_income','vehicle','vin','emergency_name','emergency_phone','emergency_relationship'];
+  editFields.forEach(function(f){var v=localStorage.getItem('hirecar_'+f);if(v){document.querySelectorAll('[data-field="'+f+'"]').forEach(function(el){if(!el.querySelector('input'))el.textContent=v;});}});
 }
 function setClientPreferredName(name){
   CLIENT_PROFILE.preferredName=name;
@@ -5239,6 +5255,201 @@ function setClientMemberSince(date){
 }
 
 updateAllClientElements();
+
+/* ===== EDITABLE PROFILE FIELDS ===== */
+(function(){
+  var EDITABLE_FIELDS=[
+    'dob','phone','address','city_state','zip',
+    'employer','job_title','employment_duration','monthly_income',
+    'vehicle','vin','target_vehicle','budget_range','down_payment',
+    'emergency_name','emergency_phone','emergency_relationship','emergency_email',
+    'ref1_name','ref1_phone','ref1_relationship',
+    'ref2_name','ref2_phone','ref2_relationship'
+  ];
+
+  function getStorageKey(field){return 'hirecar_'+field;}
+
+  function populateEditableFields(){
+    EDITABLE_FIELDS.forEach(function(field){
+      var val=localStorage.getItem(getStorageKey(field));
+      if(val){
+        document.querySelectorAll('[data-field="'+field+'"]').forEach(function(el){
+          if(!el.querySelector('input'))el.textContent=val;
+        });
+      }
+    });
+  }
+
+  function makeEditable(el){
+    if(el.querySelector('input'))return;
+    var field=el.getAttribute('data-field');
+    if(!field)return;
+    var current=el.textContent.trim();
+    if(current==='--')current='';
+    var input=document.createElement('input');
+    input.type='text';
+    input.className='editable-field-input';
+    input.value=current;
+    input.setAttribute('aria-label','Edit '+field.replace(/_/g,' '));
+    el.textContent='';
+    el.appendChild(input);
+    input.focus();
+    input.addEventListener('blur',function(){saveField(el,field,input.value);});
+    input.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){e.preventDefault();input.blur();}
+      if(e.key==='Escape'){el.textContent=current||'--';el.classList.add('editable-field');}
+    });
+  }
+
+  function saveField(el,field,value){
+    value=value.trim();
+    if(value){
+      localStorage.setItem(getStorageKey(field),value);
+      el.textContent=value;
+      document.querySelectorAll('[data-field="'+field+'"]').forEach(function(other){
+        if(other!==el&&!other.querySelector('input'))other.textContent=value;
+      });
+    }else{
+      localStorage.removeItem(getStorageKey(field));
+      el.textContent='--';
+    }
+    el.classList.add('editable-field');
+  }
+
+  document.addEventListener('click',function(e){
+    var target=e.target.closest('.editable-field');
+    if(target&&target.getAttribute('data-field')){
+      var field=target.getAttribute('data-field');
+      if(EDITABLE_FIELDS.indexOf(field)>-1){
+        makeEditable(target);
+      }
+    }
+  });
+
+  populateEditableFields();
+})();
+
+/* ===== PROFILE AVATAR SYNC ===== */
+function updateProfileAvatar(){
+  var profileAv=document.getElementById('profile-avatar');
+  if(profileAv){
+    var dn=getClientDisplayName();
+    var parts=dn.split(' ');
+    profileAv.textContent=parts.length>1?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():dn.substring(0,2).toUpperCase();
+  }
+}
+updateProfileAvatar();
+
+/* ===== RESTORE CACHED DASHBOARD VALUES ===== */
+(function(){
+  var lastAdmin=localStorage.getItem('hirecar_last_admin_msg');
+  if(lastAdmin){var el=document.getElementById('last-hirecar-update');if(el)el.textContent=lastAdmin;}
+})();
+
+/* ===== WORKFLOW STAGE ENGINE ===== */
+function updateWorkflowStage(){
+  var ciInputs=document.querySelectorAll('[data-ci="1"]');
+  var total=12,done=0;
+  ciInputs.forEach(function(el){
+    if(el.type==='checkbox'){if(el.checked)done++;}
+    else if(el.type==='radio'){if(el.checked)done++;}
+    else if(el.value&&el.value.trim())done++;
+  });
+  var intakePct=Math.round((done/total)*100);
+  var cachedScores=null;
+  try{var sc=localStorage.getItem('hc_sc_scores');if(sc)cachedScores=JSON.parse(sc);}catch(e){}
+  var hasScores=cachedScores&&cachedScores.eq&&cachedScores.ex&&cachedScores.tu;
+  var avgScore=hasScores?Math.round((cachedScores.eq+cachedScores.ex+cachedScores.tu)/3):0;
+  var fundingApproved=localStorage.getItem('hirecar_funding_approved')==='true';
+  var stage='intake';
+  var stageLabel='Intake & Document Collection';
+  if(fundingApproved){stage='funding';stageLabel='Funding Ready';}
+  else if(hasScores&&avgScore>=680){stage='resolution';stageLabel='Resolution';}
+  else if(hasScores&&avgScore<680){stage='monitoring';stageLabel='Monitoring';}
+  else if(intakePct>=100){stage='disputes';stageLabel='Disputes Filed';}
+  else{stage='intake';stageLabel='Intake & Document Collection';}
+  localStorage.setItem('hirecar_stage',stage);
+  var stageEl=document.getElementById('current-stage');
+  if(stageEl)stageEl.textContent=stageLabel;
+  var steps=['intake','disputes','monitoring','resolution','funding'];
+  var stepIds=['wf-step-intake','wf-step-disputes','wf-step-monitoring','wf-step-resolution','wf-step-funding'];
+  var currentIdx=steps.indexOf(stage);
+  stepIds.forEach(function(id,i){
+    var el=document.getElementById(id);
+    if(!el)return;
+    el.className='';
+    if(i<currentIdx){el.classList.add('workflow-step-done');}
+    else if(i===currentIdx){el.classList.add('workflow-step-active');}
+  });
+  var fundingEl=document.getElementById('funding-readiness');
+  if(fundingEl){
+    var fs=fundingEl.querySelector('.funding-status');
+    var fd=fundingEl.querySelector('.funding-detail');
+    if(fundingApproved){
+      if(fs)fs.textContent='Approved';
+      if(fd)fd.textContent='You are funding ready!';
+    }else if(hasScores&&avgScore>=680){
+      if(fs)fs.textContent='Nearly Ready';
+      if(fd)fd.textContent='Score target met. Final review pending.';
+    }else if(hasScores){
+      if(fs)fs.textContent='In Progress';
+      if(fd)fd.textContent='Current avg: '+avgScore+' | Target: 680+';
+    }else{
+      if(fs)fs.textContent='In Progress';
+      if(fd)fd.textContent='Complete intake to unlock readiness score';
+    }
+  }
+  var autoEl=document.getElementById('auto-readiness');
+  if(autoEl){
+    var as=autoEl.querySelector('.auto-status');
+    var ad=autoEl.querySelector('.auto-detail');
+    if(!hasScores){
+      if(as)as.textContent='Pending';
+      if(ad)ad.textContent='Score target: 680+ | Down payment: TBD';
+    }else if(avgScore<680){
+      if(as)as.textContent='In Progress';
+      if(ad)ad.textContent='Current avg: '+avgScore+' | Need 680+ for approval';
+    }else{
+      if(as)as.textContent='Approved';
+      if(ad)ad.textContent='Score target met! Avg: '+avgScore;
+    }
+  }
+}
+updateWorkflowStage();
+
+/* ===== COACH CHAT SEND FUNCTION ===== */
+function sendCoachMsg(){
+  if(!HIRECAR_CLIENT_ID){showToast('Please sign in to send messages.','error');return;}
+  var input=document.getElementById('cwk-coach-input');
+  var val=input.value.trim();
+  if(!val)return;
+  var coachMsgs=document.getElementById('cwk-coach-messages');
+  var b=document.createElement('div');
+  b.className='msg-bubble mine';
+  var now=new Date();
+  var timeStr=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' \u00b7 '+now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  b.innerHTML=window.escHtml(val)+'<span class="msg-time">'+timeStr+'</span>';
+  b.style.cssText='background:linear-gradient(135deg,rgba(227,30,45,.15),rgba(184,22,42,.08));border:1px solid rgba(227,30,45,.3);color:var(--white);padding:10px 14px;border-radius:14px 14px 4px 14px;font-size:13px;max-width:85%;align-self:flex-end;margin-bottom:8px;';
+  coachMsgs.appendChild(b);
+  input.value='';
+  coachMsgs.scrollTop=coachMsgs.scrollHeight;
+  var msgText='[Coach Chat] '+val;
+  fetch(HIRECAR_API+'/client/'+HIRECAR_CLIENT_ID+'/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Client-Id':HIRECAR_CLIENT_ID},
+    body:JSON.stringify({text:msgText})
+  }).then(function(res){return res.json();}).then(function(data){
+    if(data.status==='sent'){
+      showToast('Message delivered to your coach via Slack.','success');
+    }else{
+      showToast('Message delivery failed: '+(data.error||'Unknown error'),'error');
+    }
+  }).catch(function(err){
+    console.error('Coach msg error:',err);
+    showToast('Message queued — delivery pending.','info');
+  });
+}
+
 /* ===== ENTRY ANIMATION ===== */
 
   /* ── Skip Intro — button + double-tap ── */
@@ -5264,6 +5475,8 @@ updateAllClientElements();
       document.querySelectorAll('.client-name-dynamic').forEach(function(el){el.textContent=preferredName;});
       var av=document.getElementById('avatar-initials');
       if(av){var parts=preferredName.split(' ');av.textContent=parts.length>1?parts[0][0]+parts[1][0]:parts[0].substring(0,2).toUpperCase();}
+      var pav=document.getElementById('profile-avatar');
+      if(pav){var parts3=preferredName.split(' ');pav.textContent=parts3.length>1?parts3[0][0]+parts3[parts3.length-1][0]:parts3[0].substring(0,2).toUpperCase();}
       document.querySelectorAll('[data-field="email"]').forEach(function(el){el.textContent=savedEmail;});
       mainPortal.style.display='block';
       mainPortal.style.opacity='1';
@@ -6538,6 +6751,7 @@ function updateCreditProgress(){
   document.getElementById('ev-bar').style.width=pct+'%';
   document.getElementById('ev-count').textContent=done+' / '+total+' completed';
   document.getElementById('autosave-status').textContent='Last saved: '+new Date().toLocaleTimeString();
+  if(typeof updateWorkflowStage==='function')updateWorkflowStage();
 }
 
 /* Credit intake auto-save listeners */
@@ -6772,6 +6986,18 @@ function updateDashboardStats(items,isIdTheft,isReinsertion){
   /* Bureau coverage percentage */
   el=document.getElementById('bureau-coverage-pct');
   if(el){var covPct=bureauCount?Math.round((bureauCount/3)*100):0;el.textContent=covPct+'%';}
+  /* Update dashboard negative items count */
+  var dashNeg=document.getElementById('dash-neg-items');
+  if(dashNeg)dashNeg.textContent=items.length;
+
+  /* Update score-positive and score-negative summary text */
+  var positiveCount=items.filter(function(i){return i.status==='open'||i.status==='current'||i.status==='paid';}).length;
+  var negativeCount=items.filter(function(i){return i.status!=='open'&&i.status!=='current'&&i.status!=='paid';}).length;
+  var spEl=document.getElementById('score-positive');
+  if(spEl)spEl.textContent=positiveCount>0?positiveCount+' positive account'+(positiveCount!==1?'s':''):'No positive accounts identified';
+  var snEl=document.getElementById('score-negative');
+  if(snEl)snEl.textContent=items.length+' negative item'+(items.length!==1?'s':'')+' found';
+
   /* Update activity timeline */
   updateActivityFeed(items,isIdTheft,isReinsertion);
 }
@@ -6964,10 +7190,19 @@ function pollMessages(){
       }
     });
     bubbles.scrollTop=bubbles.scrollHeight;
-    /* Update notification badge */
+    /* Update notification badge + last update timestamp */
     if(newAdmin>0){
       updateMsgBadge(newAdmin);
       showToast('New message from HIRECAR Member Services','info');
+      var lastUpdate=document.getElementById('last-hirecar-update');
+      if(lastUpdate){
+        var lastMsg=data.messages.filter(function(m){return m.from==='admin'||m.from==='system';}).pop();
+        if(lastMsg){
+          var lts=new Date(lastMsg.timestamp);
+          lastUpdate.textContent=lts.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' \u00b7 '+lts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+          localStorage.setItem('hirecar_last_admin_msg',lastUpdate.textContent);
+        }
+      }
     }
     _lastMsgCount=data.messages.length;
   }).catch(function(e){console.log('Poll error:',e);});
@@ -7462,6 +7697,8 @@ function updateTradelineStats(){
   var tl=document.getElementById('tl-total-limit');if(tl)tl.textContent='$'+totalLimit.toLocaleString();
   var tu=document.getElementById('tl-utilization');if(tu)tu.textContent=util+'%';
   var nc=document.getElementById('tl-negative-count');if(nc)nc.textContent=negative;
+  var dashUtil=document.getElementById('dash-utilization');if(dashUtil)dashUtil.textContent=util+'%';
+  var dashNeg=document.getElementById('dash-neg-items');if(dashNeg&&negative>0)dashNeg.textContent=negative;
 }
 function renderTradelines(){
   var tbody=document.getElementById('tradelines-body');
@@ -7824,10 +8061,18 @@ function showToast(msg,type){
               + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     setText('score-updated', tsStr);
 
+    /* Dashboard average score + last updated */
+    setTextColor('dash-avg-score', avg, avgColor);
+    setText('dash-last-updated', tsStr);
+
     /* Utilization */
     if (typeof utilization === 'number') {
       setText('snap-util', utilization + '%');
+      setText('dash-utilization', utilization + '%');
     }
+
+    /* Update workflow stage based on new score data */
+    if (typeof updateWorkflowStage === 'function') updateWorkflowStage();
 
     /* Update delta / subtitle text on gauge cards */
     ['score-equifax-delta', 'score-experian-delta', 'score-transunion-delta'].forEach(function(id) {
