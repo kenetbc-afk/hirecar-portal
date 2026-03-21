@@ -6,11 +6,15 @@
 <meta name="robots" content="noindex, nofollow">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="no-referrer">
-<!-- Browser Chrome: full-black immersive feel -->
-<meta name="theme-color" content="#000000">
+<!-- Browser Chrome: full-black immersive feel (mobile + desktop) -->
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="msapplication-navbutton-color" content="#000000">
+<meta name="msapplication-TileColor" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
 <!-- Open Graph / Link Preview -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="HIRECAR — Member Services">
@@ -5481,6 +5485,7 @@ function sendCoachMsg(){
       mainPortal.style.display='block';
       mainPortal.style.opacity='1';
       document.getElementById('last-login').textContent=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+      setTimeout(function(){if(typeof window._hcFetchNotifications==='function') window._hcFetchNotifications();},500);
     } else {
       // First-time user — still needs PIN/nickname/email, show PIN screen directly without animations
       if(screenEl){
@@ -5619,6 +5624,35 @@ function sendCoachMsg(){
     // Refresh all dynamic elements with new data
     updateAllClientElements();
     /* ===== END UNIQUE IDENTIFIERS ===== */
+
+    /* ===== SYNC TO BACKEND (so admin dashboard sees this client) ===== */
+    (function syncToBackend(){
+      var payload={
+        email: email,
+        clientId: localStorage.getItem('hirecar_client_id')||'',
+        caseNumber: localStorage.getItem('hirecar_case')||'',
+        memberSince: localStorage.getItem('hirecar_member_since')||'',
+        name: localStorage.getItem('hirecar_preferred_name')||localStorage.getItem('hirecar_nickname')||email.split('@')[0],
+        preferredName: localStorage.getItem('hirecar_preferred_name')||localStorage.getItem('hirecar_nickname')||'',
+        phone: localStorage.getItem('hirecar_phone')||'',
+        source: 'member-portal'
+      };
+      fetch('https://hirecar-api.hirecar.workers.dev/api/clients',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      }).then(function(r){return r.json();}).then(function(data){
+        if(data.ok){
+          console.log('[HIRECAR] Client synced to backend:',data.existing?'existing':'new',data.client.id);
+          // Store the server-confirmed client ID
+          if(data.client&&data.client.id){
+            localStorage.setItem('hirecar_client_id',data.client.id);
+            HIRECAR_CLIENT_ID=data.client.id;
+          }
+        }
+      }).catch(function(e){console.warn('[HIRECAR] Backend sync failed (offline mode):',e);});
+    })();
+    /* ===== END BACKEND SYNC ===== */
 
     // Hide email row and proceed
     document.getElementById('email-row').style.opacity='0';
@@ -6158,6 +6192,7 @@ function sendCoachMsg(){
               setTimeout(function(){
                 updateStats();
                 document.getElementById('last-login').textContent=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+                if(typeof window._hcFetchNotifications==='function') window._hcFetchNotifications();
               },800);
             },1400);
           },1800);
@@ -7073,7 +7108,7 @@ function submitEvidence(){submitCreditEvidence();}
 
 /* ===== MESSAGES ===== */
 /* HIRECAR API configuration */
-var HIRECAR_API='https://hirecar-onboarding.hirecar.workers.dev';
+var HIRECAR_API='https://hirecar-api.hirecar.workers.dev';
 var HIRECAR_CLIENT_ID=localStorage.getItem('hirecar_client_id')||'';
 /* Message file attachment state */
 var _msgAttachedFile=null;
@@ -8411,6 +8446,152 @@ function showToast(msg,type){
     setInterval(checkForNewNotifications, 30000);
   }
 
+})();
+
+/* ==========================================================================
+   NOTIFICATION SYSTEM — Fetches from HIRECAR API backend
+   Displays bell icon + dropdown with admin-pushed notifications
+   ========================================================================== */
+;(function(){
+  'use strict';
+  var API_URL='https://hirecar-api.hirecar.workers.dev';
+  var pollInterval=null;
+
+  // Build the notification bell UI
+  function buildNotifUI(){
+    var header=document.querySelector('.top-bar')||document.querySelector('.portal-header');
+    if(!header||document.getElementById('hc-notif-bell')) return;
+    var bell=document.createElement('div');
+    bell.id='hc-notif-bell';
+    bell.innerHTML='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="hc-notif-count" style="display:none">0</span>';
+    bell.style.cssText='position:relative;cursor:pointer;padding:8px;margin-left:auto;margin-right:8px;';
+    bell.onclick=toggleNotifPanel;
+    var countEl=bell.querySelector('#hc-notif-count');
+    countEl.style.cssText='position:absolute;top:2px;right:2px;background:#e31e2d;color:#fff;font-size:10px;font-weight:700;border-radius:50%;min-width:16px;height:16px;display:none;align-items:center;justify-content:center;line-height:1;padding:0 3px;font-family:"DM Sans",sans-serif;';
+    // Insert before the last child or at end
+    var rightGroup=header.querySelector('.top-bar-right')||header;
+    if(rightGroup.firstChild) rightGroup.insertBefore(bell,rightGroup.firstChild);
+    else rightGroup.appendChild(bell);
+
+    // Notification dropdown panel
+    var panel=document.createElement('div');
+    panel.id='hc-notif-panel';
+    panel.style.cssText='display:none;position:fixed;top:56px;right:12px;width:min(360px,90vw);max-height:400px;overflow-y:auto;background:#111;border:1px solid #333;border-radius:12px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.6);padding:0;';
+    panel.innerHTML='<div style="padding:14px 16px;border-bottom:1px solid #222;font-family:\'Share Tech Mono\',monospace;font-size:12px;letter-spacing:2px;color:#e31e2d;">NOTIFICATIONS</div><div id="hc-notif-list" style="padding:8px;"></div>';
+    document.body.appendChild(panel);
+  }
+
+  function toggleNotifPanel(){
+    var panel=document.getElementById('hc-notif-panel');
+    if(!panel) return;
+    panel.style.display=panel.style.display==='none'?'block':'none';
+    // Close when clicking outside
+    if(panel.style.display==='block'){
+      setTimeout(function(){
+        document.addEventListener('click',closeNotifOnOutside);
+      },100);
+    }
+  }
+
+  function closeNotifOnOutside(e){
+    var panel=document.getElementById('hc-notif-panel');
+    var bell=document.getElementById('hc-notif-bell');
+    if(panel&&bell&&!panel.contains(e.target)&&!bell.contains(e.target)){
+      panel.style.display='none';
+      document.removeEventListener('click',closeNotifOnOutside);
+    }
+  }
+
+  function renderNotifications(notifs){
+    var list=document.getElementById('hc-notif-list');
+    var countEl=document.getElementById('hc-notif-count');
+    if(!list) return;
+    if(!notifs||!notifs.length){
+      list.innerHTML='<div style="padding:20px;text-align:center;color:#555;font-size:13px;">No notifications yet</div>';
+      if(countEl){countEl.style.display='none';}
+      return;
+    }
+    var unread=notifs.filter(function(n){return !n.read;}).length;
+    if(countEl){
+      if(unread>0){countEl.textContent=unread>9?'9+':unread;countEl.style.display='flex';}
+      else{countEl.style.display='none';}
+    }
+    var html='';
+    notifs.forEach(function(n){
+      var icon='&#128276;';
+      if(n.type==='billing'||n.type==='invoice') icon='&#128179;';
+      else if(n.type==='quote') icon='&#128196;';
+      else if(n.type==='commitment') icon='&#128197;';
+      else if(n.type==='system') icon='&#9881;';
+      else if(n.type==='message') icon='&#128172;';
+      var bg=n.read?'transparent':'rgba(227,30,45,.06)';
+      var border=n.read?'#222':'#e31e2d33';
+      var time='';
+      if(n.createdAt){
+        var d=new Date(n.createdAt);
+        time=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+      }
+      html+='<div style="padding:12px;border-bottom:1px solid '+border+';background:'+bg+';cursor:pointer;" onclick="window._hcMarkRead(\''+n.id+'\')">';
+      html+='<div style="display:flex;align-items:flex-start;gap:10px;">';
+      html+='<span style="font-size:18px;line-height:1;">'+icon+'</span>';
+      html+='<div style="flex:1;min-width:0;">';
+      html+='<div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:3px;">'+escapeHtml(n.title||'')+'</div>';
+      html+='<div style="font-size:12px;color:#999;line-height:1.4;">'+escapeHtml(n.message||'')+'</div>';
+      if(time) html+='<div style="font-size:10px;color:#555;margin-top:4px;">'+time+'</div>';
+      html+='</div>';
+      if(!n.read) html+='<span style="width:8px;height:8px;border-radius:50%;background:#e31e2d;flex-shrink:0;margin-top:4px;"></span>';
+      html+='</div></div>';
+    });
+    list.innerHTML=html;
+  }
+
+  function escapeHtml(s){
+    var d=document.createElement('div');d.textContent=s;return d.innerHTML;
+  }
+
+  window._hcFetchNotifications=function(){
+    var clientId=localStorage.getItem('hirecar_client_id');
+    if(!clientId) return;
+    buildNotifUI();
+    fetch(API_URL+'/api/clients/'+clientId+'/notifications',{
+      headers:{'x-api-key':'hc-live-2026-k8X9mP3qR7wL'}
+    }).then(function(r){return r.json();}).then(function(data){
+      if(data.notifications) renderNotifications(data.notifications);
+      // Store locally for offline access
+      localStorage.setItem('hc_notifications',JSON.stringify(data.notifications||[]));
+    }).catch(function(){
+      // Fallback to cached
+      try{
+        var cached=JSON.parse(localStorage.getItem('hc_notifications')||'[]');
+        renderNotifications(cached);
+      }catch(e){}
+    });
+  };
+
+  window._hcMarkRead=function(nid){
+    var clientId=localStorage.getItem('hirecar_client_id');
+    if(!clientId||!nid) return;
+    fetch(API_URL+'/api/clients/'+clientId+'/notifications/'+nid,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','x-api-key':'hc-live-2026-k8X9mP3qR7wL'},
+      body:JSON.stringify({read:true})
+    }).then(function(){window._hcFetchNotifications();}).catch(function(){});
+  };
+
+  // Poll every 60 seconds for new notifications
+  window._hcStartNotifPoll=function(){
+    if(pollInterval) clearInterval(pollInterval);
+    pollInterval=setInterval(function(){
+      if(typeof window._hcFetchNotifications==='function') window._hcFetchNotifications();
+    },60000);
+  };
+
+  // Auto-start polling when portal loads
+  var _origFetch=window._hcFetchNotifications;
+  window._hcFetchNotifications=function(){
+    _origFetch();
+    if(!pollInterval) window._hcStartNotifPoll();
+  };
 })();
 
 /* ==========================================================================

@@ -6,9 +6,14 @@
 <meta name="robots" content="noindex, nofollow">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="msapplication-navbutton-color" content="#000000">
+<meta name="msapplication-TileColor" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
 <title>HIRECAR Admin Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1497,7 +1502,7 @@ var ADMINS = {
   admin2: { pin: '1234', role: 'Staff',  name: 'Admin 2', access: 'limited', lastLogin: '' }
 };
 
-var HIRECAR_API = 'https://hirecar-onboarding.hirecar.workers.dev';
+var HIRECAR_API = 'https://hirecar-api.hirecar.workers.dev';
 var SESSION_KEY = 'hc_admin_session';
 var CLIENTS_KEY = 'hc_admin_clients';
 var ACTIVITY_KEY = 'hc_admin_activity';
@@ -1669,6 +1674,8 @@ function showToast(msg, type) {
 }
 
 /* ========== DATA PERSISTENCE ========== */
+var HC_API_KEY = 'hc-live-2026-k8X9mP3qR7wL';
+
 function loadClients() {
   try {
     var raw = localStorage.getItem(CLIENTS_KEY);
@@ -1679,6 +1686,90 @@ function loadClients() {
 
 function saveClients(clients) {
   try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients)); } catch (e) {}
+}
+
+/* ========== CLOUD SYNC (KV API) ========== */
+var _syncInProgress = false;
+
+function syncFromCloud(callback) {
+  if (_syncInProgress) { if (callback) callback(); return; }
+  _syncInProgress = true;
+  fetch(HIRECAR_API + '/api/clients', {
+    headers: { 'x-api-key': HC_API_KEY }
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    _syncInProgress = false;
+    if (!data.clients) { if (callback) callback(); return; }
+    var local = loadClients();
+    var localMap = {};
+    local.forEach(function(c) { localMap[c.id] = c; localMap[c.email] = c; });
+    var merged = local.slice(); // start with local
+    var newCount = 0;
+    data.clients.forEach(function(remote) {
+      // Check if already in local by id or email
+      if (localMap[remote.id]) {
+        // Merge: prefer local edits but add any missing fields from remote
+        var l = localMap[remote.id];
+        if (!l.createdAt && remote.createdAt) l.createdAt = remote.createdAt;
+        if (!l.source) l.source = remote.source || 'member-portal';
+        return;
+      }
+      if (remote.email && localMap[remote.email]) {
+        // Same email, different id — update id to match remote
+        var l2 = localMap[remote.email];
+        l2.id = remote.id;
+        if (!l2.createdAt) l2.createdAt = remote.createdAt;
+        return;
+      }
+      // Truly new client from portal signup
+      merged.push(remote);
+      newCount++;
+    });
+    if (newCount > 0) {
+      saveClients(merged);
+      addActivity(newCount + ' new client' + (newCount > 1 ? 's' : '') + ' synced from portal', 'green');
+      showToast(newCount + ' new client' + (newCount > 1 ? 's' : '') + ' synced from member portal', 'success');
+      if (currentSection === 'clients' || currentSection === 'dashboard') {
+        renderSection(currentSection);
+      }
+    }
+    if (callback) callback();
+  }).catch(function(e) {
+    _syncInProgress = false;
+    console.warn('[HIRECAR Admin] Cloud sync failed:', e);
+    if (callback) callback();
+  });
+}
+
+function pushClientToCloud(client) {
+  fetch(HIRECAR_API + '/api/clients', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(client)
+  }).catch(function(e) { console.warn('[HIRECAR Admin] Push failed:', e); });
+}
+
+function updateClientInCloud(clientId, fields) {
+  fetch(HIRECAR_API + '/api/clients/' + clientId, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+    body: JSON.stringify(fields)
+  }).catch(function(e) { console.warn('[HIRECAR Admin] Cloud update failed:', e); });
+}
+
+function pushNotificationToClient(clientId, type, title, message, data) {
+  fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+    body: JSON.stringify({ type: type, title: title, message: message, data: data || {} })
+  }).catch(function(e) { console.warn('[HIRECAR Admin] Notification push failed:', e); });
+}
+
+// Auto-sync every 30 seconds
+var _cloudSyncInterval = null;
+function startCloudSync() {
+  syncFromCloud();
+  if (_cloudSyncInterval) clearInterval(_cloudSyncInterval);
+  _cloudSyncInterval = setInterval(function() { syncFromCloud(); }, 30000);
 }
 
 function loadActivity() {
@@ -1881,6 +1972,7 @@ function enterApp() {
   importFromPortal();
   showSection('dashboard');
   startClock();
+  startCloudSync();
 }
 
 /* ========== CLOCK ========== */
@@ -3285,7 +3377,7 @@ function syncToClientPortal(clients) {
   } catch(e) {}
 }
 
-function addClientNotification(type, title, message, data) {
+function addClientNotification(type, title, message, data, clientId) {
   var notifs = [];
   try { notifs = JSON.parse(localStorage.getItem('hc_client_notifications') || '[]'); } catch(e) {}
   notifs.unshift({
@@ -3298,6 +3390,10 @@ function addClientNotification(type, title, message, data) {
     data: data || {}
   });
   try { localStorage.setItem('hc_client_notifications', JSON.stringify(notifs)); } catch(e) {}
+  // Push to cloud so client portal receives it
+  if (clientId) {
+    pushNotificationToClient(clientId, type, title, message, data);
+  }
 }
 
 /* ---- RENDER BILLING ---- */
@@ -3540,7 +3636,7 @@ function sendQuoteToClient(clientId, quoteId) {
   q.status = 'Sent';
   saveClients(clients);
 
-  addClientNotification('quote', 'New Quote: ' + q.number, 'You have a new quote for ' + q.service + ' - ' + formatCurrency(q.amount) + '. Review and accept in your billing section.', { quoteId: q.id, quoteNumber: q.number, amount: q.amount });
+  addClientNotification('quote', 'New Quote: ' + q.number, 'You have a new quote for ' + q.service + ' - ' + formatCurrency(q.amount) + '. Review and accept in your billing section.', { quoteId: q.id, quoteNumber: q.number, amount: q.amount }, clientId);
   addActivity('Quote ' + q.number + ' sent to ' + c.name, 'green');
   showToast('Quote sent to ' + c.name, 'success');
   syncToClientPortal(clients);
@@ -3711,7 +3807,7 @@ function sendInvoiceToClient(clientId, invoiceId) {
     saveClients(clients);
   }
 
-  addClientNotification('invoice', 'New Invoice: ' + inv.number, 'You have a new invoice for ' + formatCurrency(inv.amount) + ' due ' + formatDate(inv.dueDate) + '. View details in your billing section.', { invoiceId: inv.id, invoiceNumber: inv.number, amount: inv.amount });
+  addClientNotification('invoice', 'New Invoice: ' + inv.number, 'You have a new invoice for ' + formatCurrency(inv.amount) + ' due ' + formatDate(inv.dueDate) + '. View details in your billing section.', { invoiceId: inv.id, invoiceNumber: inv.number, amount: inv.amount }, clientId);
   addActivity('Invoice ' + inv.number + ' sent to ' + c.name, 'green');
   showToast('Invoice sent to ' + c.name, 'success');
   syncToClientPortal(clients);
@@ -3735,7 +3831,7 @@ function markInvoicePaid(clientId, invoiceId) {
 
   saveClients(clients);
   addActivity('Invoice ' + inv.number + ' marked as paid for ' + c.name, 'green');
-  addClientNotification('billing', 'Payment Received', 'Your payment of ' + formatCurrency(inv.amount) + ' for invoice ' + inv.number + ' has been received. Thank you!', { invoiceId: inv.id });
+  addClientNotification('billing', 'Payment Received', 'Your payment of ' + formatCurrency(inv.amount) + ' for invoice ' + inv.number + ' has been received. Thank you!', { invoiceId: inv.id }, clientId);
   showToast('Invoice marked as paid', 'success');
   syncToClientPortal(clients);
   renderInvoices();
@@ -3814,7 +3910,7 @@ function markCommitmentKept(clientId, commitmentId) {
   pc.status = 'Kept';
   saveClients(clients);
   addActivity('Payment commitment of ' + formatCurrency(pc.amount) + ' kept by ' + c.name, 'green');
-  addClientNotification('commitment', 'Payment Received', 'Your payment commitment of ' + formatCurrency(pc.amount) + ' has been marked as received. Thank you for staying on track!', { commitmentId: pc.id });
+  addClientNotification('commitment', 'Payment Received', 'Your payment commitment of ' + formatCurrency(pc.amount) + ' has been marked as received. Thank you for staying on track!', { commitmentId: pc.id }, clientId);
   showToast('Commitment marked as kept', 'success');
   syncToClientPortal(clients);
   renderCommitments();
@@ -3830,7 +3926,7 @@ function markCommitmentFailed(clientId, commitmentId) {
   pc.status = 'Failed';
   saveClients(clients);
   addActivity('Payment commitment of ' + formatCurrency(pc.amount) + ' missed by ' + c.name, 'red');
-  addClientNotification('billing', 'Missed Payment Commitment', 'Your payment commitment of ' + formatCurrency(pc.amount) + ' due ' + formatDate(pc.dueDate) + ' was missed. Please contact your advisor to reschedule.', { commitmentId: pc.id });
+  addClientNotification('billing', 'Missed Payment Commitment', 'Your payment commitment of ' + formatCurrency(pc.amount) + ' due ' + formatDate(pc.dueDate) + ' was missed. Please contact your advisor to reschedule.', { commitmentId: pc.id }, clientId);
   showToast('Commitment marked as failed', 'error');
   syncToClientPortal(clients);
   renderCommitments();

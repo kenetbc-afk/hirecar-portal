@@ -1,0 +1,7 @@
+name = "hirecar-api"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "31944eb74e0d4914a47e7083bcd7208b"
