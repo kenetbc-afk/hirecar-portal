@@ -1113,6 +1113,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
         </div>
         <div class="case-overview">
           <div class="case-row"><span class="case-label">Member</span><span class="case-val"><span class="client-name-dynamic">New Client</span></span></div>
+          <div class="case-row"><span class="case-label">Full Legal Name</span><span class="case-val editable-field client-field" data-field="legal_name" style="color:#f87171;font-weight:600;" title="Click to edit — must match government ID &amp; credit reports">--</span></div>
           <div class="case-row"><span class="case-label">File Reference</span><span class="case-val"><span class="client-case-dynamic">CR-0000-0000</span></span></div>
           <div class="case-row"><span class="case-label">Program</span><span class="case-val">ASAP Auto Loan Approval</span></div>
           <div class="case-row"><span class="case-label">Assigned Advisor</span><span class="case-val">Ken Eckman</span></div>
@@ -1327,7 +1328,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
       <div class="card">
         <h3 style="margin-bottom:12px;">Member Information</h3>
         <div class="case-overview">
-          <div class="case-row"><span class="case-label">Full Name</span><span class="case-val"><span class="client-name-dynamic">New Client</span></span></div>
+          <div class="case-row"><span class="case-label">Preferred Name</span><span class="case-val"><span class="client-name-dynamic">New Client</span></span></div>
+          <div class="case-row"><span class="case-label">Full Legal Name</span><span class="case-val editable-field client-field" data-field="legal_name" style="color:#f87171;font-weight:600;">--</span></div>
           <div class="case-row"><span class="case-label">Role</span><span class="case-val">Member</span></div>
           <div class="case-row"><span class="case-label">Email</span><span class="case-val client-field" data-field="email">--</span></div>
           <div class="case-row"><span class="case-label">Phone</span><span class="case-val editable-field client-field" data-field="phone">--</span></div>
@@ -1547,8 +1549,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
       <div class="card">
         <h3 style="margin-bottom:12px;">Client Information</h3>
         <div class="case-overview">
-          <div class="case-row"><span class="case-label">Full Name</span><span class="case-val"><span id="display-name" class="client-name-dynamic">New Client</span></span></div>
-          <div class="case-row"><span class="case-label">Role</span><span class="case-val">Client / Former Tenant</span></div>
+          <div class="case-row"><span class="case-label">Preferred Name</span><span class="case-val"><span id="display-name" class="client-name-dynamic">New Client</span></span></div>
+          <div class="case-row"><span class="case-label">Full Legal Name</span><span class="case-val editable-field client-field" data-field="legal_name" style="color:#f87171;font-weight:600;">--</span></div>
+          <div class="case-row"><span class="case-label">Role</span><span class="case-val">Member</span></div>
           <div class="case-row"><span class="case-label">Address</span><span class="case-val client-field" data-field="address">--</span></div>
           <div class="case-row"><span class="case-label">Phone</span><span class="case-val editable-field client-field" data-field="phone">--</span></div>
           <div class="case-row"><span class="case-label">Email</span><span class="case-val client-field" data-field="email">--</span></div>
@@ -4587,18 +4590,16 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
             </div>
             <div class="pb-block">
               <h3>Upload Documents</h3>
-              <div class="pb-upload-zone" id="pb-upload-zone">
-                <p style="font-size:24px;margin-bottom:8px;">UPLOAD</p>
-                <p><strong>Drag &amp; drop files here</strong></p>
-                <p style="font-size:12px;color:#aaa;margin-top:4px;">or click to browse &mdash; PDF, JPG, PNG (max 25MB)</p>
+              <div class="pb-upload-zone" id="pb-upload-zone" onclick="openDocUpload()" style="cursor:pointer;">
+                <p style="font-size:24px;margin-bottom:8px;">📁 UPLOAD</p>
+                <p><strong>Tap here to upload documents</strong></p>
+                <p style="font-size:12px;color:#aaa;margin-top:4px;">or use the Documents section &mdash; PDF, JPG, PNG (max 25MB)</p>
               </div>
             </div>
             <div class="pb-block">
               <h3>Uploaded Documents</h3>
-              <table class="pb-table">
-                <tr><th>Document</th><th>Date</th><th>Status</th></tr>
-                <tr><td colspan="3" style="text-align:center;color:#aaa;padding:20px;">No documents uploaded yet</td></tr>
-              </table>
+              <div id="pb-uploaded-list"></div>
+              <p id="pb-no-docs-msg" style="text-align:center;color:#aaa;padding:20px;">No documents uploaded yet</p>
             </div>
           </div>
 
@@ -5263,6 +5264,7 @@ updateAllClientElements();
 /* ===== EDITABLE PROFILE FIELDS ===== */
 (function(){
   var EDITABLE_FIELDS=[
+    'legal_name',
     'dob','phone','address','city_state','zip',
     'employer','job_title','employment_duration','monthly_income',
     'vehicle','vin','target_vehicle','budget_range','down_payment',
@@ -5305,7 +5307,16 @@ updateAllClientElements();
     });
   }
 
+  var CLIENT_FIELD_LABELS={
+    legal_name:'Full Legal Name',phone:'Phone',dob:'Date of Birth',address:'Address',
+    city_state:'City/State',zip:'ZIP Code',employer:'Employer',job_title:'Job Title',
+    employment_duration:'Employment Duration',monthly_income:'Monthly Income',
+    vehicle:'Vehicle',vin:'VIN',emergency_name:'Emergency Contact',
+    emergency_phone:'Emergency Phone',emergency_relationship:'Emergency Relationship'
+  };
+
   function saveField(el,field,value){
+    var oldVal=localStorage.getItem(getStorageKey(field))||'';
     value=value.trim();
     if(value){
       localStorage.setItem(getStorageKey(field),value);
@@ -5318,6 +5329,21 @@ updateAllClientElements();
       el.textContent='--';
     }
     el.classList.add('editable-field');
+    /* Notify admin of client-side change for review */
+    var clientId=localStorage.getItem('hirecar_client_id');
+    var label=CLIENT_FIELD_LABELS[field];
+    if(clientId && label && value!==oldVal){
+      fetch('https://hirecar-api.hirecar.workers.dev/api/clients/'+clientId+'/notifications',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':'hc-live-2026-k8X9mP3qR7wL'},
+        body:JSON.stringify({
+          type:'profile_review_admin',
+          title:'Client Profile Change — Review Required',
+          message:'Client updated their '+label+'. Admin review needed.',
+          data:{field:field,fieldLabel:label,oldValue:oldVal,newValue:value,source:'client'}
+        })
+      }).catch(function(){});
+    }
   }
 
   document.addEventListener('click',function(e){
@@ -5486,6 +5512,46 @@ function sendCoachMsg(){
       mainPortal.style.opacity='1';
       document.getElementById('last-login').textContent=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
       setTimeout(function(){if(typeof window._hcFetchNotifications==='function') window._hcFetchNotifications();},500);
+      /* ===== RE-SYNC returning user to backend (catches users who signed up before sync code existed) ===== */
+      (function resyncReturningUser(){
+        var rEmail=localStorage.getItem('hirecar_email');
+        if(!rEmail)return;
+        var payload={
+          email: rEmail,
+          clientId: localStorage.getItem('hirecar_client_id')||'',
+          caseNumber: localStorage.getItem('hirecar_case')||'',
+          memberSince: localStorage.getItem('hirecar_member_since')||'',
+          name: localStorage.getItem('hirecar_preferred_name')||localStorage.getItem('hirecar_nickname')||rEmail.split('@')[0],
+          preferredName: localStorage.getItem('hirecar_preferred_name')||localStorage.getItem('hirecar_nickname')||'',
+          legalName: localStorage.getItem('hirecar_legal_name')||'',
+          phone: localStorage.getItem('hirecar_phone')||'',
+          dob: localStorage.getItem('hirecar_dob')||'',
+          address: localStorage.getItem('hirecar_address')||'',
+          employer: localStorage.getItem('hirecar_employer')||'',
+          jobTitle: localStorage.getItem('hirecar_job_title')||'',
+          tenure: localStorage.getItem('hirecar_tenure')||'',
+          monthlyIncome: localStorage.getItem('hirecar_monthly_income')||'',
+          vehicleInterest: localStorage.getItem('hirecar_vehicle_interest')||'',
+          vin: localStorage.getItem('hirecar_vin')||'',
+          emergencyName: localStorage.getItem('hirecar_emergency_name')||'',
+          emergencyPhone: localStorage.getItem('hirecar_emergency_phone')||'',
+          emergencyRelation: localStorage.getItem('hirecar_emergency_relation')||'',
+          source: 'member-portal'
+        };
+        fetch('https://hirecar-api.hirecar.workers.dev/api/clients',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload)
+        }).then(function(r){return r.json();}).then(function(data){
+          if(data.ok){
+            console.log('[HIRECAR] Returning user synced:',data.existing?'updated':'new',data.client.id);
+            if(data.client&&data.client.id){
+              localStorage.setItem('hirecar_client_id',data.client.id);
+            }
+          }
+        }).catch(function(e){console.warn('[HIRECAR] Re-sync failed (offline):',e);});
+      })();
+      /* ===== END RE-SYNC ===== */
     } else {
       // First-time user — still needs PIN/nickname/email, show PIN screen directly without animations
       if(screenEl){
@@ -5679,6 +5745,8 @@ function sendCoachMsg(){
     if(file&&file.size>MAX_FILE_BYTES){showToast('File too large. Maximum 25 MB.','error');return false;}
     return true;
   }
+  window.validateFileSize=validateFileSize;
+  window.MAX_FILE_BYTES=MAX_FILE_BYTES;
 
   /* ── PIN (setup or verify) ── */
   var _storedPin=localStorage.getItem('hirecar_pin')||'';
@@ -7543,7 +7611,15 @@ document.getElementById('doc-file-input').addEventListener('change',function(){
     drop.style.borderColor='';drop.style.background='';
     if(e.dataTransfer.files.length){
       var fi=document.getElementById('doc-file-input');
-      fi.files=e.dataTransfer.files;
+      /* Use DataTransfer to set files (input.files is read-only in most browsers) */
+      try{
+        var dt=new DataTransfer();
+        for(var i=0;i<e.dataTransfer.files.length;i++){dt.items.add(e.dataTransfer.files[i]);}
+        fi.files=dt.files;
+      }catch(ex){
+        /* Fallback: store files on the element as a custom property */
+        fi._droppedFiles=e.dataTransfer.files;
+      }
       fi.dispatchEvent(new Event('change'));
     }
   });
@@ -7564,32 +7640,53 @@ function submitDocUpload(){
   if(!desc){showToast('Please enter a description.','error');return;}
   if(!fileInput.files||!fileInput.files.length){showToast('Please select a file to upload.','error');return;}
   var file=fileInput.files[0];
-  if(!validateFileSize(file))return;
-  var sectionLabels={'COA1':'Breach of Contract','COA2':'CC §1950.5','COA3':'Fraud (Concealment)','COA4':'Constructive Trust','COA5':'Conversion','COA6':'Fiduciary Duty','general':'General','service':'Service','correspondence':'Correspondence'};
+  if(!window.validateFileSize(file))return;
+  var sectionLabels={'credit-report':'Credit Report','dispute-letter':'Dispute Letter','bureau-response':'Bureau Response','funding':'Funding Document','identity':'Identity Verification','income':'Income Verification','insurance':'Insurance Document','agreement':'Agreement','correspondence':'General Correspondence','other':'Other'};
   var doc={
+    id:'doc_'+Date.now().toString(36),
     name:name,section:section,sectionLabel:sectionLabels[section]||section,
     date:date,from:from,to:to,desc:desc,
     fileName:file.name,fileSize:file.size,fileType:file.type,
     thumbUrl:null,uploadedAt:new Date().toISOString(),
     source:'client'
   };
-  /* Generate thumbnail */
-  if(file.type.startsWith('image/')){
-    var reader=new FileReader();
-    reader.onload=function(e){
-      doc.thumbUrl=e.target.result;
-      _uploadedDocs.push(doc);
-      renderUploadedDocs();
-      try{localStorage.setItem('hc_uploaded_docs',JSON.stringify(_uploadedDocs));}catch(ex){}
-    };
-    reader.readAsDataURL(file);
-  }else{
+  /* Read file as base64 DataURL for persistent storage + download */
+  function finalizeSave(){
     _uploadedDocs.push(doc);
     renderUploadedDocs();
-    try{localStorage.setItem('hc_uploaded_docs',JSON.stringify(_uploadedDocs));}catch(ex){}
+    try{localStorage.setItem('hc_uploaded_docs',JSON.stringify(_uploadedDocs));}catch(ex){
+      /* localStorage full — try saving without dataUrl */
+      if(ex.name==='QuotaExceededError'){
+        doc.dataUrl=null;
+        try{localStorage.setItem('hc_uploaded_docs',JSON.stringify(_uploadedDocs));}catch(e2){}
+        showToast('File saved but too large for offline storage. Metadata synced to cloud.','warning');
+      }
+    }
+    /* Sync document metadata to cloud for admin visibility */
+    var clientId=localStorage.getItem('hirecar_client_id')||'';
+    if(clientId){
+      fetch('https://hirecar-api.hirecar.workers.dev/api/clients/'+clientId+'/documents',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':'hc-live-2026-k8X9mP3qR7wL'},
+        body:JSON.stringify({id:doc.id,name:doc.name,section:doc.section,sectionLabel:doc.sectionLabel,date:doc.date,from:doc.from,to:doc.to,desc:doc.desc,fileName:doc.fileName,fileSize:doc.fileSize,fileType:doc.fileType,uploadedAt:doc.uploadedAt,source:doc.source})
+      }).catch(function(e){console.warn('[HIRECAR] Doc sync failed:',e);});
+    }
   }
+  /* Always read the full file as base64 for persistence and download */
+  var reader=new FileReader();
+  reader.onload=function(e){
+    doc.dataUrl=e.target.result;
+    if(file.type.startsWith('image/')){
+      doc.thumbUrl=e.target.result;
+    }
+    finalizeSave();
+  };
+  reader.onerror=function(){
+    showToast('Failed to read file. Please try again.','error');
+  };
+  reader.readAsDataURL(file);
   closeDocUpload();
-  showToast('Document "'+name+'" uploaded successfully.','success');
+  showToast('Document "'+name+'" uploading...','info');
 }
 
 function renderUploadedDocs(){
@@ -7611,15 +7708,50 @@ function renderUploadedDocs(){
     var dateStr='';
     try{dateStr=new Date(doc.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){dateStr=escHtml(doc.date);}
     var srcBadge=(doc.source==='hirecar')?'<span class="doc-source-badge source-hirecar">HIRECAR</span>':(doc.source==='cwk')?'<span class="doc-source-badge source-cwk">CWK</span>':'<span class="doc-source-badge source-client">CLIENT</span>';
-    thumb.innerHTML='<div class="thumb-preview">'+previewHtml+'<span class="thumb-badge badge badge-green" style="font-size:9px;">UPLOADED</span></div>'
+    var dlBtnHtml=doc.dataUrl?'<button class="doc-dl-btn" data-doc-idx="'+idx+'" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);border:none;color:#fff;font-size:14px;padding:4px 8px;border-radius:6px;cursor:pointer;z-index:2;" title="Download">&#8681;</button>':'';
+    thumb.innerHTML='<div class="thumb-preview" style="position:relative;">'+previewHtml+'<span class="thumb-badge badge badge-green" style="font-size:9px;">UPLOADED</span>'+dlBtnHtml+'</div>'
       +'<div class="thumb-info"><div class="thumb-title" title="'+escHtml(doc.name)+'">'+escHtml(doc.name)+'</div>'
       +'<div class="thumb-meta">'+escHtml(doc.sectionLabel)+' &bull; '+dateStr+' '+srcBadge+'</div>'
-      +'<div class="thumb-meta">From: '+escHtml(doc.from)+(doc.to?' &rarr; '+escHtml(doc.to):'')+'</div></div>';
-    thumb.onclick=function(){
+      +'<div class="thumb-meta">From: '+escHtml(doc.from)+(doc.to?' &rarr; '+escHtml(doc.to):'')+'</div>'
+      +'<div style="margin-top:6px;">'+(doc.dataUrl?'<a class="doc-dl-link" data-doc-idx="'+idx+'" style="font-size:11px;color:var(--gold);cursor:pointer;text-decoration:underline;">Download</a>':'<span style="font-size:11px;color:var(--muted);">View only</span>')+'</div></div>';
+    thumb.onclick=function(e){
+      /* Handle download click */
+      if(e.target.classList.contains('doc-dl-btn')||e.target.classList.contains('doc-dl-link')){
+        e.stopPropagation();
+        var i=parseInt(e.target.getAttribute('data-doc-idx'));
+        var d=_uploadedDocs[i];
+        if(d&&d.dataUrl){
+          var a=document.createElement('a');
+          a.href=d.dataUrl;
+          a.download=d.fileName||d.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          showToast('Downloading '+d.fileName,'success');
+        }
+        return;
+      }
       showToast(doc.name+': '+doc.desc,'info');
     };
     grid.appendChild(thumb);
   });
+  /* Also update profile page uploaded docs list */
+  var pbList=document.getElementById('pb-uploaded-list');
+  var pbMsg=document.getElementById('pb-no-docs-msg');
+  if(pbList){
+    if(_uploadedDocs.length){
+      pbMsg.style.display='none';
+      pbList.innerHTML='<table class="pb-table" style="width:100%;"><tr><th>Document</th><th>Category</th><th>Date</th><th>Status</th><th></th></tr>'+
+        _uploadedDocs.map(function(d,i){
+          var dateStr='';try{dateStr=new Date(d.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){dateStr=d.date;}
+          var dlLink=d.dataUrl?'<a onclick="window._hcDownloadDoc('+i+')" style="color:var(--gold);cursor:pointer;font-size:12px;text-decoration:underline;">Download</a>':'';
+          return '<tr><td>'+escHtml(d.name)+'<br><span style="font-size:11px;color:#aaa;">'+escHtml(d.fileName)+'</span></td><td>'+escHtml(d.sectionLabel||d.section)+'</td><td>'+dateStr+'</td><td><span class="badge badge-green" style="font-size:10px;">UPLOADED</span></td><td>'+dlLink+'</td></tr>';
+        }).join('')+'</table>';
+    }else{
+      pbMsg.style.display='block';
+      pbList.innerHTML='';
+    }
+  }
 }
 /* Restore uploaded docs from localStorage */
 (function(){
@@ -7628,6 +7760,19 @@ function renderUploadedDocs(){
     if(saved){_uploadedDocs=JSON.parse(saved);renderUploadedDocs();}
   }catch(e){}
 })();
+
+/* Global document download helper */
+window._hcDownloadDoc=function(idx){
+  var d=_uploadedDocs[idx];
+  if(!d||!d.dataUrl){showToast('File data not available for download.','error');return;}
+  var a=document.createElement('a');
+  a.href=d.dataUrl;
+  a.download=d.fileName||d.name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('Downloading '+d.fileName,'success');
+};
 
 /* ===== COMMUNICATION FILE ATTACH & DOWNLOAD (with localStorage persistence) ===== */
 var _commFiles={};
@@ -8557,6 +8702,8 @@ function showToast(msg,type){
       headers:{'x-api-key':'hc-live-2026-k8X9mP3qR7wL'}
     }).then(function(r){return r.json();}).then(function(data){
       if(data.notifications) renderNotifications(data.notifications);
+      // Check for pending profile reviews from admin
+      if(typeof window._hcCheckProfileReviews==='function') window._hcCheckProfileReviews(data.notifications||[]);
       // Store locally for offline access
       localStorage.setItem('hc_notifications',JSON.stringify(data.notifications||[]));
     }).catch(function(){
@@ -8591,6 +8738,148 @@ function showToast(msg,type){
   window._hcFetchNotifications=function(){
     _origFetch();
     if(!pollInterval) window._hcStartNotifPoll();
+  };
+})();
+
+/* ==========================================================================
+   BI-DIRECTIONAL PROFILE CHANGE CONFIRMATION
+   Admin→Client and Client→Admin review with T&C acceptance.
+   ========================================================================== */
+(function(){
+  'use strict';
+
+  var FIELD_TO_LS = {
+    legalName:'hirecar_legal_name', phone:'hirecar_phone', dob:'hirecar_dob',
+    address:'hirecar_address', city_state:'hirecar_city_state', zip:'hirecar_zip',
+    employer:'hirecar_employer', job_title:'hirecar_job_title',
+    employment_duration:'hirecar_tenure', monthly_income:'hirecar_monthly_income',
+    vehicle:'hirecar_vehicle_interest', vin:'hirecar_vin',
+    emergency_name:'hirecar_emergency_name', emergency_phone:'hirecar_emergency_phone',
+    emergency_relationship:'hirecar_emergency_relation',
+    name:'hirecar_preferred_name', preferredName:'hirecar_preferred_name'
+  };
+
+  var API_BASE='https://hirecar-api.hirecar.workers.dev';
+  var API_KEY='hc-live-2026-k8X9mP3qR7wL';
+  var _pendingReviews=[];
+  var _modalEl=null;
+
+  function buildModal(){
+    if(_modalEl) return;
+    _modalEl=document.createElement('div');
+    _modalEl.id='profile-review-modal';
+    _modalEl.style.cssText='display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;';
+    _modalEl.innerHTML=
+      '<div style="background:linear-gradient(160deg,#0f1923,#162040);border:1px solid rgba(255,255,255,.1);border-radius:16px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.5);">'
+      +'<div style="text-align:center;margin-bottom:20px;">'
+      +'<div style="font-size:32px;margin-bottom:8px;">📋</div>'
+      +'<h3 style="color:#fff;font-size:20px;margin:0 0 6px;">Profile Update — Review Required</h3>'
+      +'<p style="color:#94a3b8;font-size:13px;margin:0;">Your advisor has updated the following profile information. Please review each change and confirm.</p>'
+      +'</div>'
+      +'<div id="pr-changes-list" style="margin-bottom:20px;"></div>'
+      +'<div style="padding:14px;background:rgba(42,107,184,.08);border:1px solid rgba(42,107,184,.2);border-radius:10px;margin-bottom:20px;">'
+      +'<div style="max-height:120px;overflow-y:auto;font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:12px;">'
+      +'<strong style="color:#fff;">HIRECAR, LLC — MEMBER SERVICES TERMS</strong><br>'
+      +'By confirming these profile changes, I acknowledge that the information above is accurate and will be used for credit repair services, dispute filings, and financial correspondence on my behalf. '
+      +'I agree to the HIRECAR Member Services Billing, Reservation & Enrollment (BRE) Agreement, including but not limited to: credit repair service terms, payment commitment obligations, SMS/email notification consent, and member status hold policy. '
+      +'I understand that inaccurate information may delay or compromise dispute outcomes.</div>'
+      +'<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px;color:#fff;line-height:1.6;">'
+      +'<input type="checkbox" id="pr-tc-checkbox" style="accent-color:#fbbf24;margin-top:3px;flex-shrink:0;width:18px;height:18px;" onchange="document.getElementById(\'pr-confirm-btn\').disabled=!this.checked">'
+      +'I confirm the above changes are accurate and I accept the <strong style="color:#fbbf24;">HIRECAR, LLC</strong> Member Services terms and conditions.</label>'
+      +'</div>'
+      +'<button id="pr-confirm-btn" disabled style="width:100%;padding:14px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000;font-weight:700;font-size:15px;border:none;border-radius:10px;cursor:pointer;opacity:.5;transition:opacity .2s;" onclick="window._hcConfirmProfileChanges()">Confirm Changes</button>'
+      +'<style>#pr-confirm-btn:not(:disabled){opacity:1;} #pr-confirm-btn:not(:disabled):hover{filter:brightness(1.1);}</style>'
+      +'</div>';
+    document.body.appendChild(_modalEl);
+  }
+
+  window._hcCheckProfileReviews=function(notifs){
+    if(!notifs||!notifs.length) return;
+    _pendingReviews=notifs.filter(function(n){
+      return n.type==='profile_review' && !n.read && n.data && n.data.source==='admin';
+    });
+    if(!_pendingReviews.length) return;
+    buildModal();
+    /* Dedupe: keep latest notification per field */
+    var fieldMap={};
+    _pendingReviews.forEach(function(n){
+      var f=n.data.field;
+      if(!fieldMap[f]||new Date(n.createdAt)>new Date(fieldMap[f].createdAt)){
+        fieldMap[f]=n;
+      }
+    });
+    var unique=Object.values(fieldMap);
+    var listEl=document.getElementById('pr-changes-list');
+    listEl.innerHTML=unique.map(function(n){
+      var d=n.data;
+      var currentLocal=localStorage.getItem(FIELD_TO_LS[d.field]||'')||'';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:8px;">'
+        +'<div style="flex:1;">'
+        +'<div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">'+window.escHtml(d.fieldLabel||d.field)+'</div>'
+        +'<div style="margin-top:4px;">'
+        +'<span style="text-decoration:line-through;color:#f87171;font-size:13px;">'+window.escHtml(d.oldValue||currentLocal||'(empty)')+'</span>'
+        +' <span style="color:#555;margin:0 6px;">→</span> '
+        +'<span style="color:#34d399;font-weight:600;font-size:14px;">'+window.escHtml(d.newValue)+'</span>'
+        +'</div></div>'
+        +'<div style="font-size:20px;">✏️</div></div>';
+    }).join('');
+    /* Reset checkbox */
+    var cb=document.getElementById('pr-tc-checkbox');
+    if(cb){cb.checked=false;}
+    var btn=document.getElementById('pr-confirm-btn');
+    if(btn){btn.disabled=true;}
+    _modalEl.style.display='flex';
+  };
+
+  window._hcConfirmProfileChanges=function(){
+    if(!_pendingReviews.length) return;
+    var clientId=localStorage.getItem('hirecar_client_id');
+    if(!clientId) return;
+    /* Dedupe again */
+    var fieldMap={};
+    _pendingReviews.forEach(function(n){
+      var f=n.data.field;
+      if(!fieldMap[f]||new Date(n.createdAt)>new Date(fieldMap[f].createdAt)){
+        fieldMap[f]=n;
+      }
+    });
+    var unique=Object.values(fieldMap);
+    var confirmedFields=[];
+    var notifIds=_pendingReviews.map(function(n){return n.id;});
+    /* Write each confirmed value to localStorage */
+    unique.forEach(function(n){
+      var d=n.data;
+      var lsKey=FIELD_TO_LS[d.field];
+      if(lsKey && d.newValue){
+        localStorage.setItem(lsKey, d.newValue);
+        confirmedFields.push({field:d.field, fieldLabel:d.fieldLabel, value:d.newValue});
+        /* Update displayed values on page */
+        document.querySelectorAll('[data-field="'+d.field+'"]').forEach(function(el){
+          if(!el.querySelector('input')) el.textContent=d.newValue;
+        });
+      }
+    });
+    /* Post confirmation receipt to cloud */
+    fetch(API_BASE+'/api/clients/'+clientId+'/profile-confirmations',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY},
+      body:JSON.stringify({
+        confirmedFields:confirmedFields,
+        tcAccepted:true,
+        confirmedBy:'client',
+        notificationIds:notifIds
+      })
+    }).then(function(r){return r.json();}).then(function(data){
+      if(data.ok){
+        _modalEl.style.display='none';
+        _pendingReviews=[];
+        showToast('Profile changes confirmed and T&C accepted.','success');
+        if(typeof window._hcFetchNotifications==='function') window._hcFetchNotifications();
+      }
+    }).catch(function(e){
+      showToast('Confirmation failed. Please try again.','error');
+      console.warn('[Profile Review] Confirmation failed:',e);
+    });
   };
 })();
 

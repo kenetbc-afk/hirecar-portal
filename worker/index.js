@@ -24,6 +24,75 @@ const CORS_HEADERS = {
 
 const API_KEY = 'hc-live-2026-k8X9mP3qR7wL';
 const CLIENTS_INDEX_KEY = 'clients_index';
+const SLACK_CHANNEL_ALERTS = '#hirecar-alerts';
+
+// Slack notification helper — fires and forgets (non-blocking)
+async function notifySlack(env, blocks, text) {
+  // Try all available webhook secrets — send to whichever ones work
+  const webhooks = [
+    env.SLACK_HIRECAR_WEBHOOK_URL,
+    env.SLACK_WEBHOOK_URL,
+    env.SLACK_HOMEBASE_WEBHOOK_URL,
+    env.SLACK_SALES_WEBHOOK_URL,
+  ].filter(Boolean);
+  if (webhooks.length === 0) { console.warn('[Slack] No webhook URLs configured'); return; }
+  // Send to ALL configured webhooks to ensure delivery
+  const payload = JSON.stringify({ text, blocks });
+  const results = await Promise.allSettled(webhooks.map(url =>
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+    }).then(r => ({ url: url.slice(0, 50) + '...', status: r.status }))
+  ));
+  const success = results.filter(r => r.status === 'fulfilled' && r.value.status === 200);
+  console.log('[Slack] Sent to ' + success.length + '/' + webhooks.length + ' webhooks');
+}
+
+function slackNewSignup(env, client) {
+  const now = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const blocks = [
+    {
+      type: 'header',
+      text: { type: 'plain_text', text: '🆕 New Member Signup', emoji: true }
+    },
+    {
+      type: 'section',
+      fields: [
+        { type: 'mrkdwn', text: '*Name:*\n' + (client.name || 'Unknown') },
+        { type: 'mrkdwn', text: '*Email:*\n' + client.email },
+        { type: 'mrkdwn', text: '*Case #:*\n' + client.caseNumber },
+        { type: 'mrkdwn', text: '*Client ID:*\n' + client.id },
+      ]
+    },
+    {
+      type: 'section',
+      fields: [
+        { type: 'mrkdwn', text: '*Phone:*\n' + (client.phone || '—') },
+        { type: 'mrkdwn', text: '*Stage:*\n' + client.stage },
+      ]
+    },
+    {
+      type: 'context',
+      elements: [
+        { type: 'mrkdwn', text: '📍 Source: Member Portal  •  🕐 ' + now }
+      ]
+    },
+    { type: 'divider' }
+  ];
+  notifySlack(env, blocks, '🆕 New signup: ' + (client.name || client.email) + ' (' + client.caseNumber + ')');
+}
+
+function slackReturningLogin(env, client) {
+  const now = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const blocks = [
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: '🔓 *Returning Login:* ' + (client.name || client.email) + '\n📋 Case: `' + client.caseNumber + '`  •  Stage: ' + client.stage + '  •  🕐 ' + now }
+    }
+  ];
+  notifySlack(env, blocks, '🔓 Returning login: ' + (client.name || client.email));
+}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -83,7 +152,7 @@ async function saveNotifications(KV, clientId, notifs) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
@@ -99,12 +168,33 @@ export default {
 
       if (!body.email) return err('Email required');
 
-      // Check for duplicate email
+      // Check for duplicate email — merge updated fields from portal
       const index = await getIndex(KV);
       for (const cid of index) {
         const existing = await getClient(KV, cid);
         if (existing && existing.email === body.email) {
-          // Return existing client (idempotent)
+          // Merge non-empty fields from the portal (don't overwrite with blanks)
+          const mergeFields = ['name','preferredName','legalName','phone','dob','address',
+            'employer','jobTitle','tenure','monthlyIncome','vehicleInterest','vin',
+            'emergencyName','emergencyPhone','emergencyRelation','caseNumber','memberSince'];
+          let changed = false;
+          for (const f of mergeFields) {
+            if (body[f] && body[f] !== existing[f]) {
+              existing[f] = body[f];
+              changed = true;
+            }
+          }
+          if (body.clientId && body.clientId !== existing.id) {
+            // Update ID if portal generated a different one
+            existing.clientId_portal = body.clientId;
+            changed = true;
+          }
+          if (changed) {
+            existing.updatedAt = new Date().toISOString();
+            await saveClient(KV, existing);
+          }
+          // Slack: returning login notification (fire and forget)
+          ctx.waitUntil(slackReturningLogin(env, existing));
           return json({ ok: true, client: existing, existing: true });
         }
       }
@@ -122,6 +212,7 @@ export default {
         email: body.email,
         name: body.name || body.email.split('@')[0],
         preferredName: body.preferredName || body.nickname || '',
+        legalName: body.legalName || '',
         phone: body.phone || '',
         dob: body.dob || '',
         address: body.address || '',
@@ -165,6 +256,9 @@ export default {
         createdAt: now.toISOString(),
       }];
       await saveNotifications(KV, client.id, notifs);
+
+      // Slack: new signup notification (fire and forget)
+      ctx.waitUntil(slackNewSignup(env, client));
 
       return json({ ok: true, client: client, existing: false }, 201);
     }
@@ -217,6 +311,25 @@ export default {
       return json({ ok: true });
     }
 
+    // POST /api/clients/:id/documents — add document metadata
+    const docMatch = path.match(/^\/api\/clients\/([^\/]+)\/documents$/);
+    if (docMatch && request.method === 'POST') {
+      const c = await getClient(KV, docMatch[1]);
+      if (!c) return err('Client not found', 404);
+      let body;
+      try { body = await request.json(); } catch(e) { return err('Invalid JSON'); }
+      if (!c.documents) c.documents = [];
+      c.documents.push(body);
+      c.updatedAt = new Date().toISOString();
+      await saveClient(KV, c);
+      // Slack notification for document upload
+      ctx.waitUntil(notifySlack(env, [{
+        type: 'section',
+        text: { type: 'mrkdwn', text: '📄 *Document Uploaded*\n*Client:* ' + (c.name || c.email) + ' (`' + c.caseNumber + '`)\n*Document:* ' + (body.name || 'Untitled') + ' — ' + (body.sectionLabel || body.section || '') + '\n*File:* ' + (body.fileName || 'unknown') }
+      }], '📄 Document uploaded by ' + (c.name || c.email)));
+      return json({ ok: true, document: body });
+    }
+
     // GET /api/clients/:id/notifications
     const notifMatch = path.match(/^\/api\/clients\/([^\/]+)\/notifications$/);
     if (notifMatch && request.method === 'GET') {
@@ -252,6 +365,42 @@ export default {
         n.read = true;
         await saveNotifications(KV, notifSingleMatch[1], notifs);
       }
+      return json({ ok: true });
+    }
+
+    // POST /api/clients/:id/profile-confirmations — store confirmation receipt + mark notifs read
+    const confirmMatch = path.match(/^\/api\/clients\/([^\/]+)\/profile-confirmations$/);
+    if (confirmMatch && request.method === 'POST') {
+      const c = await getClient(KV, confirmMatch[1]);
+      if (!c) return err('Client not found', 404);
+      let body;
+      try { body = await request.json(); } catch(e) { return err('Invalid JSON'); }
+      // Store confirmation receipt
+      if (!c.profileConfirmations) c.profileConfirmations = [];
+      c.profileConfirmations.push({
+        confirmedFields: body.confirmedFields || [],
+        tcAccepted: body.tcAccepted || false,
+        confirmedAt: new Date().toISOString(),
+        confirmedBy: body.confirmedBy || 'client',
+        notificationIds: body.notificationIds || [],
+      });
+      c.updatedAt = new Date().toISOString();
+      await saveClient(KV, c);
+      // Mark referenced notifications as read
+      if (body.notificationIds && body.notificationIds.length) {
+        const notifs = await getNotifications(KV, confirmMatch[1]);
+        let changed = false;
+        for (const nid of body.notificationIds) {
+          const n = notifs.find(x => x.id === nid);
+          if (n && !n.read) { n.read = true; n.confirmedAt = new Date().toISOString(); changed = true; }
+        }
+        if (changed) await saveNotifications(KV, confirmMatch[1], notifs);
+      }
+      // Slack notification
+      ctx.waitUntil(notifySlack(env, [{
+        type: 'section',
+        text: { type: 'mrkdwn', text: '✅ *Profile Changes Confirmed*\n*Client:* ' + (c.name || c.email) + ' (`' + c.caseNumber + '`)\n*Confirmed by:* ' + (body.confirmedBy || 'client') + '\n*Fields:* ' + (body.confirmedFields || []).map(f => f.fieldLabel || f.field).join(', ') }
+      }], '✅ Profile confirmed by ' + (body.confirmedBy || 'client') + ': ' + (c.name || c.email)));
       return json({ ok: true });
     }
 

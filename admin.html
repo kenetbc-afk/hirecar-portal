@@ -1618,13 +1618,51 @@ function formatCurrency(val) {
  * patterns would sync via an API layer. For now, admin edits are saved to hc_admin_clients
  * and portal edits are saved to hirecar_* keys independently.
  */
+var PROFILE_FIELD_LABELS = {
+  legalName:'Full Legal Name', phone:'Phone', dob:'Date of Birth', address:'Address',
+  city_state:'City/State', zip:'ZIP Code', employer:'Employer', job_title:'Job Title',
+  employment_duration:'Employment Duration', monthly_income:'Monthly Income',
+  vehicle:'Vehicle', vin:'VIN', emergency_name:'Emergency Contact',
+  emergency_phone:'Emergency Phone', emergency_relationship:'Emergency Relationship',
+  name:'Preferred Name', preferredName:'Preferred Name'
+};
+
 function updateClientField(clientId, field, value) {
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
+  var oldVal = c[field] || '';
   c[field] = value;
   c.lastActive = new Date().toISOString();
   saveClients(clients);
+  /* Sync edit to cloud API */
+  var patch = {};
+  patch[field] = value;
+  fetch(HIRECAR_API + '/api/clients/' + clientId, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+    body: JSON.stringify(patch)
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.ok) {
+      console.log('[Admin] Field "' + field + '" synced to cloud for ' + clientId);
+      /* Send profile_review notification to client for profile-relevant fields */
+      var label = PROFILE_FIELD_LABELS[field];
+      if (label && value !== oldVal) {
+        fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+          body: JSON.stringify({
+            type: 'profile_review',
+            title: 'Profile Update — Review Required',
+            message: 'Your advisor updated your ' + label + '. Please review and confirm this change.',
+            data: { field: field, fieldLabel: label, oldValue: oldVal, newValue: value, source: 'admin' }
+          })
+        }).then(function(r2){return r2.json();}).then(function(d2){
+          if(d2.ok) showToast('Client notified to review ' + label + ' change.', 'info');
+        }).catch(function(){});
+      }
+    }
+  }).catch(function(e) { console.warn('[Admin] Cloud sync failed for field edit:', e); });
 }
 
 function startInlineEdit(clientId, field, el) {
@@ -1701,33 +1739,53 @@ function syncFromCloud(callback) {
     if (!data.clients) { if (callback) callback(); return; }
     var local = loadClients();
     var localMap = {};
-    local.forEach(function(c) { localMap[c.id] = c; localMap[c.email] = c; });
+    var localEmailMap = {};
+    local.forEach(function(c) { localMap[c.id] = c; if (c.email) localEmailMap[c.email.toLowerCase()] = c; });
     var merged = local.slice(); // start with local
     var newCount = 0;
+    var updatedCount = 0;
     data.clients.forEach(function(remote) {
-      // Check if already in local by id or email
+      if (!remote || !remote.email) return;
+      var rEmail = remote.email.toLowerCase();
+      // Check if already in local by id
       if (localMap[remote.id]) {
-        // Merge: prefer local edits but add any missing fields from remote
+        // Merge: update local fields from remote if remote has newer data
         var l = localMap[remote.id];
-        if (!l.createdAt && remote.createdAt) l.createdAt = remote.createdAt;
-        if (!l.source) l.source = remote.source || 'member-portal';
+        var mergeFields = ['name','preferredName','phone','dob','address','employer','jobTitle',
+          'tenure','monthlyIncome','vehicleInterest','vin','emergencyName','emergencyPhone',
+          'emergencyRelation','caseNumber','memberSince','createdAt','source'];
+        var updated = false;
+        mergeFields.forEach(function(f) {
+          if (remote[f] && !l[f]) { l[f] = remote[f]; updated = true; }
+        });
+        if (updated) updatedCount++;
         return;
       }
-      if (remote.email && localMap[remote.email]) {
-        // Same email, different id — update id to match remote
-        var l2 = localMap[remote.email];
-        l2.id = remote.id;
-        if (!l2.createdAt) l2.createdAt = remote.createdAt;
+      // Check by email (remote might have different id than local seed)
+      if (localEmailMap[rEmail]) {
+        var l2 = localEmailMap[rEmail];
+        l2.id = remote.id; // sync to cloud ID
+        var mergeFields2 = ['name','preferredName','phone','dob','address','employer','jobTitle',
+          'tenure','monthlyIncome','vehicleInterest','vin','emergencyName','emergencyPhone',
+          'emergencyRelation','caseNumber','memberSince','createdAt','source'];
+        mergeFields2.forEach(function(f) {
+          if (remote[f] && !l2[f]) l2[f] = remote[f];
+        });
+        updatedCount++;
         return;
       }
-      // Truly new client from portal signup
+      // Truly new client from portal signup — add to local
+      remote.program = remote.program || 'Credit Repair';
+      remote.lastActive = remote.updatedAt || remote.createdAt || new Date().toISOString();
       merged.push(remote);
       newCount++;
     });
-    if (newCount > 0) {
+    if (newCount > 0 || updatedCount > 0) {
       saveClients(merged);
-      addActivity(newCount + ' new client' + (newCount > 1 ? 's' : '') + ' synced from portal', 'green');
-      showToast(newCount + ' new client' + (newCount > 1 ? 's' : '') + ' synced from member portal', 'success');
+      if (newCount > 0) {
+        addActivity(newCount + ' new client' + (newCount > 1 ? 's' : '') + ' synced from portal', 'green');
+        showToast(newCount + ' new client' + (newCount > 1 ? 's' : '') + ' synced from member portal', 'success');
+      }
       if (currentSection === 'clients' || currentSection === 'dashboard') {
         renderSection(currentSection);
       }
@@ -2239,6 +2297,9 @@ function filterClients() { renderClients(); }
 function toggleClientDetail(clientId) {
   expandedClientId = expandedClientId === clientId ? null : clientId;
   renderClients();
+  if (expandedClientId) {
+    setTimeout(function(){ checkPendingClientChanges(expandedClientId); }, 300);
+  }
 }
 
 function buildClientDetailHtml(c) {
@@ -2250,7 +2311,8 @@ function buildClientDetailHtml(c) {
   /* ---- Column 1: Client Profile ---- */
   h += '<div class="detail-section">';
   h += '<h4>Client Profile</h4>';
-  h += '<div class="detail-row"><span class="detail-label">Name</span><span class="detail-val">' + escapeHtml(c.name) + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Preferred Name</span><span class="detail-val">' + escapeHtml(c.name) + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Full Legal Name</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'legalName\',this)" style="color:#f87171;font-weight:600;">' + escapeHtml(c.legalName || '--- Click to set ---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val">' + escapeHtml(c.email) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Case #</span><span class="detail-val" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.caseNumber) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">PIN</span><span class="detail-val" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.pin) + '</span></div>';
@@ -2369,6 +2431,13 @@ function buildClientDetailHtml(c) {
     });
     h += '</div></div>';
   }
+
+  /* ---- Pending Client Changes (client→admin review) ---- */
+  h += '<div id="pending-changes-' + cid + '" style="margin-top:12px;display:none;">';
+  h += '<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:10px;padding:16px;">';
+  h += '<h4 style="color:#fbbf24;margin:0 0 10px;">⚠️ Pending Client Changes — Review Required</h4>';
+  h += '<div id="pending-changes-list-' + cid + '"></div>';
+  h += '</div></div>';
 
   /* ---- Billing & Payments Section ---- */
   var cBilling = c.billing || [];
@@ -4007,6 +4076,98 @@ window.sendInvoiceToClient = sendInvoiceToClient;
 window.markInvoicePaid = markInvoicePaid;
 window.markCommitmentKept = markCommitmentKept;
 window.markCommitmentFailed = markCommitmentFailed;
+
+/* ========== PENDING CLIENT CHANGES (bi-directional review) ========== */
+function checkPendingClientChanges(clientId) {
+  fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications', {
+    headers: { 'x-api-key': HC_API_KEY }
+  }).then(function(r){return r.json();}).then(function(data) {
+    var pending = (data.notifications || []).filter(function(n) {
+      return n.type === 'profile_review_admin' && !n.read;
+    });
+    var container = document.getElementById('pending-changes-' + clientId);
+    var list = document.getElementById('pending-changes-list-' + clientId);
+    if (!container || !list) return;
+    if (!pending.length) { container.style.display = 'none'; return; }
+    container.style.display = 'block';
+    list.innerHTML = pending.map(function(n) {
+      var d = n.data || {};
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:8px;">'
+        + '<div style="flex:1;"><strong>' + escapeHtml(d.fieldLabel || d.field || '?') + '</strong>'
+        + '<div style="font-size:12px;color:var(--muted);">Client changed: <span style="text-decoration:line-through;color:#f87171;">' + escapeHtml(d.oldValue || '(empty)') + '</span>'
+        + ' → <span style="color:#34d399;font-weight:600;">' + escapeHtml(d.newValue || '(empty)') + '</span></div></div>'
+        + '<button class="btn btn-sm" style="background:#34d399;color:#000;font-weight:600;" onclick="reviewClientChange(\'' + clientId + '\',\'' + n.id + '\',true)">Approve</button>'
+        + '<button class="btn btn-sm" style="background:#f87171;color:#fff;" onclick="reviewClientChange(\'' + clientId + '\',\'' + n.id + '\',false)">Reject</button>'
+        + '</div>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function reviewClientChange(clientId, notifId, approve) {
+  /* Fetch the notification to get the field data */
+  fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications', {
+    headers: { 'x-api-key': HC_API_KEY }
+  }).then(function(r){return r.json();}).then(function(data) {
+    var notif = (data.notifications || []).find(function(n){ return n.id === notifId; });
+    if (!notif || !notif.data) return;
+    var d = notif.data;
+    if (approve) {
+      /* Apply the change to the cloud record */
+      var patch = {};
+      patch[d.field] = d.newValue;
+      fetch(HIRECAR_API + '/api/clients/' + clientId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+        body: JSON.stringify(patch)
+      }).then(function(){
+        /* Mark notification as read */
+        fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications/' + notifId, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+          body: JSON.stringify({ read: true })
+        });
+        /* Send approval notification to client */
+        fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+          body: JSON.stringify({
+            type: 'profile_approved',
+            title: 'Change Approved ✅',
+            message: 'Your ' + (d.fieldLabel || d.field) + ' update has been approved by your advisor.',
+            data: { field: d.field, fieldLabel: d.fieldLabel, value: d.newValue }
+          })
+        });
+        /* Update local admin data */
+        updateClientField(clientId, d.field, d.newValue);
+        showToast('Approved: ' + (d.fieldLabel || d.field), 'success');
+        checkPendingClientChanges(clientId);
+        renderClientTable();
+      });
+    } else {
+      /* Reject: mark notification read + send rejection to client */
+      fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications/' + notifId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+        body: JSON.stringify({ read: true })
+      });
+      fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+        body: JSON.stringify({
+          type: 'profile_rejected',
+          title: 'Change Not Approved',
+          message: 'Your ' + (d.fieldLabel || d.field) + ' update was not approved. Please contact your advisor for details.',
+          data: { field: d.field, fieldLabel: d.fieldLabel, value: d.newValue, reason: 'Rejected by admin' }
+        })
+      });
+      showToast('Rejected: ' + (d.fieldLabel || d.field), 'error');
+      checkPendingClientChanges(clientId);
+    }
+  });
+}
+
+window.reviewClientChange = reviewClientChange;
+window.checkPendingClientChanges = checkPendingClientChanges;
 
 init();
 
