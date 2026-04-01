@@ -1129,12 +1129,43 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
       <!-- Detail Panel (slide-in) -->
       <div id="pifr-detail-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000" onclick="closePifrDetail()"></div>
-      <div id="pifr-detail-panel" style="display:none;position:fixed;top:0;right:0;width:480px;max-width:100vw;height:100vh;background:var(--paper);border-left:1px solid rgba(255,255,255,.06);z-index:9001;overflow-y:auto;padding:24px;box-shadow:-8px 0 40px rgba(0,0,0,.4)">
+      <div id="pifr-detail-panel" style="display:none;position:fixed;top:0;right:0;width:560px;max-width:100vw;height:100vh;background:var(--paper);border-left:1px solid rgba(255,255,255,.06);z-index:9001;overflow-y:auto;padding:24px;box-shadow:-8px 0 40px rgba(0,0,0,.4)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
           <h3 style="font-family:'Share Tech Mono',monospace;font-size:18px;color:var(--cyan)">Enrollment Detail</h3>
           <button onclick="closePifrDetail()" style="background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">&#215;</button>
         </div>
         <div id="pifr-detail-content"></div>
+      </div>
+
+      <!-- Approval Queue Sub-section -->
+      <div class="a-card" style="margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:14px;font-weight:700;color:var(--ink)">&#9888; Pending Approvals</div>
+          <span style="font-size:10px;padding:3px 10px;border-radius:6px;background:rgba(248,113,113,.1);color:#f87171;font-weight:600" id="pifr-approval-count">0</span>
+        </div>
+        <div id="pifr-approval-list" style="max-height:300px;overflow-y:auto"></div>
+        <div id="pifr-approval-empty" style="text-align:center;padding:20px;font-size:12px;color:rgba(240,242,247,.3)">No pending approvals</div>
+      </div>
+
+      <!-- Activity Logs Sub-section -->
+      <div class="a-card" style="margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:14px;font-weight:700;color:var(--ink)">&#128203; Activity Logs</div>
+          <div style="display:flex;gap:6px">
+            <select id="pifr-log-filter" onchange="renderPifrLogs()" style="background:var(--cream);border:1px solid rgba(255,255,255,.06);color:var(--ink);padding:4px 8px;border-radius:6px;font-size:10px">
+              <option value="all">All</option>
+              <option value="enrollment">Enrollments</option>
+              <option value="status">Status Changes</option>
+              <option value="approval">Approvals</option>
+              <option value="upload">Uploads</option>
+              <option value="edit">Edits</option>
+              <option value="action">Actions</option>
+            </select>
+            <input type="text" id="pifr-log-search" placeholder="Search logs..." oninput="renderPifrLogs()" style="background:var(--cream);border:1px solid rgba(255,255,255,.06);color:var(--ink);padding:4px 8px;border-radius:6px;font-size:10px;width:140px">
+          </div>
+        </div>
+        <div id="pifr-log-list" style="max-height:400px;overflow-y:auto"></div>
+        <div id="pifr-log-empty" style="text-align:center;padding:20px;font-size:12px;color:rgba(240,242,247,.3)">No activity logged yet</div>
       </div>
     </div>
 
@@ -4263,18 +4294,37 @@ window.checkPendingClientChanges = checkPendingClientChanges;
 
 // ══ PIFR ENROLLMENTS ══
 var pifrEnrollments = JSON.parse(localStorage.getItem('hirecar_pifr_enrollments') || '[]');
+var pifrLogs = JSON.parse(localStorage.getItem('hirecar_pifr_logs') || '[]');
+var pifrApprovals = JSON.parse(localStorage.getItem('hirecar_pifr_approvals') || '[]');
 
-function savePifrEnrollments() {
-  localStorage.setItem('hirecar_pifr_enrollments', JSON.stringify(pifrEnrollments));
+function savePifrEnrollments() { localStorage.setItem('hirecar_pifr_enrollments', JSON.stringify(pifrEnrollments)); }
+function savePifrLogs() { localStorage.setItem('hirecar_pifr_logs', JSON.stringify(pifrLogs.slice(0, 500))); }
+function savePifrApprovals() { localStorage.setItem('hirecar_pifr_approvals', JSON.stringify(pifrApprovals)); }
+
+function pifrLog(entry) {
+  entry.id = Date.now() + Math.random();
+  entry.ts = new Date().toISOString();
+  entry.by = entry.by || 'admin';
+  pifrLogs.unshift(entry);
+  savePifrLogs();
+}
+
+function pifrApproval(entry) {
+  entry.id = Date.now() + Math.random();
+  entry.ts = new Date().toISOString();
+  entry.status = 'pending';
+  pifrApprovals.unshift(entry);
+  savePifrApprovals();
+  pifrLog({ type: 'approval', mid: entry.mid, text: 'Approval requested: ' + entry.desc, by: entry.requestedBy });
 }
 
 function addPifrEnrollment(data) {
   data.enrolledAt = data.enrolledAt || new Date().toISOString();
   data.status = data.status || 'new';
-  // Prevent duplicates
   if (pifrEnrollments.some(function(e) { return e.mid === data.mid; })) return;
   pifrEnrollments.unshift(data);
   savePifrEnrollments();
+  pifrLog({ type: 'enrollment', mid: data.mid, text: 'New enrollment: ' + (data.fname||'') + ' ' + (data.lname||'') + ' — ' + (data.plan||'Unknown plan') + ' (' + (data.lane==='tld'?'TLD':'PIFR') + ')', by: 'client' });
   renderPifrSection();
 }
 
@@ -4295,6 +4345,8 @@ function renderPifrSection() {
   if (badge) { badge.style.display = total > 0 ? '' : 'none'; badge.textContent = total; }
 
   renderPifrTable();
+  renderPifrApprovals();
+  renderPifrLogs();
 }
 
 function renderPifrTable() {
@@ -4355,7 +4407,102 @@ function renderPifrTable() {
 
 function updatePifrStatus(mid, status) {
   var e = pifrEnrollments.find(function(x) { return x.mid === mid; });
-  if (e) { e.status = status; savePifrEnrollments(); renderPifrSection(); }
+  if (e) {
+    var old = e.status;
+    e.status = status;
+    savePifrEnrollments();
+    pifrLog({ type: 'status', mid: mid, text: 'Status changed: ' + old + ' → ' + status, by: 'admin' });
+    renderPifrSection();
+  }
+}
+
+function updatePifrStatusWithApproval(mid) {
+  var newStatus = document.getElementById('pifr-detail-status').value;
+  var e = pifrEnrollments.find(function(x) { return x.mid === mid; });
+  if (!e || e.status === newStatus) return;
+  pifrApproval({
+    mid: mid,
+    type: 'status_change',
+    desc: 'Status change: ' + e.status + ' → ' + newStatus,
+    field: 'status',
+    oldVal: e.status,
+    newVal: newStatus,
+    requestedBy: 'admin',
+    approvableBy: 'client'
+  });
+  renderPifrApprovals();
+  closePifrDetail();
+  alert('Status change submitted for client approval: ' + e.status + ' → ' + newStatus);
+}
+
+function approvePifrChange(approvalId) {
+  var a = pifrApprovals.find(function(x) { return x.id === approvalId; });
+  if (!a) return;
+  a.status = 'approved';
+  a.approvedAt = new Date().toISOString();
+  // Apply the change
+  var e = pifrEnrollments.find(function(x) { return x.mid === a.mid; });
+  if (e && a.field) {
+    e[a.field] = a.newVal;
+    savePifrEnrollments();
+  }
+  savePifrApprovals();
+  pifrLog({ type: 'approval', mid: a.mid, text: 'Approved: ' + a.desc, by: 'admin' });
+  renderPifrSection();
+}
+
+function rejectPifrChange(approvalId) {
+  var a = pifrApprovals.find(function(x) { return x.id === approvalId; });
+  if (!a) return;
+  a.status = 'rejected';
+  a.rejectedAt = new Date().toISOString();
+  savePifrApprovals();
+  pifrLog({ type: 'approval', mid: a.mid, text: 'Rejected: ' + a.desc, by: 'admin' });
+  renderPifrSection();
+}
+
+function renderPifrApprovals() {
+  var pending = pifrApprovals.filter(function(a) { return a.status === 'pending'; });
+  var list = document.getElementById('pifr-approval-list');
+  var empty = document.getElementById('pifr-approval-empty');
+  var count = document.getElementById('pifr-approval-count');
+  if (count) count.textContent = pending.length;
+  if (!pending.length) { if(list) list.innerHTML = ''; if(empty) empty.style.display = ''; return; }
+  if(empty) empty.style.display = 'none';
+  if(!list) return;
+  list.innerHTML = pending.map(function(a) {
+    var e = pifrEnrollments.find(function(x) { return x.mid === a.mid; });
+    var name = e ? (e.fname + ' ' + e.lname) : a.mid;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px">' +
+      '<div style="flex:1;min-width:0"><div style="font-weight:600;color:var(--ink)">' + name + ' <code style="font-size:10px;color:var(--cyan)">' + a.mid + '</code></div>' +
+      '<div style="font-size:11px;color:rgba(240,242,247,.4);margin-top:2px">' + a.desc + '</div>' +
+      '<div style="font-size:9px;color:rgba(240,242,247,.25);margin-top:2px">By ' + a.requestedBy + ' · ' + new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) + '</div></div>' +
+      '<button onclick="approvePifrChange(' + a.id + ')" style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);color:#34d399;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Approve</button>' +
+      '<button onclick="rejectPifrChange(' + a.id + ')" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);color:#f87171;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Reject</button></div>';
+  }).join('');
+}
+
+function renderPifrLogs() {
+  var filter = document.getElementById('pifr-log-filter') ? document.getElementById('pifr-log-filter').value : 'all';
+  var search = document.getElementById('pifr-log-search') ? document.getElementById('pifr-log-search').value.toLowerCase() : '';
+  var list = document.getElementById('pifr-log-list');
+  var empty = document.getElementById('pifr-log-empty');
+  var filtered = pifrLogs.filter(function(l) {
+    if (filter !== 'all' && l.type !== filter) return false;
+    if (search && (l.text||'').toLowerCase().indexOf(search) === -1 && (l.mid||'').toLowerCase().indexOf(search) === -1) return false;
+    return true;
+  }).slice(0, 100);
+  if (!filtered.length) { if(list) list.innerHTML = ''; if(empty) empty.style.display = ''; return; }
+  if(empty) empty.style.display = 'none';
+  if(!list) return;
+  var icons = {enrollment:'&#128203;',status:'&#9889;',approval:'&#9888;',upload:'&#128228;',edit:'&#9998;',action:'&#9654;'};
+  var colors = {enrollment:'var(--cyan)',status:'var(--amber)',approval:'#f87171',upload:'var(--success)',edit:'var(--blue)',action:'var(--ink)'};
+  list.innerHTML = filtered.map(function(l) {
+    return '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;align-items:flex-start">' +
+      '<div style="width:20px;text-align:center;flex-shrink:0;color:' + (colors[l.type]||'var(--ink)') + '">' + (icons[l.type]||'&#8226;') + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="color:var(--ink)">' + (l.text||'—') + '</div>' +
+      '<div style="font-size:9px;color:rgba(240,242,247,.25);margin-top:2px">' + (l.mid ? '<code>' + l.mid + '</code> · ' : '') + (l.by||'system') + ' · ' + new Date(l.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) + '</div></div></div>';
+  }).join('');
 }
 
 function showPifrDetail(mid) {
@@ -4365,53 +4512,114 @@ function showPifrDetail(mid) {
   document.getElementById('pifr-detail-panel').style.display = '';
   var isTld = e.lane === 'tld';
   var months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var chk = function(v) { return v ? '<span style="color:var(--success)">&#10003;</span>' : '<span style="color:rgba(240,242,247,.2)">&#10007;</span>'; };
 
   var html = '<div style="margin-bottom:16px;text-align:center"><div style="font-family:\'Share Tech Mono\',monospace;font-size:24px;font-weight:700;color:var(--cyan)">' + e.mid + '</div>' +
     '<div style="font-size:12px;color:rgba(240,242,247,.4);margin-top:4px">' + (isTld ? 'Tenant/Landlord Dispute — SeedXchange' : 'Credit Bureau Disputes — PIFR') + '</div></div>';
 
-  var rows = [
+  function section(title, rows) {
+    return '<div style="margin-top:16px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid rgba(34,211,238,.1)">' + title + '</div>' +
+      '<table style="width:100%;font-size:12px;border-collapse:collapse">' + rows.map(function(r) {
+        return '<tr><td style="padding:6px 0;color:rgba(240,242,247,.4);width:140px;vertical-align:top">' + r[0] + '</td><td style="padding:6px 0;color:var(--ink)">' + r[1] + '</td></tr>';
+      }).join('') + '</table>';
+  }
+
+  // ── PERSONAL INFO ──
+  html += section('Personal Information', [
     ['Name', (e.fname||'') + ' ' + (e.lname||'')],
     ['Email', e.email || '—'],
     ['Phone', e.phone || '—'],
+    ['DOB Year', e.dobYear || '—'],
     ['State / ZIP', (e.state||'—') + ' ' + (e.zip||'')],
-    ['Lane', isTld ? 'Tenant/Landlord (TLD)' : 'Credit Disputes (PIFR)'],
-    ['Plan', (e.plan||'—') + ' — $' + (e.planPrice||0) + (isTld?'':'/mo')],
-  ];
+  ]);
+
+  // ── SERVICE INFO ──
+  html += section('Service Details', [
+    ['Lane', isTld ? '<span style="color:var(--amber)">Tenant/Landlord (TLD)</span>' : '<span style="color:var(--cyan)">Credit Disputes (PIFR)</span>'],
+    ['Plan', (e.plan||'—')],
+    ['Price', '$' + (e.planPrice||0) + (isTld ? ' (one-time)' : '/mo')],
+    ['XP / Level', (e.xp||0) + ' XP — ' + (e.level||'Applicant')],
+    ['Enrolled', e.enrolledAt ? new Date(e.enrolledAt).toLocaleString() : '—'],
+    ['Status', '<span style="color:' + ({new:'var(--blue)',active:'var(--success)',completed:'var(--amber)'}[e.status]||'var(--blue)') + ';font-weight:700">' + (e.status||'new').toUpperCase() + '</span>'],
+  ]);
 
   if (isTld) {
-    rows.push(['Dispute Type', e.tld_type || '—']);
-    rows.push(['Deposit Amount', e.tld_depositAmt ? '$'+e.tld_depositAmt : '—']);
-    rows.push(['Monthly Rent', e.tld_monthlyRent ? '$'+e.tld_monthlyRent : '—']);
-    rows.push(['Move-Out Date', e.tld_moveOutDate || '—']);
-    rows.push(['Forwarding Date', e.tld_forwardingDate || '—']);
-    rows.push(['21-Day Exceeded', e.tld_21dayExceeded ? '<span style="color:var(--error);font-weight:700">YES</span>' : 'No']);
-    rows.push(['Landlord', e.tld_landlordName || '—']);
-    rows.push(['Property', e.tld_propertyAddr || '—']);
+    // ── TLD DETAILS ──
+    html += section('Dispute Details', [
+      ['Dispute Type', e.tld_type || '—'],
+      ['Deposit Amount', e.tld_depositAmt ? '$'+e.tld_depositAmt : '—'],
+      ['Monthly Rent', e.tld_monthlyRent ? '$'+e.tld_monthlyRent : '—'],
+      ['Move-Out Date', e.tld_moveOutDate || '—'],
+      ['Forwarding Date', e.tld_forwardingDate || '—'],
+      ['21-Day Exceeded', e.tld_21dayExceeded ? '<span style="color:var(--error);font-weight:700">YES — NONCOMPLIANCE</span>' : '<span style="color:var(--success)">Within window</span>'],
+      ['Landlord', e.tld_landlordName || '—'],
+      ['Landlord Contact', e.tld_landlordContact || '—'],
+      ['Property', e.tld_propertyAddr || '—'],
+      ['Issues', e.issues || '—'],
+    ]);
+    html += section('Evidence Readiness', [
+      ['Lease Agreement', chk(e.tld_hasLease)],
+      ['Photos / Video', chk(e.tld_hasPhotos)],
+      ['Text / Email Comms', chk(e.tld_hasTexts)],
+      ['Payment Proof', chk(e.tld_hasPaymentProof)],
+      ['Forwarding Proof', chk(e.tld_hasForwardingProof)],
+    ]);
   } else {
-    rows.push(['Score Range', e.scoreRange || '—']);
-    rows.push(['Profile Score', (e.profileScore||'—') + '/100']);
-    rows.push(['Issues', e.issues || '—']);
-    rows.push(['Goal', e.goal || '—']);
-    rows.push(['Timeline', e.timeline || '—']);
-    rows.push(['Bureaus', e.bureaus || '—']);
+    // ── CREDIT DETAILS ──
+    html += section('Credit Profile', [
+      ['Score Range', e.scoreRange || '—'],
+      ['Profile Score', (e.profileScore||'—') + '/100'],
+      ['Issues', e.issues || '—'],
+      ['Goal', e.goal || '—'],
+      ['Timeline', e.timeline || '—'],
+      ['Bureaus', e.bureaus || '—'],
+      ['Bureau Auth', chk(e.authOn)],
+      ['Prior Disputes', e.priorDisputes || 'none'],
+      ['Adverse Actions', e.adverseAction || '—'],
+      ['Collector Debt', chk(e.hasCollectorDebt)],
+      ['ECOA Miscoded', chk(e.ecoaMiscoded)],
+    ]);
+    html += section('Identity Theft', [
+      ['Police Report', chk(e.policeReport)],
+      ['FTC Report', chk(e.ftcReport)],
+      ['Equifax Breach', chk(e.eqfxBreach)],
+    ]);
+    html += section('Medical Debt', [
+      ['Under $500', chk(e.medDebtUnder500)],
+      ['Already Paid', chk(e.medDebtPaid)],
+    ]);
+    html += section('Document Readiness', [
+      ['Credit Reports (3 bureaus)', chk(e.hasReports)],
+      ['Government ID', chk(e.hasID)],
+      ['Proof of Address', chk(e.hasProofAddr)],
+    ]);
   }
 
-  rows.push(['Channels', e.channels || '—']);
-  rows.push(['XP / Level', (e.xp||0) + ' XP — ' + (e.level||'Applicant')]);
-  if (e.calDate && e.calTime) {
-    rows.push(['Strategy Call', (months[e.calMonth]||'') + ' ' + e.calDate + ', ' + e.calYear + ' at ' + e.calTime + ' PT']);
+  // ── CHANNELS & CALL ──
+  html += section('Communication', [
+    ['Channels', e.channels || '—'],
+    ['Slack Channel', e.slackChannel || '—'],
+    ['Webhook URL', e.webhookUrl ? '<code style="font-size:10px;word-break:break-all">' + e.webhookUrl + '</code>' : '—'],
+    ['Terms Accepted', chk(e.termsAccepted)],
+    ['Strategy Call', (e.calDate && e.calTime) ? (months[e.calMonth]||'') + ' ' + e.calDate + ', ' + e.calYear + ' at ' + e.calTime + ' PT' : 'Not booked'],
+  ]);
+
+  // ── MEMBER LOGS ──
+  var memberLogs = pifrLogs.filter(function(l) { return l.mid === mid; }).slice(0, 10);
+  html += '<div style="margin-top:16px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid rgba(34,211,238,.1)">Recent Activity</div>';
+  if (memberLogs.length) {
+    html += memberLogs.map(function(l) {
+      var icon = {enrollment:'&#128203;',status:'&#9889;',approval:'&#9888;',upload:'&#128228;',edit:'&#9998;',action:'&#9654;'}[l.type] || '&#8226;';
+      return '<div style="display:flex;gap:8px;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.03)"><span>' + icon + '</span><span style="color:var(--ink);flex:1">' + l.text + '</span><span style="color:rgba(240,242,247,.3);font-family:\'Share Tech Mono\',monospace;font-size:9px;flex-shrink:0">' + new Date(l.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) + '</span></div>';
+    }).join('');
+  } else {
+    html += '<div style="font-size:11px;color:rgba(240,242,247,.3);padding:8px 0">No activity logged yet</div>';
   }
-  rows.push(['Enrolled', e.enrolledAt ? new Date(e.enrolledAt).toLocaleString() : '—']);
-  rows.push(['Status', e.status || 'new']);
 
-  html += '<table style="width:100%;font-size:12px;border-collapse:collapse">' +
-    rows.map(function(r) {
-      return '<tr><td style="padding:8px 0;color:rgba(240,242,247,.4);width:130px;vertical-align:top">' + r[0] + '</td><td style="padding:8px 0;color:var(--ink)">' + r[1] + '</td></tr>';
-    }).join('') + '</table>';
-
-  html += '<div style="margin-top:20px;display:flex;gap:8px"><select id="pifr-detail-status" style="background:var(--cream);border:1px solid rgba(255,255,255,.06);color:var(--ink);padding:8px 12px;border-radius:8px;font-size:12px;flex:1">' +
+  // ── STATUS + APPROVAL ──
+  html += '<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap"><select id="pifr-detail-status" style="background:var(--cream);border:1px solid rgba(255,255,255,.06);color:var(--ink);padding:8px 12px;border-radius:8px;font-size:12px;flex:1">' +
     '<option value="new"'+(e.status==='new'?' selected':'')+'>New</option><option value="active"'+(e.status==='active'?' selected':'')+'>Active</option><option value="completed"'+(e.status==='completed'?' selected':'')+'>Completed</option></select>' +
-    '<button onclick="updatePifrStatus(\''+e.mid+'\',document.getElementById(\'pifr-detail-status\').value);closePifrDetail()" style="background:var(--gold);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Update</button></div>';
+    '<button onclick="updatePifrStatusWithApproval(\''+e.mid+'\')" style="background:var(--gold);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Update (Requires Client Approval)</button></div>';
 
   document.getElementById('pifr-detail-content').innerHTML = html;
 }
@@ -4432,19 +4640,39 @@ function refreshPifrData() {
 function loadPifrSampleData() {
   if (pifrEnrollments.length > 0) return;
   pifrEnrollments = [
-    {mid:'HC-4729-1001',fname:'Mayra',lname:'Garcia',email:'mayra@example.com',phone:'(310) 555-0102',lane:'tld',plan:'Small Claims Track',planPrice:599,tld_type:'deposit',tld_depositAmt:'1400',tld_monthlyRent:'1400',tld_moveOutDate:'2026-01-31',tld_forwardingDate:'2026-02-11',tld_21dayExceeded:true,tld_landlordName:'John (Manager)',tld_propertyAddr:'Los Angeles, CA',channels:'email, sms',xp:420,level:'Commander',calDate:7,calTime:'10:00 AM',calMonth:4,calYear:2026,enrolledAt:'2026-03-30T14:22:00Z',status:'active',state:'CA',zip:'90001',issues:'no_itemization, late_return, habitability'},
-    {mid:'HC-8312-4456',fname:'James',lname:'Wilson',email:'jwilson@example.com',phone:'(818) 555-0199',lane:'pifr',plan:'PIFR Plus',planPrice:149,scoreRange:'580-619',profileScore:54,goal:'vehicle',timeline:'90',bureaus:'transunion, equifax, experian',channels:'email, sms',xp:380,level:'Strategist',calDate:9,calTime:'2:30 PM',calMonth:4,calYear:2026,enrolledAt:'2026-03-29T09:15:00Z',status:'new',state:'CA',zip:'91301',issues:'lates, coll, inq'},
-    {mid:'HC-2201-7783',fname:'Sarah',lname:'Chen',email:'schen@example.com',lane:'pifr',plan:'PIFR Max',planPrice:249,scoreRange:'300-579',profileScore:42,goal:'housing',timeline:'180',bureaus:'transunion, equifax, experian, lexisnexis',channels:'email, sms, slack',xp:500,level:'Elite',enrolledAt:'2026-03-28T16:40:00Z',status:'active',state:'CA',zip:'90046',issues:'fraud, coll, repo, judg'}
+    {mid:'HC-4729-1001',fname:'Mayra',lname:'Garcia',email:'mayra@example.com',phone:'(310) 555-0102',lane:'tld',plan:'Small Claims Track',planPrice:599,tld_type:'deposit',tld_depositAmt:'1400',tld_monthlyRent:'1400',tld_moveOutDate:'2026-01-31',tld_forwardingDate:'2026-02-11',tld_21dayExceeded:true,tld_landlordName:'John (Manager)',tld_landlordContact:'john@property.com',tld_propertyAddr:'Los Angeles, CA',tld_hasLease:true,tld_hasPhotos:true,tld_hasTexts:true,tld_hasPaymentProof:true,tld_hasForwardingProof:true,channels:'email, sms',xp:420,level:'Commander',calDate:7,calTime:'10:00 AM',calMonth:4,calYear:2026,enrolledAt:'2026-03-30T14:22:00Z',status:'active',state:'CA',zip:'90001',issues:'no_itemization, late_return, habitability',termsAccepted:true},
+    {mid:'HC-8312-4456',fname:'James',lname:'Wilson',email:'jwilson@example.com',phone:'(818) 555-0199',lane:'pifr',plan:'PIFR Plus',planPrice:149,scoreRange:'580-619',profileScore:54,goal:'vehicle',timeline:'90',bureaus:'transunion, equifax, experian',channels:'email, sms',xp:380,level:'Strategist',calDate:9,calTime:'2:30 PM',calMonth:4,calYear:2026,enrolledAt:'2026-03-29T09:15:00Z',status:'new',state:'CA',zip:'91301',issues:'lates, coll, inq',authOn:true,hasReports:true,hasID:true,hasProofAddr:false,priorDisputes:'some-denied',adverseAction:'credit, auto',hasCollectorDebt:true,termsAccepted:true},
+    {mid:'HC-2201-7783',fname:'Sarah',lname:'Chen',email:'schen@example.com',lane:'pifr',plan:'PIFR Max',planPrice:249,scoreRange:'300-579',profileScore:42,goal:'housing',timeline:'180',bureaus:'transunion, equifax, experian, lexisnexis',channels:'email, sms, slack',xp:500,level:'Elite',enrolledAt:'2026-03-28T16:40:00Z',status:'active',state:'CA',zip:'90046',issues:'fraud, coll, repo, judg',authOn:true,policeReport:true,ftcReport:true,eqfxBreach:true,hasReports:true,hasID:true,hasProofAddr:true,termsAccepted:true}
   ];
   savePifrEnrollments();
+  // Seed logs
+  if (pifrLogs.length === 0) {
+    pifrLogs = [
+      {id:1,ts:'2026-03-30T14:22:00Z',type:'enrollment',mid:'HC-4729-1001',text:'New enrollment: Mayra Garcia — Small Claims Track (TLD)',by:'client'},
+      {id:2,ts:'2026-03-30T14:25:00Z',type:'status',mid:'HC-4729-1001',text:'Status changed: new → active',by:'admin'},
+      {id:3,ts:'2026-03-30T14:30:00Z',type:'upload',mid:'HC-4729-1001',text:'Lease agreement uploaded (Exhibit A)',by:'client'},
+      {id:4,ts:'2026-03-30T14:32:00Z',type:'upload',mid:'HC-4729-1001',text:'Text thread screenshots uploaded (12 images)',by:'client'},
+      {id:5,ts:'2026-03-29T09:15:00Z',type:'enrollment',mid:'HC-8312-4456',text:'New enrollment: James Wilson — PIFR Plus (PIFR)',by:'client'},
+      {id:6,ts:'2026-03-28T16:40:00Z',type:'enrollment',mid:'HC-2201-7783',text:'New enrollment: Sarah Chen — PIFR Max (PIFR)',by:'client'},
+      {id:7,ts:'2026-03-28T17:00:00Z',type:'status',mid:'HC-2201-7783',text:'Status changed: new → active',by:'admin'},
+      {id:8,ts:'2026-03-28T17:05:00Z',type:'action',mid:'HC-2201-7783',text:'Identity theft response kit initiated (§605B)',by:'admin'},
+      {id:9,ts:'2026-03-29T10:00:00Z',type:'upload',mid:'HC-8312-4456',text:'Credit reports uploaded (TransUnion, Equifax, Experian)',by:'client'},
+    ];
+    savePifrLogs();
+  }
 }
 
 window.renderPifrTable = renderPifrTable;
+window.renderPifrLogs = renderPifrLogs;
 window.refreshPifrData = refreshPifrData;
 window.showPifrDetail = showPifrDetail;
 window.closePifrDetail = closePifrDetail;
 window.updatePifrStatus = updatePifrStatus;
+window.updatePifrStatusWithApproval = updatePifrStatusWithApproval;
+window.approvePifrChange = approvePifrChange;
+window.rejectPifrChange = rejectPifrChange;
 window.addPifrEnrollment = addPifrEnrollment;
+window.pifrLog = pifrLog;
 
 window.checkPendingClientChanges = checkPendingClientChanges;
 
