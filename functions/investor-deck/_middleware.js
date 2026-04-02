@@ -229,7 +229,7 @@ const GATE_HTML = `<!DOCTYPE html>
 <body>
   <div class="gate-container">
     <div class="gate-card" id="gateCard">
-      <img src="/og-image.png" alt="HIRECAR" class="logo" onerror="this.style.display='none'">
+      <img src="/investor-deck/hirecar-logo.png" alt="HIRECAR" class="logo" onerror="this.style.display='none'">
       <div class="badge">Confidential</div>
 
       <div class="form-section" id="formSection">
