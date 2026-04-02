@@ -108,7 +108,26 @@ These products exist to acquire clients. They are NOT revenue centers. Every dol
 
 ---
 
-### 1F. HIRECAR Ecosystem Products (Cross-Sell)
+### 1F. Data Furnishing & HIRECAR Card
+
+| SKU ID | Product Name | Description | Price | Billing | Est. Margin | Category |
+|--------|-------------|-------------|-------|---------|-------------|----------|
+| HC-CARD-001 | HIRECAR Prepaid Card | Auto-expense-only prepaid card (gas, maintenance, insurance, tint, detailing, tolls, parking). All transactions report as positive payment history to all 3 bureaus. Issued at HIRECAR Member signup. | $0-$49/yr card fee | Annual | Interchange 1.5-2.5% per swipe | Data Furnishing |
+| HC-FURN-001 | Data Furnishing — Ongoing | Monthly reporting of HIRECAR card transactions and auto spend to TransUnion, Equifax, Experian as positive payment history | $25/mo | Monthly | ~90% | Data Furnishing |
+| HC-FURN-002 | Plaid Retroactive Furnishing | One-time Plaid connection pulls 12 months of historical auto spending data. HIRECAR furnishes retroactively as positive payment history — instant credit history on Day 1 | Included in Member tier | One-time | N/A (member benefit) | Data Furnishing |
+| HC-CARD-002 | Card Load Fee | Fee charged when client loads funds onto HIRECAR prepaid card | 1-3% per load | Per transaction | ~95% | Data Furnishing |
+
+**Revenue per member from Data Furnishing alone:**
+- Monthly furnishing fee: $25/mo = $300/yr
+- Card interchange (~$400/mo auto spend): ~$96/yr
+- Card load fees: ~$48/yr
+- Total: **~$444/yr per member — continues indefinitely even after PIFR membership ends**
+
+**Key differentiator:** Unlike Experian Boost (consumer-controlled, Experian benefits), HIRECAR controls the furnishing. Client's credit history is built on HIRECAR infrastructure — leaving means losing their primary credit-building tool.
+
+---
+
+### 1G. HIRECAR Ecosystem Products (Cross-Sell)
 
 | SKU ID | Product Name | Description | Price Range | Category |
 |--------|-------------|-------------|-------------|----------|
