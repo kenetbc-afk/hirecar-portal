@@ -4630,10 +4630,25 @@ function closePifrDetail() {
 }
 
 function refreshPifrData() {
-  // In production, this would fetch from your API/D1 database
-  // For now, re-render from localStorage
-  pifrEnrollments = JSON.parse(localStorage.getItem('hirecar_pifr_enrollments') || '[]');
-  renderPifrSection();
+  // Fetch from API + merge with localStorage
+  fetch('/api/pifr-enroll').then(function(r){return r.json()}).then(function(d){
+    if(d.success && d.enrollments && d.enrollments.length) {
+      d.enrollments.forEach(function(e){
+        if(!pifrEnrollments.some(function(x){return x.mid===e.mid})){
+          e.status = e.status || 'new';
+          e.enrolledAt = e.enrolledAt || e.receivedAt || new Date().toISOString();
+          pifrEnrollments.unshift(e);
+          pifrLog({type:'enrollment',mid:e.mid,text:'New enrollment synced: '+(e.fname||'')+' '+(e.lname||'')+' — '+(e.plan||'Unknown'),by:'system'});
+        }
+      });
+      savePifrEnrollments();
+    }
+    renderPifrSection();
+  }).catch(function(err){
+    console.log('API fetch failed, using localStorage:', err.message);
+    pifrEnrollments = JSON.parse(localStorage.getItem('hirecar_pifr_enrollments') || '[]');
+    renderPifrSection();
+  });
 }
 
 // Load sample data for demo if empty
