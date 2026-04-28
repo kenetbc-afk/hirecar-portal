@@ -4861,9 +4861,20 @@ function showPifrDetail(mid) {
     html += section('Referral & Preferences', refRows);
   }
 
+  // ── ADMIN NOTES (timestamped) ──
+  html += '<div style="margin-top:16px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid rgba(34,211,238,.1);display:flex;justify-content:space-between;align-items:center">'
+    + '<span>Admin Notes</span>'
+    + '<span id="pifr-notes-count" style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:rgba(240,242,247,.4)">loading…</span>'
+    + '</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">'
+    + '<textarea id="pifr-note-input" placeholder="Add a note about this client — what was discussed, next action, blocker, anything to remember…" style="width:100%;min-height:64px;background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:10px 12px;border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;line-height:1.5"></textarea>'
+    + '<button onclick="addPifrNote(\'' + mid + '\')" style="background:var(--gold);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end">+ Add Note</button>'
+    + '</div>';
+  html += '<div id="pifr-notes-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"><div style="font-size:11px;color:rgba(240,242,247,.3);padding:8px 0">Loading notes…</div></div>';
+
   // ── MEMBER LOGS ──
   var memberLogs = pifrLogs.filter(function(l) { return l.mid === mid; }).slice(0, 10);
-  html += '<div style="margin-top:16px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid rgba(34,211,238,.1)">Recent Activity</div>';
+  html += '<div style="margin-top:20px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid rgba(34,211,238,.1)">Recent Activity</div>';
   if (memberLogs.length) {
     html += memberLogs.map(function(l) {
       var icon = {enrollment:'&#128203;',status:'&#9889;',approval:'&#9888;',upload:'&#128228;',edit:'&#9998;',action:'&#9654;'}[l.type] || '&#8226;';
@@ -4879,6 +4890,92 @@ function showPifrDetail(mid) {
     '<button onclick="updatePifrStatusWithApproval(\''+e.mid+'\')" style="background:var(--gold);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Update (Requires Client Approval)</button></div>';
 
   document.getElementById('pifr-detail-content').innerHTML = html;
+  loadPifrNotes(mid);
+}
+
+// ── Admin notes (timestamped, per enrollment) ──
+function pifrNotesKey(mid){return 'pifr_notes_'+mid}
+
+function renderPifrNotesList(mid, notes) {
+  var listEl = document.getElementById('pifr-notes-list');
+  var countEl = document.getElementById('pifr-notes-count');
+  if (!listEl) return;
+  if (countEl) countEl.textContent = notes.length ? (notes.length + ' note' + (notes.length===1?'':'s')) : 'no notes yet';
+  if (!notes.length) {
+    listEl.innerHTML = '<div style="font-size:11px;color:rgba(240,242,247,.3);padding:8px 0">No notes yet — add the first one above.</div>';
+    return;
+  }
+  listEl.innerHTML = notes.map(function(n) {
+    var when = n.ts ? new Date(n.ts) : null;
+    var stamp = when ? when.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '—';
+    var by = (n.by||'admin').replace(/[<>&]/g,'');
+    var text = (n.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    var delBtn = n.id ? '<button onclick="deletePifrNote(\''+mid+'\',\''+n.id+'\')" title="Delete note" style="background:transparent;border:none;color:rgba(240,242,247,.3);cursor:pointer;font-size:12px;padding:0 4px">&#215;</button>' : '';
+    return '<div style="background:var(--cream);border:1px solid rgba(255,255,255,.05);border-left:3px solid var(--gold);border-radius:6px;padding:10px 12px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">'
+      + '<div style="font-family:\'Share Tech Mono\',monospace;font-size:9.5px;color:var(--gold);letter-spacing:.5px;text-transform:uppercase">' + stamp + ' &middot; ' + by + '</div>'
+      + delBtn
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--ink);line-height:1.55">' + text + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function loadPifrNotes(mid) {
+  // Local cache first for instant render
+  var local = [];
+  try { local = JSON.parse(localStorage.getItem(pifrNotesKey(mid)) || '[]'); } catch(_){ local = []; }
+  renderPifrNotesList(mid, local);
+  // Then fetch from cloud and merge
+  fetch('/api/pifr-note?mid=' + encodeURIComponent(mid))
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      if (d && d.success && Array.isArray(d.notes)) {
+        // Cloud is source of truth — overwrite local cache.
+        try { localStorage.setItem(pifrNotesKey(mid), JSON.stringify(d.notes)); } catch(_){}
+        renderPifrNotesList(mid, d.notes);
+      }
+    })
+    .catch(function(){ /* offline — local cache already shown */ });
+}
+
+function addPifrNote(mid) {
+  var input = document.getElementById('pifr-note-input');
+  if (!input) return;
+  var text = (input.value || '').trim();
+  if (!text) { input.focus(); return; }
+  var by = (typeof currentAdminName !== 'undefined' && currentAdminName) ? currentAdminName : 'admin';
+  var optimistic = { id: null, by: by, ts: new Date().toISOString(), text: text };
+  // Local optimistic update
+  var local = [];
+  try { local = JSON.parse(localStorage.getItem(pifrNotesKey(mid)) || '[]'); } catch(_){ local = []; }
+  local.unshift(optimistic);
+  localStorage.setItem(pifrNotesKey(mid), JSON.stringify(local));
+  renderPifrNotesList(mid, local);
+  input.value = '';
+  // Also log to the activity stream
+  try { pifrLog({ type:'edit', mid:mid, text:'Note added: '+text.slice(0,80)+(text.length>80?'…':''), by:'admin' }); } catch(_){}
+  // Persist to backend
+  fetch('/api/pifr-note', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ mid: mid, text: text, by: by })
+  }).then(function(r){ return r.json(); })
+    .then(function(){ loadPifrNotes(mid); })
+    .catch(function(){ /* keep optimistic local copy */ });
+}
+
+function deletePifrNote(mid, id) {
+  if (!confirm('Delete this note?')) return;
+  // Local removal
+  try {
+    var local = JSON.parse(localStorage.getItem(pifrNotesKey(mid)) || '[]');
+    local = local.filter(function(n){ return String(n.id) !== String(id); });
+    localStorage.setItem(pifrNotesKey(mid), JSON.stringify(local));
+    renderPifrNotesList(mid, local);
+  } catch(_){}
+  fetch('/api/pifr-note?id=' + encodeURIComponent(id), { method:'DELETE' })
+    .then(function(){ loadPifrNotes(mid); })
+    .catch(function(){});
 }
 
 function closePifrDetail() {
