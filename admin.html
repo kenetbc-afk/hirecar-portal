@@ -784,6 +784,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         <span class="ni-icon">&#128196;</span> Documents
         <span class="ni-badge ni-badge-blue" id="badge-docs" style="display:none;">0</span>
       </button>
+      <button class="nav-item" data-section="command-center" onclick="showSection('command-center')">
+        <span class="ni-icon">&#9670;</span> Command Center
+      </button>
       <button class="nav-item" data-section="settings" onclick="showSection('settings')" id="nav-settings">
         <span class="ni-icon">&#9881;</span> Settings
       </button>
@@ -1091,6 +1094,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </select>
         <select id="pifr-filter-status" onchange="renderPifrTable()" style="background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 12px;border-radius:8px;font-size:12px">
           <option value="all">All Status</option>
+          <option value="in_progress">In Progress (incomplete)</option>
           <option value="new">New</option>
           <option value="active">Active</option>
           <option value="completed">Completed</option>
@@ -1112,7 +1116,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
                 <th>Price</th>
                 <th>Score / Type</th>
                 <th>Call</th>
-                <th>Enrolled</th>
+                <th>Last Activity</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -1196,6 +1200,74 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </select>
       </div>
       <div class="doc-grid" id="doc-grid"></div>
+    </div>
+
+    <!-- ====== COMMAND CENTER ====== -->
+    <div class="admin-section" id="sec-command-center">
+      <div class="sec-head">
+        <div class="accent-bar"></div>
+        <h2>Command Center</h2>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Full department view with bot panels, live activity feed, and client registry. Data powered by D1 API.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:20px;" id="cc-dept-grid">
+        <!-- Department cards rendered by JS -->
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+        <div class="card" style="padding:16px;">
+          <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Active Bots</div>
+          <div style="font-size:36px;font-weight:700;color:var(--ink);" id="cc-active-bots">6</div>
+          <div style="font-size:11px;color:var(--muted);">of 20 HIRE Bots deployed</div>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Bot Coverage</div>
+          <div style="font-size:36px;font-weight:700;color:var(--ink);" id="cc-coverage">30%</div>
+          <div style="font-size:11px;color:var(--muted);">technical registry coverage</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px;margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">HIRE Bot Fleet Status</div>
+        <table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <tr style="border-bottom:1px solid rgba(255,255,255,.06);">
+            <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:600;">Bot</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:600;">Name</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--muted);font-weight:600;">Dept</th>
+            <th style="text-align:center;padding:6px 8px;color:var(--muted);font-weight:600;">Status</th>
+          </tr>
+          <tr><td style="padding:4px 8px;">#01</td><td>Enrollment & Onboarding</td><td>D01</td><td style="text-align:center;"><span style="color:var(--success);">LIVE</span></td></tr>
+          <tr><td style="padding:4px 8px;">#02</td><td>Disputes & Resolution</td><td>D02</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#03</td><td>Score Monitoring</td><td>D03</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#04</td><td>Document Management</td><td>D04</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#05</td><td>Communications Engine</td><td>D05</td><td style="text-align:center;"><span style="color:var(--amber);">Partial</span></td></tr>
+          <tr><td style="padding:4px 8px;">#06</td><td>Playbook Execution</td><td>D06</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#07</td><td>Digital Pass & Wallet</td><td>D07</td><td style="text-align:center;"><span style="color:var(--success);">LIVE</span></td></tr>
+          <tr><td style="padding:4px 8px;">#08</td><td>Billing & Invoicing</td><td>D08</td><td style="text-align:center;"><span style="color:var(--success);">LIVE</span></td></tr>
+          <tr><td style="padding:4px 8px;">#09</td><td>Member Portal</td><td>D09</td><td style="text-align:center;"><span style="color:var(--amber);">Partial</span></td></tr>
+          <tr><td style="padding:4px 8px;">#10</td><td>QA & Compliance</td><td>D10</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#11</td><td>Advisor Assignment</td><td>D11</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#12</td><td>Analytics & Reporting</td><td>D12</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#13</td><td>CRM & Relationship</td><td>D13</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#14</td><td>Platform Infrastructure</td><td>D14</td><td style="text-align:center;"><span style="color:var(--success);">LIVE</span></td></tr>
+          <tr><td style="padding:4px 8px;">#15</td><td>Scheduling & Calendar</td><td>D15</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#16</td><td>Security & Access</td><td>D16</td><td style="text-align:center;"><span style="color:var(--muted);">Planned</span></td></tr>
+          <tr><td style="padding:4px 8px;">#17</td><td>Transaction Completion</td><td>PO</td><td style="text-align:center;"><span style="color:var(--success);">LIVE</span></td></tr>
+          <tr><td style="padding:4px 8px;">#18</td><td>Milestone Progression</td><td>PO</td><td style="text-align:center;"><span style="color:var(--success);">LIVE</span></td></tr>
+          <tr><td style="padding:4px 8px;">#19</td><td>Lane Evaluation</td><td>PO</td><td style="text-align:center;"><span style="color:var(--success);">LIVE</span></td></tr>
+          <tr><td style="padding:4px 8px;">#20</td><td>Cash Transaction Protocol</td><td>PO</td><td style="text-align:center;"><span style="color:var(--success);">LIVE</span></td></tr>
+        </table>
+      </div>
+
+      <div class="card" style="padding:16px;">
+        <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">Department Overview</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;" id="cc-dept-cards">
+        </div>
+      </div>
+
+      <div style="margin-top:16px;text-align:center;">
+        <a href="/hirecar-command-v3.html" target="_blank" style="color:var(--cyan);font-size:12px;text-decoration:none;">Open full Command Center in new tab &rarr;</a>
+      </div>
     </div>
 
     <!-- ====== SETTINGS ====== -->
@@ -1619,10 +1691,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 'use strict';
 
 /* ========== ADMIN CREDENTIALS ========== */
-var ADMINS = {
-  ken:    { pin: '8086', role: 'Owner',  name: 'Ken',    access: 'full',    lastLogin: '' },
-  admin2: { pin: '1234', role: 'Staff',  name: 'Admin 2', access: 'limited', lastLogin: '' }
-};
+/* Credentials are now validated server-side via /api/admin-auth.
+   ADMINS object is populated on successful login — never hardcoded. */
+var ADMINS = {};
+var _serverApiKey = '';
 
 var HIRECAR_API = 'https://hirecar-api.hirecar.workers.dev';
 var SESSION_KEY = 'hc_admin_session';
@@ -1834,7 +1906,43 @@ function showToast(msg, type) {
 }
 
 /* ========== DATA PERSISTENCE ========== */
-var HC_API_KEY = 'hc-live-2026-k8X9mP3qR7wL';
+/* API key is now provided by server on login — never hardcoded */
+var HC_API_KEY = _serverApiKey;
+
+/* ========== D1 DATA ACCESS LAYER ========== */
+/* All admin financial data now persists to D1 via Worker API.
+   These functions replace direct localStorage read/write for
+   quotes, invoices, billing, documents, commitments, funding, pifr. */
+
+function apiCall(method, path, body) {
+  var opts = {
+    method: method,
+    headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(HIRECAR_API + path, opts).then(function(r) { return r.json(); });
+}
+
+/* List records for a client from a D1 table */
+function loadAdminData(table, clientId) {
+  var qs = clientId ? '?client_id=' + encodeURIComponent(clientId) : '';
+  return apiCall('GET', '/api/admin/' + table + qs);
+}
+
+/* Create a record in a D1 table */
+function createAdminRecord(table, data) {
+  return apiCall('POST', '/api/admin/' + table, data);
+}
+
+/* Update a record in a D1 table */
+function updateAdminRecord(table, id, data) {
+  return apiCall('PATCH', '/api/admin/' + table + '/' + id, data);
+}
+
+/* Delete a record from a D1 table */
+function deleteAdminRecord(table, id) {
+  return apiCall('DELETE', '/api/admin/' + table + '/' + id);
+}
 
 function loadClients() {
   try {
@@ -2095,37 +2203,51 @@ function doLogin() {
     return;
   }
 
-  var adminPins = {};
-  try {
-    var stored = localStorage.getItem('hc_admin_pins');
-    if (stored) adminPins = JSON.parse(stored);
-  } catch (e) {}
+  errorEl.textContent = 'Authenticating...';
+  errorEl.style.color = 'var(--cyan)';
 
-  var admin = ADMINS[user];
-  if (!admin) {
-    errorEl.textContent = 'ACCESS DENIED — Invalid credentials';
-    document.getElementById('login-pin').value = '';
-    return;
-  }
+  fetch('/api/admin-auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: user, pin: pin })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (!data.success) {
+      errorEl.style.color = '';
+      errorEl.textContent = 'ACCESS DENIED — Invalid credentials';
+      document.getElementById('login-pin').value = '';
+      return;
+    }
 
-  var expectedPin = adminPins[user] || admin.pin;
-  if (pin !== expectedPin) {
-    errorEl.textContent = 'ACCESS DENIED — Invalid credentials';
-    document.getElementById('login-pin').value = '';
-    return;
-  }
+    // Populate ADMINS from server response (no hardcoded data)
+    ADMINS[data.admin.username] = {
+      role: data.admin.role,
+      name: data.admin.name,
+      access: data.admin.access
+    };
 
-  currentAdmin = { username: user, role: admin.role, name: admin.name, access: admin.access };
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: user, ts: Date.now() }));
+    // Store API key from server (never hardcoded in source)
+    _serverApiKey = data.apiKey;
+    HC_API_KEY = _serverApiKey;
 
-  try {
-    var logins = JSON.parse(localStorage.getItem('hc_admin_logins') || '{}');
-    logins[user] = new Date().toISOString();
-    localStorage.setItem('hc_admin_logins', JSON.stringify(logins));
-  } catch (e) {}
+    currentAdmin = { username: data.admin.username, role: data.admin.role, name: data.admin.name, access: data.admin.access };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: data.admin.username, ts: Date.now(), token: data.token }));
 
-  addActivity(admin.name + ' logged in', 'green');
-  enterApp();
+    try {
+      var logins = JSON.parse(localStorage.getItem('hc_admin_logins') || '{}');
+      logins[user] = new Date().toISOString();
+      localStorage.setItem('hc_admin_logins', JSON.stringify(logins));
+    } catch (e) {}
+
+    addActivity(data.admin.name + ' logged in', 'green');
+    enterApp();
+  })
+  .catch(function(err) {
+    errorEl.style.color = '';
+    errorEl.textContent = 'Connection error — try again';
+    console.error('Auth error:', err);
+  });
 }
 
 function doLogout() {
@@ -2197,6 +2319,7 @@ function showSection(name) {
     commitments: 'Payment Commitments',
     pifr: 'PIFR Enrollments',
     documents: 'Documents',
+    'command-center': 'Command Center',
     settings: 'Settings'
   };
   document.getElementById('topbar-title').textContent = titles[name] || name;
@@ -3095,16 +3218,24 @@ function renderFunding() {
 }
 
 function updateFundingStatus(clientId, fundingId, newStatus) {
-  var clients = loadClients();
-  var c = clients.find(function(x) { return x.id === clientId; });
-  if (!c || !c.fundingRequests) return;
-  var f = c.fundingRequests.find(function(x) { return x.id === fundingId; });
-  if (!f) return;
-  f.status = newStatus;
-  saveClients(clients);
-  addActivity('Funding request ' + newStatus.toLowerCase() + ' for ' + c.name, newStatus === 'Approved' ? 'green' : 'red');
-  showToast('Funding request ' + newStatus.toLowerCase(), 'success');
-  renderFunding();
+  updateAdminRecord('funding', fundingId, {
+    status: newStatus.toLowerCase(),
+    reviewed_by: currentAdmin ? currentAdmin.name : 'admin',
+    reviewed_at: new Date().toISOString()
+  }).then(function() {
+    addActivity('Funding request ' + newStatus.toLowerCase() + ' for client ' + clientId, newStatus === 'Approved' ? 'green' : 'red');
+    showToast('Funding request ' + newStatus.toLowerCase(), 'success');
+    renderFunding();
+  }).catch(function() {
+    var clients = loadClients();
+    var c = clients.find(function(x) { return x.id === clientId; });
+    if (c && c.fundingRequests) {
+      var f = c.fundingRequests.find(function(x) { return x.id === fundingId; });
+      if (f) { f.status = newStatus; saveClients(clients); }
+    }
+    showToast('Funding request updated (offline)', 'success');
+    renderFunding();
+  });
 }
 
 /* ========== DOCUMENTS ========== */
@@ -3174,17 +3305,26 @@ function renderDocuments() {
 function filterDocuments() { renderDocuments(); }
 
 function updateDocStatus(clientId, docId, newStatus) {
-  var clients = loadClients();
-  var c = clients.find(function(x) { return x.id === clientId; });
-  if (!c || !c.documents) return;
-  var d = c.documents.find(function(x) { return x.id === docId; });
-  if (!d) return;
-  d.status = newStatus;
-  saveClients(clients);
-  addActivity('Document "' + d.name + '" ' + newStatus.toLowerCase() + ' for ' + c.name, newStatus === 'Approved' ? 'green' : 'red');
-  showToast('Document ' + newStatus.toLowerCase(), 'success');
-  renderDocuments();
-  renderDashboard();
+  updateAdminRecord('documents', docId, {
+    status: newStatus.toLowerCase(),
+    reviewed_by: currentAdmin ? currentAdmin.name : 'admin',
+    reviewed_at: new Date().toISOString()
+  }).then(function() {
+    addActivity('Document ' + newStatus.toLowerCase() + ' for client ' + clientId, newStatus === 'Approved' ? 'green' : 'red');
+    showToast('Document ' + newStatus.toLowerCase(), 'success');
+    renderDocuments();
+    renderDashboard();
+  }).catch(function() {
+    var clients = loadClients();
+    var c = clients.find(function(x) { return x.id === clientId; });
+    if (c && c.documents) {
+      var d = c.documents.find(function(x) { return x.id === docId; });
+      if (d) { d.status = newStatus; saveClients(clients); }
+    }
+    showToast('Document updated (offline)', 'success');
+    renderDocuments();
+    renderDashboard();
+  });
 }
 
 /* ========== SETTINGS ========== */
@@ -3698,14 +3838,19 @@ function addBillingEntry() {
 
 function deleteBillingEntry(clientId, billingId) {
   if (!confirm('Delete this billing entry?')) return;
-  var clients = loadClients();
-  var c = clients.find(function(x) { return x.id === clientId; });
-  if (!c || !c.billing) return;
-  c.billing = c.billing.filter(function(b) { return b.id !== billingId; });
-  saveClients(clients);
-  showToast('Billing entry deleted', 'info');
-  syncToClientPortal(clients);
-  renderBilling();
+  deleteAdminRecord('billing', billingId).then(function(res) {
+    showToast('Billing entry deleted', 'info');
+    renderBilling();
+  }).catch(function() {
+    var clients = loadClients();
+    var c = clients.find(function(x) { return x.id === clientId; });
+    if (c && c.billing) {
+      c.billing = c.billing.filter(function(b) { return b.id !== billingId; });
+      saveClients(clients);
+    }
+    showToast('Billing entry deleted (offline)', 'info');
+    renderBilling();
+  });
 }
 
 /* ---- RENDER QUOTES ---- */
@@ -3795,26 +3940,37 @@ function createQuote() {
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) { showToast('Client not found', 'error'); return; }
 
-  if (!c.quotes) c.quotes = [];
+  var quoteNumber = generateQuoteNumber();
   var quote = {
-    id: generateId(),
-    number: generateQuoteNumber(),
+    client_id: clientId,
+    quote_number: quoteNumber,
     service: service,
     description: description,
-    amount: amount,
-    createdAt: new Date().toISOString(),
-    expiresAt: expiresAt ? new Date(expiresAt).toISOString() : new Date(Date.now() + 86400000 * 30).toISOString(),
-    status: 'Pending',
-    sentToClient: false,
-    notes: notes
+    amount_cents: Math.round(amount * 100),
+    status: 'draft',
+    expires_at: expiresAt ? new Date(expiresAt).toISOString() : new Date(Date.now() + 86400000 * 30).toISOString(),
   };
-  c.quotes.push(quote);
-  saveClients(clients);
-  addActivity('Quote ' + quote.number + ' created for ' + c.name + ': ' + formatCurrency(amount), 'blue');
-  showToast('Quote ' + quote.number + ' created', 'success');
-  closeModal('modal-create-quote');
-  syncToClientPortal(clients);
-  renderQuotes();
+
+  // Persist to D1 via API
+  createAdminRecord('quotes', quote).then(function(res) {
+    if (res.ok) {
+      addActivity('Quote ' + quoteNumber + ' created for ' + c.name + ': ' + formatCurrency(amount), 'blue');
+      showToast('Quote ' + quoteNumber + ' created', 'success');
+      closeModal('modal-create-quote');
+      renderQuotes();
+    } else {
+      showToast('Failed to save quote: ' + (res.error || 'Unknown error'), 'error');
+    }
+  }).catch(function(e) {
+    // Fallback to localStorage if API unavailable
+    if (!c.quotes) c.quotes = [];
+    c.quotes.push({ id: generateId(), number: quoteNumber, service: service, description: description, amount: amount, createdAt: new Date().toISOString(), expiresAt: quote.expires_at, status: 'Pending', sentToClient: false });
+    saveClients(clients);
+    addActivity('Quote ' + quoteNumber + ' created (offline) for ' + c.name, 'blue');
+    showToast('Quote saved locally (offline mode)', 'success');
+    closeModal('modal-create-quote');
+    renderQuotes();
+  });
 }
 
 function sendQuoteToClient(clientId, quoteId) {
@@ -3837,14 +3993,20 @@ function sendQuoteToClient(clientId, quoteId) {
 
 function deleteQuote(clientId, quoteId) {
   if (!confirm('Delete this quote?')) return;
-  var clients = loadClients();
-  var c = clients.find(function(x) { return x.id === clientId; });
-  if (!c || !c.quotes) return;
-  c.quotes = c.quotes.filter(function(q) { return q.id !== quoteId; });
-  saveClients(clients);
-  showToast('Quote deleted', 'info');
-  syncToClientPortal(clients);
-  renderQuotes();
+  deleteAdminRecord('quotes', quoteId).then(function(res) {
+    showToast('Quote deleted', 'info');
+    renderQuotes();
+  }).catch(function() {
+    // Fallback to localStorage
+    var clients = loadClients();
+    var c = clients.find(function(x) { return x.id === clientId; });
+    if (c && c.quotes) {
+      c.quotes = c.quotes.filter(function(q) { return q.id !== quoteId; });
+      saveClients(clients);
+    }
+    showToast('Quote deleted (offline)', 'info');
+    renderQuotes();
+  });
 }
 
 /* ---- RENDER INVOICES ---- */
@@ -3951,25 +4113,34 @@ function createInvoice() {
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) { showToast('Client not found', 'error'); return; }
 
-  if (!c.invoices) c.invoices = [];
+  var invNumber = generateInvoiceNumber();
   var inv = {
-    id: generateId(),
-    number: generateInvoiceNumber(),
+    client_id: clientId,
+    invoice_number: invNumber,
     description: description,
-    amount: amount,
-    issuedAt: new Date().toISOString(),
-    dueDate: new Date(dueDate).toISOString(),
-    status: 'Draft',
-    fromQuote: fromQuoteId,
-    notes: notes
+    amount_cents: Math.round(amount * 100),
+    status: 'draft',
+    due_date: new Date(dueDate).toISOString(),
+    quote_id: fromQuoteId || '',
   };
-  c.invoices.push(inv);
-  saveClients(clients);
-  addActivity('Invoice ' + inv.number + ' created for ' + c.name + ': ' + formatCurrency(amount), 'blue');
-  showToast('Invoice ' + inv.number + ' created', 'success');
-  closeModal('modal-create-invoice');
-  syncToClientPortal(clients);
-  renderInvoices();
+
+  createAdminRecord('invoices', inv).then(function(res) {
+    if (res.ok) {
+      addActivity('Invoice ' + invNumber + ' created for ' + c.name + ': ' + formatCurrency(amount), 'blue');
+      showToast('Invoice ' + invNumber + ' created', 'success');
+      closeModal('modal-create-invoice');
+      renderInvoices();
+    } else {
+      showToast('Failed to save invoice: ' + (res.error || 'Unknown error'), 'error');
+    }
+  }).catch(function(e) {
+    if (!c.invoices) c.invoices = [];
+    c.invoices.push({ id: generateId(), number: invNumber, description: description, amount: amount, issuedAt: new Date().toISOString(), dueDate: inv.due_date, status: 'Draft', fromQuote: fromQuoteId, notes: notes });
+    saveClients(clients);
+    showToast('Invoice saved locally (offline mode)', 'success');
+    closeModal('modal-create-invoice');
+    renderInvoices();
+  });
 }
 
 function sendInvoiceToClient(clientId, invoiceId) {
@@ -4379,13 +4550,44 @@ function renderPifrTable() {
       ? '<span class="inline-badge" style="background:rgba(184,144,40,.12);color:#b89028">TLD</span>'
       : '<span class="inline-badge" style="background:rgba(34,211,238,.08);color:#22d3ee">PIFR</span>';
     var statusBadge = {
+      'in_progress': '<span class="inline-badge" style="background:rgba(245,158,11,.12);color:#f59e0b">In Progress</span>',
+      'complete': '<span class="inline-badge" style="background:rgba(184,144,40,.1);color:#b89028">Complete</span>',
       'new': '<span class="inline-badge" style="background:rgba(96,165,250,.1);color:#60a5fa">New</span>',
       'active': '<span class="inline-badge" style="background:rgba(52,211,153,.1);color:#34d399">Active</span>',
       'completed': '<span class="inline-badge" style="background:rgba(184,144,40,.1);color:#b89028">Completed</span>'
     }[e.status] || '<span class="inline-badge" style="background:rgba(96,165,250,.1);color:#60a5fa">New</span>';
     var callInfo = e.calDate && e.calTime ? e.calTime : '<span style="color:rgba(240,242,247,.3)">—</span>';
     var scoreOrType = isTld ? (e.tld_type || '—') : (e.scoreRange || '—');
-    var date = e.enrolledAt ? new Date(e.enrolledAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '—';
+
+    // Parse notes JSON for in_progress rows so we can show where they left off.
+    var prog = {}; try { prog = JSON.parse(e.notes || '{}'); } catch(_) { prog = {}; }
+    var lastSeenAt = prog.last_seen_at || e.updated_at || e.enrolledAt;
+    var lastSeenDate = lastSeenAt ? new Date(lastSeenAt) : null;
+    var ago = '';
+    if (lastSeenDate) {
+      var diffMin = Math.max(0, Math.round((Date.now() - lastSeenDate.getTime()) / 60000));
+      ago = diffMin < 1 ? 'just now' : diffMin < 60 ? diffMin + 'm ago' : diffMin < 1440 ? Math.round(diffMin/60) + 'h ago' : Math.round(diffMin/1440) + 'd ago';
+    }
+    var stepLine = '';
+    if (e.status === 'in_progress') {
+      if (prog.phase === 'enrollment' && prog.step) {
+        stepLine = '<span style="color:#f59e0b;font-weight:700">Step ' + prog.step + '/10</span>'
+          + (prog.step_label ? ' &middot; <span style="color:rgba(240,242,247,.7)">' + prog.step_label + '</span>' : '');
+      } else if (prog.phase === 'training') {
+        stepLine = '<span style="color:#f59e0b;font-weight:700">Training</span>'
+          + (prog.training_section_title ? ' &middot; <span style="color:rgba(240,242,247,.7)">' + prog.training_section_title + '</span>' : '');
+        if (prog.quiz_total) stepLine += ' <span style="color:rgba(240,242,247,.45)">(' + (prog.quiz_correct||0) + '/' + prog.quiz_total + ')</span>';
+      } else if (prog.phase === 'training_started') {
+        stepLine = '<span style="color:#f59e0b;font-weight:700">Training started</span>';
+      } else if (prog.phase === 'training_complete') {
+        stepLine = '<span style="color:#34d399;font-weight:700">Training passed</span> &middot; <span style="color:rgba(240,242,247,.7)">awaiting enrollment</span>';
+      } else {
+        stepLine = '<span style="color:#f59e0b;font-weight:700">In progress</span>';
+      }
+    }
+    var dateCell = stepLine
+      ? '<div style="font-size:11px">' + stepLine + '</div><div style="font-size:10px;color:rgba(240,242,247,.4);margin-top:2px">last seen ' + (ago || '—') + '</div>'
+      : (e.enrolledAt ? '<div style="font-size:11px">' + new Date(e.enrolledAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}) + '</div>' : '—');
 
     return '<tr onclick="showPifrDetail(\'' + e.mid + '\')" style="cursor:pointer">' +
       '<td><code style="font-family:\'Share Tech Mono\',monospace;color:var(--cyan);font-weight:700">' + (e.mid || '—') + '</code></td>' +
@@ -4395,12 +4597,14 @@ function renderPifrTable() {
       '<td style="font-family:\'Share Tech Mono\',monospace;font-weight:700">$' + (e.planPrice || 0) + (isTld ? '' : '/mo') + '</td>' +
       '<td style="font-size:12px">' + scoreOrType + '</td>' +
       '<td style="font-size:11px">' + callInfo + '</td>' +
-      '<td style="font-size:11px">' + date + '</td>' +
+      '<td>' + dateCell + '</td>' +
       '<td>' + statusBadge + '</td>' +
       '<td><select onchange="updatePifrStatus(\'' + e.mid + '\',this.value);event.stopPropagation()" style="background:var(--cream);border:1px solid rgba(255,255,255,.06);color:var(--ink);padding:4px 8px;border-radius:6px;font-size:11px">' +
+        '<option value="in_progress"' + (e.status === 'in_progress' ? ' selected' : '') + '>In Progress</option>' +
         '<option value="new"' + (e.status === 'new' ? ' selected' : '') + '>New</option>' +
         '<option value="active"' + (e.status === 'active' ? ' selected' : '') + '>Active</option>' +
         '<option value="completed"' + (e.status === 'completed' ? ' selected' : '') + '>Completed</option>' +
+        '<option value="complete"' + (e.status === 'complete' ? ' selected' : '') + '>Complete</option>' +
       '</select></td></tr>';
   }).join('');
 }
@@ -4603,6 +4807,59 @@ function showPifrDetail(mid) {
     ['Terms Accepted', chk(e.termsAccepted)],
     ['Strategy Call', (e.calDate && e.calTime) ? (months[e.calMonth]||'') + ' ' + e.calDate + ', ' + e.calYear + ' at ' + e.calTime + ' PT' : 'Not booked'],
   ]);
+
+  // ── BELIEFS ──
+  if (e.beliefs && typeof e.beliefs === 'object') {
+    var beliefLabels = {
+      'belief_outcomes': 'Importance of documented outcomes',
+      'belief_ecosystem': 'Interest in full ecosystem',
+      'belief_control': 'Importance of verifiable records',
+      'belief_services_used': 'Services interested in',
+      'belief_notarize': 'Likelihood to notarize letters',
+      'belief_current_situation': 'Current credit situation',
+      'belief_price_comfort': 'Tier comfort level',
+      'belief_ecosystem_interest': 'Ecosystem interest areas',
+      'belief_patience': 'Patience level',
+      'belief_referral': 'How they found HIRECAR',
+      'belief_commitment': 'Commitment level'
+    };
+    var beliefScales = {
+      'belief_outcomes': ['Not important','Somewhat','Important','Non-negotiable'],
+      'belief_ecosystem': ['Just credit help','Somewhat interested','Very interested','Exactly what I need'],
+      'belief_control': ['Don\'t care','Nice to have','Important','Essential'],
+      'belief_services_used': ['Credit only','Credit + auto','Credit + mobility + auto','Full ecosystem'],
+      'belief_notarize': ['Unlikely','Maybe','Likely','Absolutely'],
+      'belief_current_situation': ['No incident','Not sure','Yes - needs fixing','Urgent'],
+      'belief_price_comfort': ['$49 - monitoring','$149 - something to fix','$249 - full engine','Not sure'],
+      'belief_ecosystem_interest': ['Mobility','Auto services','Funding','Co-hosting'],
+      'belief_patience': ['Need results now','Month or two','4-7 months','However long it takes'],
+      'belief_referral': ['Found on own','Someone mentioned','F&F referred','Professional referred'],
+      'belief_commitment': ['Not sure','Willing to try','Committed','All in']
+    };
+    var beliefRows = [];
+    for (var key in e.beliefs) {
+      if (e.beliefs.hasOwnProperty(key)) {
+        var label = beliefLabels[key] || key;
+        var scale = beliefScales[key];
+        var val = e.beliefs[key];
+        var display = (scale && scale[val]) ? '<span style="color:var(--cyan);font-weight:600">' + scale[val] + '</span>' : val;
+        beliefRows.push([label, display]);
+      }
+    }
+    if (beliefRows.length) {
+      html += section('Client Beliefs', beliefRows);
+    }
+  }
+
+  // ── REFERRAL & CARD ──
+  var refRows = [];
+  if (e.ffCode) refRows.push(['F&F Referral Code', '<span style="color:var(--green);font-weight:600">' + e.ffCode + ' (50% off engagement)</span>']);
+  if (e.ffInviteName) refRows.push(['F&F Invited', e.ffInviteName + (e.ffInviteContact ? ' — ' + e.ffInviteContact : '')]);
+  refRows.push(['HIRECAR Card', e.wantCard ? '<span style="color:var(--success)">Opted In</span>' : '<span style="color:rgba(240,242,247,.3)">Not selected</span>']);
+  refRows.push(['Plaid Connect', e.wantPlaid ? '<span style="color:var(--success)">Opted In</span>' : '<span style="color:rgba(240,242,247,.3)">Not selected</span>']);
+  if (refRows.length) {
+    html += section('Referral & Preferences', refRows);
+  }
 
   // ── MEMBER LOGS ──
   var memberLogs = pifrLogs.filter(function(l) { return l.mid === mid; }).slice(0, 10);
