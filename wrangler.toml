@@ -2,6 +2,22 @@ name = "hirecar-portal"
 pages_build_output_dir = "."
 compatibility_date = "2024-01-01"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "hirecar-db"
+database_id = "ada3c40f-a4d9-4b3c-9b40-dde656f6f099"
+
 [[kv_namespaces]]
 binding = "PIFR_ENROLLMENTS"
 id = "63f10e99a7fa4584aeb397168fe052c5"
+
+# ── R2 Bucket (document + ID storage) ──
+# DISABLED 2026-04-28 — R2 not yet enabled on the CF account, the missing
+# binding was failing every deploy for ~3 weeks (stale 3965ebe was live).
+# Re-enable once R2 is turned on in the dashboard:
+#   1) Cloudflare dashboard → R2 → enable
+#   2) wrangler r2 bucket create hirecar-documents
+#   3) Uncomment the block below + redeploy
+# [[r2_buckets]]
+# binding = "DOCS_BUCKET"
+# bucket_name = "hirecar-documents"
