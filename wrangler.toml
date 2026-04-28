@@ -12,12 +12,8 @@ binding = "PIFR_ENROLLMENTS"
 id = "63f10e99a7fa4584aeb397168fe052c5"
 
 # ── R2 Bucket (document + ID storage) ──
-# DISABLED 2026-04-28 — R2 not yet enabled on the CF account, the missing
-# binding was failing every deploy for ~3 weeks (stale 3965ebe was live).
-# Re-enable once R2 is turned on in the dashboard:
-#   1) Cloudflare dashboard → R2 → enable
-#   2) wrangler r2 bucket create hirecar-documents
-#   3) Uncomment the block below + redeploy
-# [[r2_buckets]]
-# binding = "DOCS_BUCKET"
-# bucket_name = "hirecar-documents"
+# Bucket created 2026-04-28 after R2 was enabled on the account.
+# upload.js binds via env.DOCS_BUCKET (member ID front/back, dispute docs).
+[[r2_buckets]]
+binding = "DOCS_BUCKET"
+bucket_name = "hirecar-documents"
