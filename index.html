@@ -907,6 +907,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
 .editable-field::after{content:' \270F';font-size:10px;opacity:.3;margin-left:4px;}
 .editable-field:hover::after{opacity:.7;}
 .editable-field-input{background:transparent;border:1px solid var(--blue);border-radius:4px;padding:2px 6px;color:var(--ink);font-size:inherit;font-family:inherit;width:auto;min-width:80px;max-width:200px;}
+textarea.editable-field-input{display:block;width:100%;max-width:420px;min-height:72px;resize:vertical;line-height:1.5;}
 .workflow-step-active{background:rgba(42,107,184,.15) !important;border:1px solid rgba(42,107,184,.3) !important;}
 .workflow-step-active div{color:var(--blue) !important;font-weight:700 !important;}
 .workflow-step-done{background:rgba(52,211,153,.1) !important;border:1px solid rgba(52,211,153,.25) !important;}
@@ -1389,6 +1390,16 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
           <div class="case-row"><span class="case-label">Monthly Income</span><span class="case-val editable-field" data-field="monthly_income">--</span></div>
           <div class="case-row"><span class="case-label">Income Verified</span><span class="case-val"><span class="badge badge-gold" style="font-size:9px;">PENDING</span></span></div>
           <div class="case-row"><span class="case-label">Additional Income</span><span class="case-val">--</span></div>
+        </div>
+      </div>
+
+      <!-- Client Login Credentials -->
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Client Login Credentials</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Funding email access details used for lender and funding communication workflows.</p>
+        <div class="case-overview">
+          <div class="case-row"><span class="case-label">Funding Email Username</span><span class="case-val editable-field" data-field="funding_email_username">--</span></div>
+          <div class="case-row"><span class="case-label">Funding Email Details</span><span class="case-val editable-field" data-field="funding_email_details">--</span></div>
         </div>
       </div>
 
@@ -5423,9 +5434,22 @@ function updateAllClientElements(){
   var profileAv=document.getElementById('profile-avatar');
   if(profileAv){var parts2=dn.split(' ');profileAv.textContent=parts2.length>1?(parts2[0][0]+parts2[parts2.length-1][0]).toUpperCase():dn.substring(0,2).toUpperCase();}
   /* Update editable profile fields from localStorage */
-  var editFields=['phone','address','dob','city_state','zip','employer','job_title','employment_duration','monthly_income','vehicle','vin','emergency_name','emergency_phone','emergency_relationship'];
+  var editFields=['phone','address','dob','city_state','zip','employer','job_title','employment_duration','monthly_income','funding_email_username','funding_email_details','vehicle','vin','emergency_name','emergency_phone','emergency_relationship'];
   editFields.forEach(function(f){var v=localStorage.getItem('hirecar_'+f);if(v){document.querySelectorAll('[data-field="'+f+'"]').forEach(function(el){if(!el.querySelector('input'))el.textContent=v;});}});
 }
+
+function applyClientCredentialFields(client){
+  if(!client)return;
+  ['funding_email_username','funding_email_details'].forEach(function(f){
+    if(client[f]!==undefined&&client[f]!==null&&String(client[f]).trim()!==''){
+      localStorage.setItem('hirecar_'+f,String(client[f]));
+      document.querySelectorAll('[data-field="'+f+'"]').forEach(function(el){
+        if(!el.querySelector('input'))el.textContent=String(client[f]);
+      });
+    }
+  });
+}
+
 function setClientPreferredName(name){
   CLIENT_PROFILE.preferredName=name;
   localStorage.setItem('hirecar_preferred_name',name);
@@ -5445,6 +5469,7 @@ updateAllClientElements();
     'legal_name',
     'dob','phone','address','city_state','zip',
     'employer','job_title','employment_duration','monthly_income',
+    'funding_email_username','funding_email_details',
     'vehicle','vin','target_vehicle','budget_range','down_payment',
     'emergency_name','emergency_phone','emergency_relationship','emergency_email',
     'ref1_name','ref1_phone','ref1_relationship',
@@ -5470,8 +5495,8 @@ updateAllClientElements();
     if(!field)return;
     var current=el.textContent.trim();
     if(current==='--')current='';
-    var input=document.createElement('input');
-    input.type='text';
+    var input=document.createElement(field==='funding_email_details'?'textarea':'input');
+    if(input.tagName.toLowerCase()==='input')input.type='text';
     input.className='editable-field-input';
     input.value=current;
     input.setAttribute('aria-label','Edit '+field.replace(/_/g,' '));
@@ -5480,7 +5505,7 @@ updateAllClientElements();
     input.focus();
     input.addEventListener('blur',function(){saveField(el,field,input.value);});
     input.addEventListener('keydown',function(e){
-      if(e.key==='Enter'){e.preventDefault();input.blur();}
+      if(e.key==='Enter'&&input.tagName.toLowerCase()!=='textarea'){e.preventDefault();input.blur();}
       if(e.key==='Escape'){el.textContent=current||'--';el.classList.add('editable-field');}
     });
   }
@@ -5489,9 +5514,22 @@ updateAllClientElements();
     legal_name:'Full Legal Name',phone:'Phone',dob:'Date of Birth',address:'Address',
     city_state:'City/State',zip:'ZIP Code',employer:'Employer',job_title:'Job Title',
     employment_duration:'Employment Duration',monthly_income:'Monthly Income',
+    funding_email_username:'Funding Email Username',funding_email_details:'Funding Email Details',
     vehicle:'Vehicle',vin:'VIN',emergency_name:'Emergency Contact',
     emergency_phone:'Emergency Phone',emergency_relationship:'Emergency Relationship'
   };
+
+  function syncClientProfileField(field,value){
+    var clientId=localStorage.getItem('hirecar_client_id');
+    if(!clientId)return;
+    var patch={};
+    patch[field]=value;
+    fetch('https://hirecar-api.hirecar.workers.dev/api/clients/'+clientId,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','x-api-key':'hc-live-2026-k8X9mP3qR7wL'},
+      body:JSON.stringify(patch)
+    }).catch(function(){});
+  }
 
   function saveField(el,field,value){
     var oldVal=localStorage.getItem(getStorageKey(field))||'';
@@ -5507,6 +5545,7 @@ updateAllClientElements();
       el.textContent='--';
     }
     el.classList.add('editable-field');
+    syncClientProfileField(field,value);
     /* Notify admin of client-side change for review */
     var clientId=localStorage.getItem('hirecar_client_id');
     var label=CLIENT_FIELD_LABELS[field];
@@ -5710,6 +5749,8 @@ function sendCoachMsg(){
           jobTitle: localStorage.getItem('hirecar_job_title')||'',
           tenure: localStorage.getItem('hirecar_tenure')||'',
           monthlyIncome: localStorage.getItem('hirecar_monthly_income')||'',
+          funding_email_username: localStorage.getItem('hirecar_funding_email_username')||'',
+          funding_email_details: localStorage.getItem('hirecar_funding_email_details')||'',
           vehicleInterest: localStorage.getItem('hirecar_vehicle_interest')||'',
           vin: localStorage.getItem('hirecar_vin')||'',
           emergencyName: localStorage.getItem('hirecar_emergency_name')||'',
@@ -5724,6 +5765,7 @@ function sendCoachMsg(){
         }).then(function(r){return r.json();}).then(function(data){
           if(data.ok){
             console.log('[HIRECAR] Returning user synced:',data.existing?'updated':'new',data.client.id);
+            applyClientCredentialFields(data.client);
             if(data.client&&data.client.id){
               localStorage.setItem('hirecar_client_id',data.client.id);
             }
@@ -6059,6 +6101,8 @@ function sendCoachMsg(){
         name: localStorage.getItem('hirecar_preferred_name')||localStorage.getItem('hirecar_nickname')||email.split('@')[0],
         preferredName: localStorage.getItem('hirecar_preferred_name')||localStorage.getItem('hirecar_nickname')||'',
         phone: localStorage.getItem('hirecar_phone')||'',
+        funding_email_username: localStorage.getItem('hirecar_funding_email_username')||'',
+        funding_email_details: localStorage.getItem('hirecar_funding_email_details')||'',
         source: 'member-portal'
       };
       fetch('https://hirecar-api.hirecar.workers.dev/api/clients',{
@@ -6068,6 +6112,7 @@ function sendCoachMsg(){
       }).then(function(r){return r.json();}).then(function(data){
         if(data.ok){
           console.log('[HIRECAR] Client synced to backend:',data.existing?'existing':'new',data.client.id);
+          applyClientCredentialFields(data.client);
           // Store the server-confirmed client ID
           if(data.client&&data.client.id){
             localStorage.setItem('hirecar_client_id',data.client.id);

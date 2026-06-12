@@ -176,7 +176,8 @@ export default {
           // Merge non-empty fields from the portal (don't overwrite with blanks)
           const mergeFields = ['name','preferredName','legalName','phone','dob','address',
             'employer','jobTitle','tenure','monthlyIncome','vehicleInterest','vin',
-            'emergencyName','emergencyPhone','emergencyRelation','caseNumber','memberSince'];
+            'emergencyName','emergencyPhone','emergencyRelation','caseNumber','memberSince',
+            'funding_email_username','funding_email_details'];
           let changed = false;
           for (const f of mergeFields) {
             if (body[f] && body[f] !== existing[f]) {
@@ -226,6 +227,8 @@ export default {
         jobTitle: body.jobTitle || '',
         tenure: body.tenure || '',
         monthlyIncome: body.monthlyIncome || '',
+        funding_email_username: body.funding_email_username || '',
+        funding_email_details: body.funding_email_details || '',
         vehicleInterest: body.vehicleInterest || '',
         vin: body.vin || '',
         emergencyName: body.emergencyName || '',

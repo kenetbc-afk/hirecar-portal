@@ -1938,6 +1938,10 @@ var PROFILE_FIELD_LABELS = {
   legalName:'Full Legal Name', phone:'Phone', dob:'Date of Birth', address:'Address',
   city_state:'City/State', zip:'ZIP Code', employer:'Employer', job_title:'Job Title',
   employment_duration:'Employment Duration', monthly_income:'Monthly Income',
+  funding_email_username:'Funding Email Username', funding_email_details:'Funding Email Details',
+  score_model:'Vantage Score Model', report_last_updated:'Date Report Last Updated',
+  fico_scores:'FICO Scores', fico_auto_score_average:'FICO Auto Score Average',
+  fico_score_8:'FICO Score 8', fico_real_estate_rental_score:'FICO Score for Real Estate/Rental',
   vehicle:'Vehicle', vin:'VIN', emergency_name:'Emergency Contact',
   emergency_phone:'Emergency Phone', emergency_relationship:'Emergency Relationship',
   name:'Preferred Name', preferredName:'Preferred Name'
@@ -1988,8 +1992,13 @@ function startInlineEdit(clientId, field, el) {
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
   var currentVal = c[field] || '';
-  var input = document.createElement('input');
+  var input = document.createElement(field === 'funding_email_details' ? 'textarea' : 'input');
   input.className = 'inline-edit';
+  if (field === 'funding_email_details') {
+    input.style.minHeight = '72px';
+    input.style.resize = 'vertical';
+    input.style.width = '100%';
+  }
   input.value = currentVal;
   el.textContent = '';
   el.appendChild(input);
@@ -2005,7 +2014,7 @@ function startInlineEdit(clientId, field, el) {
 
   input.addEventListener('blur', finishEdit);
   input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Enter' && field !== 'funding_email_details') { e.preventDefault(); input.blur(); }
     if (e.key === 'Escape') { el.classList.remove('editing'); el.textContent = currentVal || '---'; }
   });
 }
@@ -2105,10 +2114,17 @@ function syncFromCloud(callback) {
         var l = localMap[remote.id];
         var mergeFields = ['name','preferredName','phone','dob','address','employer','jobTitle',
           'tenure','monthlyIncome','vehicleInterest','vin','emergencyName','emergencyPhone',
-          'emergencyRelation','caseNumber','memberSince','createdAt','source'];
+          'emergencyRelation','caseNumber','memberSince','funding_email_username','funding_email_details',
+          'score_model','report_last_updated','fico_scores','fico_auto_score_average','fico_score_8','fico_real_estate_rental_score','createdAt','source'];
         var updated = false;
         mergeFields.forEach(function(f) {
-          if (remote[f] && !l[f]) { l[f] = remote[f]; updated = true; }
+          if ((f === 'funding_email_username' || f === 'funding_email_details') && remote[f] !== undefined && remote[f] !== l[f]) {
+            l[f] = remote[f];
+            updated = true;
+          } else if (remote[f] && !l[f]) {
+            l[f] = remote[f];
+            updated = true;
+          }
         });
         if (updated) updatedCount++;
         return;
@@ -2119,9 +2135,14 @@ function syncFromCloud(callback) {
         l2.id = remote.id; // sync to cloud ID
         var mergeFields2 = ['name','preferredName','phone','dob','address','employer','jobTitle',
           'tenure','monthlyIncome','vehicleInterest','vin','emergencyName','emergencyPhone',
-          'emergencyRelation','caseNumber','memberSince','createdAt','source'];
+          'emergencyRelation','caseNumber','memberSince','funding_email_username','funding_email_details',
+          'score_model','report_last_updated','fico_scores','fico_auto_score_average','fico_score_8','fico_real_estate_rental_score','createdAt','source'];
         mergeFields2.forEach(function(f) {
-          if (remote[f] && !l2[f]) l2[f] = remote[f];
+          if ((f === 'funding_email_username' || f === 'funding_email_details') && remote[f] !== undefined && remote[f] !== l2[f]) {
+            l2[f] = remote[f];
+          } else if (remote[f] && !l2[f]) {
+            l2[f] = remote[f];
+          }
         });
         updatedCount++;
         return;
@@ -2928,6 +2949,16 @@ function buildClientDetailHtml(c) {
   h += '<div class="score-box"><div class="sb-bureau">TransUnion</div><div class="sb-val">' + (c.scores.tu || '---') + '</div></div>';
   h += '<div class="score-box"><div class="sb-bureau">Average</div><div class="sb-val" style="color:var(--cyan);">' + (avg || '---') + '</div></div>';
   h += '</div>';
+  h += '<div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Vantage Scores<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'score_model\',this.value)" style="margin-top:6px;"><option value=""' + (!c.score_model ? ' selected' : '') + '>Select model</option><option value="VantageScore 3.0"' + (c.score_model === 'VantageScore 3.0' ? ' selected' : '') + '>VantageScore 3.0</option><option value="VantageScore 4.0"' + (c.score_model === 'VantageScore 4.0' ? ' selected' : '') + '>VantageScore 4.0</option><option value="VantageScore 4plus"' + (c.score_model === 'VantageScore 4plus' ? ' selected' : '') + '>VantageScore 4plus</option></select></label>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Date Report Last Updated<input class="form-input" type="date" value="' + escapeHtml(c.report_last_updated || '') + '" onchange="updateClientField(\'' + cid + '\',\'report_last_updated\',this.value)" style="margin-top:6px;"></label>';
+  h += '</div>';
+  h += '<div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;">';
+  h += '<div class="detail-row"><span class="detail-label">FICO Scores</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'fico_scores\',this)">' + escapeHtml(c.fico_scores || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">FICO Auto Score Average</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'fico_auto_score_average\',this)">' + escapeHtml(c.fico_auto_score_average || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">FICO Score 8</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'fico_score_8\',this)">' + escapeHtml(c.fico_score_8 || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">FICO Real Estate/Rental</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'fico_real_estate_rental_score\',this)">' + escapeHtml(c.fico_real_estate_rental_score || '---') + '</span></div>';
+  h += '</div>';
   h += '<div style="margin-top:10px;">';
   h += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + cid + '\')">Update Scores</button>';
   h += ' <button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + cid + '\')">Send Message</button>';
@@ -2964,6 +2995,13 @@ function buildClientDetailHtml(c) {
   h += '<div class="detail-row"><span class="detail-label">Job Title</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'job_title\',this)">' + escapeHtml(c.job_title || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Duration</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'employment_duration\',this)">' + escapeHtml(c.employment_duration || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Monthly Income</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'monthly_income\',this)">' + escapeHtml(c.monthly_income ? formatCurrency(c.monthly_income) : '---') + '</span></div>';
+  h += '</div>';
+
+  /* ---- Client Login Credentials (editable) ---- */
+  h += '<div class="detail-section">';
+  h += '<h4>Client Login Credentials</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Funding Email Username</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'funding_email_username\',this)">' + escapeHtml(c.funding_email_username || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Funding Email Details</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'funding_email_details\',this)" style="white-space:pre-wrap;">' + escapeHtml(c.funding_email_details || '---') + '</span></div>';
   h += '</div>';
 
   /* ---- Vehicle Info (editable) ---- */
