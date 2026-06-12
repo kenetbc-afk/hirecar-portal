@@ -668,6 +668,8 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   .msg-list { max-height: 200px; border-right: none; border-bottom: 1px solid var(--rule); }
   .doc-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
+  #sec-funding .form-row { grid-template-columns: 1fr !important; }
+  #sec-funding .a-card { padding: 14px; }
   .settings-grid { grid-template-columns: 1fr; }
   .topbar-clock { display: none; }
 }
@@ -1268,6 +1270,30 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         <div class="a-card" style="margin-top:10px;margin-bottom:0;padding:12px;background:rgba(255,255,255,.025);">
           <h4 style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px;">Other Bank Pull Results</h4>
           <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Track each bank, where it pulls from, the result, offer amount, and notes for client review and approval.</div>
+          <div class="form-row" style="grid-template-columns:1fr 150px 150px;margin-bottom:10px;">
+            <div class="form-group">
+              <label>Filter Banks</label>
+              <input class="form-input" id="funding-bank-results-search" oninput="renderFundingBankResultsGrid()" placeholder="Search bank, pull source, type...">
+            </div>
+            <div class="form-group">
+              <label>Pull Source</label>
+              <select class="form-select" id="funding-bank-results-pull-filter" onchange="renderFundingBankResultsGrid()"></select>
+            </div>
+            <div class="form-group">
+              <label>Result</label>
+              <select class="form-select" id="funding-bank-results-status-filter" onchange="renderFundingBankResultsGrid()">
+                <option value="">All Results</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Not Approved">Not Approved</option>
+                <option value="Denied">Denied</option>
+                <option value="Applied">Applied</option>
+                <option value="Needs Docs">Needs Docs</option>
+                <option value="Funded">Funded</option>
+                <option value="Skipped">Skipped</option>
+              </select>
+            </div>
+          </div>
           <div id="funding-bank-results-grid" style="max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:8px;"></div>
         </div>
         <div class="form-group" style="margin-top:8px;">
@@ -1311,6 +1337,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
                 <th>Client</th>
                 <th>Bank</th>
                 <th>Amount</th>
+                <th>Active Approvals</th>
                 <th>Purpose</th>
                 <th>Balance Due</th>
                 <th>App Stage</th>
@@ -2064,6 +2091,7 @@ var expandedClientId = null;
 var selectedMsgClientId = null;
 var scoreModalClientId = null;
 var msgModalClientId = null;
+var fundingBankResultsDraft = null;
 
 /* ========== UTILITIES ========== */
 function generateCaseNumber() {
@@ -4088,6 +4116,51 @@ function fundingMoney(value) {
   return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
 
+function fundingAmountNumber(value) {
+  if (typeof value === 'number') return isNaN(value) ? 0 : value;
+  var cleaned = String(value || '').replace(/[^0-9.]/g, '');
+  var n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+}
+
+function activeApprovalStatus(status) {
+  status = String(status || '').toLowerCase();
+  return status === 'approved' || status === 'preapproved' || status === 'funded';
+}
+
+function calculateFundingApprovalAmount(request) {
+  var total = 0;
+  var countedBnpl = false;
+  var offers = defaultBnplOffers((request && request.bnplOffers) || {});
+  Object.keys(offers).forEach(function(lender) {
+    var offer = offers[lender];
+    if (activeApprovalStatus(offer.status)) {
+      var amount = fundingAmountNumber(offer.preapproval);
+      if (amount > 0) {
+        total += amount;
+        countedBnpl = true;
+      }
+    }
+  });
+  if (!countedBnpl && request && activeApprovalStatus(request.bnplStatus)) {
+    total += fundingAmountNumber(request.bnplApprovedAmount);
+  }
+  defaultBankResults(request && request.bankResults).forEach(function(row) {
+    if (activeApprovalStatus(row.resultStatus)) total += fundingAmountNumber(row.resultAmount);
+  });
+  return total;
+}
+
+function recalcClientActiveApprovals(client) {
+  var total = 0;
+  (client.fundingRequests || []).forEach(function(request) {
+    request.activeApprovalAmount = calculateFundingApprovalAmount(request);
+    total += request.activeApprovalAmount || 0;
+  });
+  client.current_active_approvals = total;
+  return total;
+}
+
 var BNPL_LENDERS = ['Snap Finance','Sezzle','Splitit','Klarna','Affirm','Afterpay'];
 
 var FUNDING_BANK_PULL_LIST = [
@@ -4143,6 +4216,51 @@ var FUNDING_BANK_PULL_LIST = [
   { bank:'Security Service CU', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
   { bank:'Commerce Bank', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' }
 ];
+
+function normalizeFundingBankName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/federal credit union/g, 'fcu')
+    .replace(/credit union/g, 'cu')
+    .replace(/\bcash out refinance\b/g, '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function mergeFundingBankValue(existing, next) {
+  var values = [];
+  String(existing || '').split('/').forEach(function(v) { if (v.trim()) values.push(v.trim()); });
+  String(next || '').split('/').forEach(function(v) { if (v.trim()) values.push(v.trim()); });
+  var seen = {};
+  return values.filter(function(v) {
+    var key = v.toLowerCase();
+    if (seen[key]) return false;
+    seen[key] = true;
+    return true;
+  }).join(' / ');
+}
+
+function getFundingBankPullList() {
+  var byKey = {};
+  FUNDING_BANK_PULL_LIST.forEach(function(row) {
+    var key = normalizeFundingBankName(row.bank);
+    if (!byKey[key]) {
+      byKey[key] = Object.assign({}, row);
+      return;
+    }
+    byKey[key].accountType = mergeFundingBankValue(byKey[key].accountType, row.accountType);
+    byKey[key].maxFunding = mergeFundingBankValue(byKey[key].maxFunding, row.maxFunding);
+    byKey[key].bureaus = mergeFundingBankValue(byKey[key].bureaus, row.bureaus);
+    byKey[key].fundingType = mergeFundingBankValue(byKey[key].fundingType, row.fundingType);
+    byKey[key].pullType = mergeFundingBankValue(byKey[key].pullType, row.pullType);
+    byKey[key].proofOfIncome = mergeFundingBankValue(byKey[key].proofOfIncome, row.proofOfIncome);
+    byKey[key].applicationUrl = byKey[key].applicationUrl || row.applicationUrl || '';
+    byKey[key].notes = mergeFundingBankValue(byKey[key].notes, row.notes);
+  });
+  return Object.keys(byKey).map(function(key) { return byKey[key]; }).sort(function(a, b) {
+    return String(a.bank).localeCompare(String(b.bank));
+  });
+}
 
 function getFundingPifrRows() {
   try { return (Array.isArray(pifrEnrollments) ? pifrEnrollments : []).filter(function(e) { return !e.archived_at; }); }
@@ -4202,7 +4320,7 @@ function populateFundingBankOptions(selectedBank) {
   if (!select) return;
   var search = (document.getElementById('funding-bank-filter-input') && document.getElementById('funding-bank-filter-input').value || '').trim();
   var current = selectedBank || select.value || '';
-  var banks = FUNDING_BANK_PULL_LIST.filter(function(b) { return fundingBankMatchesText(b, search); });
+  var banks = getFundingBankPullList().filter(function(b) { return fundingBankMatchesText(b, search); });
   var html = '<option value="">-- Select Bank Match --</option>';
   banks.forEach(function(b) {
     html += '<option value="' + escapeHtml(b.bank) + '"' + (current === b.bank ? ' selected' : '') + '>' + escapeHtml(b.bank + ' - ' + b.accountType + ' - ' + b.maxFunding) + '</option>';
@@ -4214,7 +4332,7 @@ function populateFundingBankOptions(selectedBank) {
 
 function selectedFundingBank() {
   var name = document.getElementById('funding-bank-select') ? document.getElementById('funding-bank-select').value : '';
-  return FUNDING_BANK_PULL_LIST.find(function(b) { return b.bank === name; }) || null;
+  return getFundingBankPullList().find(function(b) { return b.bank === name; }) || null;
 }
 
 function populateFundingBankPrefill() {
@@ -4238,7 +4356,7 @@ function populateFundingTableBankFilter() {
   var select = document.getElementById('funding-table-bank-filter');
   if (!select) return;
   var current = select.value || '';
-  var names = FUNDING_BANK_PULL_LIST.map(function(b) { return b.bank; }).sort();
+  var names = getFundingBankPullList().map(function(b) { return b.bank; }).sort();
   var html = '<option value="">All Banks</option>';
   names.forEach(function(name) {
     html += '<option value="' + escapeHtml(name) + '"' + (current === name ? ' selected' : '') + '>' + escapeHtml(name) + '</option>';
@@ -4347,12 +4465,12 @@ function readFundingBnplOffers() {
 function defaultBankResults(existing) {
   var byBank = {};
   if (Array.isArray(existing)) {
-    existing.forEach(function(row) { if (row && row.bank) byBank[row.bank] = row; });
+    existing.forEach(function(row) { if (row && row.bank) byBank[normalizeFundingBankName(row.bank)] = row; });
   } else if (existing && typeof existing === 'object') {
-    Object.keys(existing).forEach(function(bank) { if (existing[bank]) byBank[bank] = existing[bank]; });
+    Object.keys(existing).forEach(function(bank) { if (existing[bank]) byBank[normalizeFundingBankName(bank)] = existing[bank]; });
   }
-  return FUNDING_BANK_PULL_LIST.map(function(bank) {
-    var saved = byBank[bank.bank] || {};
+  return getFundingBankPullList().map(function(bank) {
+    var saved = byBank[normalizeFundingBankName(bank.bank)] || {};
     return {
       bank: bank.bank,
       accountType: saved.accountType || bank.accountType || '',
@@ -4369,14 +4487,44 @@ function defaultBankResults(existing) {
   });
 }
 
+function syncFundingBankResultsDraftFromDom() {
+  if (!fundingBankResultsDraft) return null;
+  fundingBankResultsDraft = defaultBankResults(fundingBankResultsDraft).map(function(row, idx) {
+    var statusEl = document.getElementById('bank-result-' + idx + '-status');
+    var amountEl = document.getElementById('bank-result-' + idx + '-amount');
+    var notesEl = document.getElementById('bank-result-' + idx + '-notes');
+    if (statusEl) row.resultStatus = statusEl.value || 'Pending';
+    if (amountEl) row.resultAmount = amountEl.value || '';
+    if (notesEl) row.resultNotes = notesEl.value || '';
+    return row;
+  });
+  return fundingBankResultsDraft;
+}
+
 function renderFundingBankResultsGrid(existing) {
   var grid = document.getElementById('funding-bank-results-grid');
   if (!grid) return;
-  var rows = defaultBankResults(existing);
+  var rows = defaultBankResults(existing || syncFundingBankResultsDraftFromDom() || fundingBankResultsDraft);
+  fundingBankResultsDraft = rows;
+  populateFundingBankResultFilters(rows);
+  var search = ((document.getElementById('funding-bank-results-search') || {}).value || '').toLowerCase();
+  var pullFilter = ((document.getElementById('funding-bank-results-pull-filter') || {}).value || '');
+  var statusFilter = ((document.getElementById('funding-bank-results-status-filter') || {}).value || '');
+  var visibleRows = rows.filter(function(row) {
+    var hay = [row.bank, row.accountType, row.maxFunding, row.bureaus, row.fundingType, row.pullType, row.proofOfIncome, row.resultStatus, row.resultAmount, row.resultNotes].join(' ').toLowerCase();
+    if (search && hay.indexOf(search) === -1) return false;
+    if (pullFilter && String(row.bureaus || '') !== pullFilter) return false;
+    if (statusFilter && String(row.resultStatus || 'Pending') !== statusFilter) return false;
+    return true;
+  });
   var html = '<table class="a-table" style="margin:0;min-width:980px;"><thead><tr>'
     + '<th>Bank</th><th>Pulls From</th><th>Type</th><th>Max</th><th>Result</th><th>Offer / Limit</th><th>Notes</th>'
     + '</tr></thead><tbody>';
-  rows.forEach(function(row, idx) {
+  if (!visibleRows.length) {
+    html += '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px;">No banks match the current filters.</td></tr>';
+  }
+  visibleRows.forEach(function(row) {
+    var idx = row._idx;
     html += '<tr>';
     html += '<td><strong>' + escapeHtml(row.bank) + '</strong><div style="font-size:10px;color:var(--muted);margin-top:2px;">' + escapeHtml(row.proofOfIncome || '---') + '</div></td>';
     html += '<td style="font-weight:700;color:var(--cyan);">' + escapeHtml(row.bureaus || '---') + '<div style="font-size:10px;color:var(--muted);margin-top:2px;">' + escapeHtml(row.pullType || '---') + '</div></td>';
@@ -4395,11 +4543,30 @@ function renderFundingBankResultsGrid(existing) {
   grid.innerHTML = html;
 }
 
+function populateFundingBankResultFilters(rows) {
+  rows.forEach(function(row, idx) { row._idx = idx; });
+  var pullSelect = document.getElementById('funding-bank-results-pull-filter');
+  if (!pullSelect) return;
+  var current = pullSelect.value || '';
+  var pulls = {};
+  rows.forEach(function(row) { if (row.bureaus) pulls[row.bureaus] = true; });
+  var html = '<option value="">All Pulls</option>';
+  Object.keys(pulls).sort().forEach(function(pull) {
+    html += '<option value="' + escapeHtml(pull) + '"' + (current === pull ? ' selected' : '') + '>' + escapeHtml(pull) + '</option>';
+  });
+  pullSelect.innerHTML = html;
+  if (current) pullSelect.value = current;
+}
+
 function readFundingBankResults() {
-  return defaultBankResults().map(function(row, idx) {
-    row.resultStatus = (document.getElementById('bank-result-' + idx + '-status') || {}).value || 'Pending';
-    row.resultAmount = (document.getElementById('bank-result-' + idx + '-amount') || {}).value || '';
-    row.resultNotes = (document.getElementById('bank-result-' + idx + '-notes') || {}).value || '';
+  var sourceRows = syncFundingBankResultsDraftFromDom() || fundingBankResultsDraft;
+  return defaultBankResults(sourceRows).map(function(row, idx) {
+    var statusEl = document.getElementById('bank-result-' + idx + '-status');
+    var amountEl = document.getElementById('bank-result-' + idx + '-amount');
+    var notesEl = document.getElementById('bank-result-' + idx + '-notes');
+    row.resultStatus = statusEl ? (statusEl.value || 'Pending') : (row.resultStatus || 'Pending');
+    row.resultAmount = amountEl ? (amountEl.value || '') : (row.resultAmount || '');
+    row.resultNotes = notesEl ? (notesEl.value || '') : (row.resultNotes || '');
     return row;
   });
 }
@@ -4463,6 +4630,7 @@ function populateFundingPrefill() {
     if (bankStatus) bankStatus.value = 'Not Started';
     populateFundingBankOptions();
     renderFundingBnplGrid();
+    fundingBankResultsDraft = null;
     renderFundingBankResultsGrid();
     return;
   }
@@ -4494,6 +4662,7 @@ function populateFundingPrefill() {
   document.getElementById('funding-bank-result-notes').value = c && c.bank_result_notes ? c.bank_result_notes : '';
   populateFundingBankOptions(c && c.bank_name ? c.bank_name : '');
   renderFundingBnplGrid(c && c.bnpl_offers ? c.bnpl_offers : null);
+  fundingBankResultsDraft = null;
   renderFundingBankResultsGrid(c && c.bank_results ? c.bank_results : null);
   if (detailsEl) {
     detailsEl.innerHTML = '<strong style="color:var(--ink)">Prefill:</strong> '
@@ -4617,9 +4786,12 @@ function createFundingRequestFromImport() {
     importedFrom: selected.source,
     sourceId: selected.enrollment ? selected.enrollment.mid : c.id,
     applicantEmail: c.email || '',
-    caseNumber: c.caseNumber || ''
+    caseNumber: c.caseNumber || '',
+    activeApprovalAmount: 0
   };
+  request.activeApprovalAmount = calculateFundingApprovalAmount(request);
   c.fundingRequests.unshift(request);
+  recalcClientActiveApprovals(c);
   c.stage = c.stage || 'Funding Ready';
   c.lastActive = new Date().toISOString();
 
@@ -4648,6 +4820,7 @@ function createFundingRequestFromImport() {
     bank_result_status: c.bank_result_status,
     bank_result_notes: c.bank_result_notes,
     bank_results: c.bank_results,
+    current_active_approvals: c.current_active_approvals,
     stage: c.stage,
     lastActive: c.lastActive
   };
@@ -4708,13 +4881,15 @@ function renderFunding() {
 
   var tbody = document.getElementById('funding-tbody');
   if (allRequests.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:24px;">No funding requests yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px;">No funding requests yet</td></tr>';
     return;
   }
 
   var html = '';
   allRequests.forEach(function(item) {
     var f = item.request;
+    f.activeApprovalAmount = calculateFundingApprovalAmount(f);
+    item.client.current_active_approvals = recalcClientActiveApprovals(item.client);
     var statusClass = f.status === 'Approved' ? 'badge-green' : f.status === 'Denied' ? 'badge-red' : 'badge-amber';
     var bankName = f.bankName || item.client.bank_name || '';
     var bankResultStatus = f.bankResultStatus || item.client.bank_result_status || 'Not Started';
@@ -4722,6 +4897,7 @@ function renderFunding() {
     html += '<td><strong>' + escapeHtml(item.clientName) + '</strong></td>';
     html += '<td style="font-size:12px;"><strong>' + escapeHtml(bankName || '---') + '</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.bankBureaus || item.client.bank_bureaus || '---') + ' · ' + escapeHtml(f.bankPullType || item.client.bank_pull_type || '---') + '</div></td>';
     html += '<td style="font-weight:600;color:var(--success);">$' + escapeHtml(String(f.amount || 0)) + '</td>';
+    html += '<td style="font-weight:700;color:var(--success);">' + fundingMoney(f.activeApprovalAmount || 0) + '<div style="font-size:10px;color:var(--muted);font-weight:500;margin-top:2px;">Client total ' + fundingMoney(item.client.current_active_approvals || 0) + '</div></td>';
     html += '<td>' + escapeHtml(f.purpose || '---') + '</td>';
     html += '<td style="font-size:12px;color:' + ((f.balanceDue || item.client.balance_due) ? 'var(--amber)' : 'var(--muted)') + ';">' + fundingMoney(f.balanceDue || item.client.balance_due || 0) + '</td>';
     html += '<td><select class="form-select" onchange="updateFundingApplicationStage(\'' + item.clientId + '\',\'' + f.id + '\',this.value)" style="min-width:150px;font-size:11px;padding:5px 8px;">';
@@ -4752,7 +4928,7 @@ function renderFunding() {
       html += '<button class="btn btn-sm btn-danger" onclick="updateFundingStatus(\'' + item.clientId + '\',\'' + f.id + '\',\'Denied\')">Deny</button>';
     }
     html += '</td></tr>';
-    html += '<tr><td colspan="12" style="padding:0 12px 12px;background:rgba(0,0,0,.08);">';
+    html += '<tr><td colspan="13" style="padding:0 12px 12px;background:rgba(0,0,0,.08);">';
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:10px 0;font-size:12px;">';
     html += '<div><strong style="color:var(--cyan)">Report Access</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.reportAccessStatus || item.client.report_access_status || 'Pending') + '</div></div>';
     html += '<div><strong style="color:var(--cyan)">SSN Funding</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.ssnFundingStatus || item.client.ssn_funding_status || 'Pending') + '</div></div>';
@@ -4760,6 +4936,7 @@ function renderFunding() {
     html += '<div><strong style="color:var(--cyan)">Case / Source</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.caseNumber || item.client.caseNumber || '---') + ' · ' + escapeHtml(f.importedFrom || 'clients') + '</div></div>';
     html += '<div><strong style="color:var(--cyan)">Bank Max / Type</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.bankMaxFunding || item.client.bank_max_funding || '---') + ' · ' + escapeHtml(f.bankAccountType || item.client.bank_account_type || '---') + '</div></div>';
     html += '<div><strong style="color:var(--cyan)">Proof of Income</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.bankProofOfIncome || item.client.bank_proof_of_income || '---') + '</div></div>';
+    html += '<div><strong style="color:var(--cyan)">Active Approvals</strong><div style="color:var(--success);margin-top:3px;font-weight:700">' + fundingMoney(f.activeApprovalAmount || 0) + '</div></div>';
     html += '</div>';
     html += '<div style="display:grid;grid-template-columns:220px 1fr;gap:10px;align-items:start;margin:8px 0;">';
     html += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Bank Result<select class="form-select" onchange="updateFundingRequestField(\'' + item.clientId + '\',\'' + f.id + '\',\'bankResultStatus\',this.value)" style="margin-top:6px;">';
@@ -4862,10 +5039,11 @@ function updateFundingRequestField(clientId, fundingId, field, value) {
     clientFundingEmail: 'funding_email_username'
   };
   if (clientFieldMap[field]) c[clientFieldMap[field]] = finalValue;
+  recalcClientActiveApprovals(c);
   c.lastActive = new Date().toISOString();
 
   saveClients(clients);
-  var patch = { fundingRequests: c.fundingRequests, lastActive: c.lastActive };
+  var patch = { fundingRequests: c.fundingRequests, current_active_approvals: c.current_active_approvals, lastActive: c.lastActive };
   if (clientFieldMap[field]) patch[clientFieldMap[field]] = finalValue;
   updateClientInCloud(c.id, patch);
   addActivity('Funding request updated for ' + (c.name || c.email), 'blue');
@@ -4883,9 +5061,10 @@ function updateFundingBnplOffer(clientId, fundingId, lender, field, value) {
   f.bnplOffers[lender][field] = value;
   f.updatedAt = new Date().toISOString();
   c.bnpl_offers = f.bnplOffers;
+  recalcClientActiveApprovals(c);
   c.lastActive = new Date().toISOString();
   saveClients(clients);
-  updateClientInCloud(c.id, { fundingRequests: c.fundingRequests, bnpl_offers: c.bnpl_offers, lastActive: c.lastActive });
+  updateClientInCloud(c.id, { fundingRequests: c.fundingRequests, bnpl_offers: c.bnpl_offers, current_active_approvals: c.current_active_approvals, lastActive: c.lastActive });
   addActivity('BNPL offer updated for ' + (c.name || c.email) + ': ' + lender, 'blue');
   showToast('BNPL lender details saved', 'success');
   renderFunding();
@@ -4903,9 +5082,10 @@ function updateFundingBankResult(clientId, fundingId, bankName, field, value) {
   row.updatedAt = new Date().toISOString();
   f.updatedAt = new Date().toISOString();
   c.bank_results = f.bankResults;
+  recalcClientActiveApprovals(c);
   c.lastActive = new Date().toISOString();
   saveClients(clients);
-  updateClientInCloud(c.id, { fundingRequests: c.fundingRequests, bank_results: c.bank_results, lastActive: c.lastActive });
+  updateClientInCloud(c.id, { fundingRequests: c.fundingRequests, bank_results: c.bank_results, current_active_approvals: c.current_active_approvals, lastActive: c.lastActive });
   addActivity('Bank result updated for ' + (c.name || c.email) + ': ' + bankName, 'blue');
   showToast('Bank result saved', 'success');
   renderFunding();
@@ -6034,6 +6214,7 @@ window.populateFundingImportOptions = populateFundingImportOptions;
 window.populateFundingPrefill = populateFundingPrefill;
 window.populateFundingBankOptions = populateFundingBankOptions;
 window.populateFundingBankPrefill = populateFundingBankPrefill;
+window.renderFundingBankResultsGrid = renderFundingBankResultsGrid;
 window.createFundingRequestFromImport = createFundingRequestFromImport;
 window.updateFundingApplicationStage = updateFundingApplicationStage;
 window.updateFundingRequestField = updateFundingRequestField;
