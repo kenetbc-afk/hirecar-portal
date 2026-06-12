@@ -301,8 +301,20 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 }
 .a-table td {
   padding: 12px; border-bottom: 1px solid rgba(255,255,255,.05);
-  font-size: 14px; vertical-align: middle;
+  font-size: 13px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.a-table th:nth-child(1), .a-table td:nth-child(1) { width: 118px; }
+.a-table th:nth-child(2), .a-table td:nth-child(2) { width: 172px; }
+.a-table th:nth-child(3), .a-table td:nth-child(3) { width: 92px; }
+.a-table th:nth-child(4), .a-table td:nth-child(4) { width: 102px; }
+.a-table th:nth-child(5), .a-table td:nth-child(5) { width: 92px; }
+.a-table th:nth-child(6), .a-table td:nth-child(6) { width: 112px; }
+.a-table th:nth-child(7), .a-table td:nth-child(7) { width: 122px; }
+.a-table th:nth-child(8), .a-table td:nth-child(8) { width: 82px; }
+.a-table th:nth-child(9), .a-table td:nth-child(9) { width: 78px; }
+.a-table th:nth-child(10), .a-table td:nth-child(10) { width: 86px; }
+.a-table th:nth-child(11), .a-table td:nth-child(11) { width: 92px; }
+.a-table th:nth-child(12), .a-table td:nth-child(12) { width: 158px; }
 .a-table tbody tr { cursor: pointer; transition: background .2s; }
 .a-table tbody tr:hover { background: rgba(42,107,184,.06); }
 .a-table tbody tr.expanded { background: rgba(42,107,184,.1); }
@@ -926,6 +938,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input type="file" id="seedx-csv-input" accept=".csv,text/csv" style="display:none" onchange="importSeedXchangeCsv(event)">
           <button class="btn btn-ghost" onclick="document.getElementById('seedx-csv-input').click()">Import Old SeedXchange CSV</button>
+          <button class="btn btn-ghost" onclick="refreshClientManagementList()">Refresh List</button>
           <button class="btn btn-primary" onclick="openAddClientModal()">+ Add New Client</button>
         </div>
       </div>
@@ -963,13 +976,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
                 <th>Email</th>
                 <th>Case #</th>
                 <th>Program</th>
-                <th>PIFR Plan</th>
-                <th>Under Plan</th>
+                <th>Plan</th>
+                <th>Members</th>
                 <th>Stage</th>
-                <th>Score (Avg)</th>
+                <th>Avg</th>
                 <th>Status</th>
-                <th>Last Active</th>
-                <th>Meetings</th>
+                <th>Last</th>
+                <th>Meet</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -3372,6 +3385,24 @@ function uploadClientDocument(input, clientId, sid, docType) {
     });
 }
 
+function refreshClientManagementView(clientId) {
+  if (clientId) expandedClientId = clientId;
+  renderClients();
+  if (expandedClientId) {
+    var sid = String(expandedClientId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    setTimeout(function() {
+      loadClientDocuments(expandedClientId, sid);
+      checkPendingClientChanges(expandedClientId);
+    }, 50);
+  }
+  showToast('Client view refreshed', 'info');
+}
+
+function refreshClientManagementList() {
+  renderClients();
+  showToast('Client list refreshed', 'info');
+}
+
 function renderClients() {
   var clients = loadClients();
   var search = (document.getElementById('client-search').value || '').toLowerCase();
@@ -3518,6 +3549,7 @@ function buildClientDetailHtml(c) {
   h += '</div>';
   h += '<div style="margin-top:10px;">';
   h += '<button class="btn btn-sm btn-success" onclick="saveClientProfileScores(\'' + cid + '\',\'' + sid + '\')">Save FICO Scores</button> ';
+  h += '<button class="btn btn-sm btn-ghost" onclick="refreshClientManagementView(\'' + cid + '\')">Save &amp; Refresh</button> ';
   h += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + cid + '\')">Update Scores</button>';
   h += ' <button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + cid + '\')">Send Message</button>';
   h += ' <button class="btn btn-sm btn-success" onclick="openMeetingPromptForClient(\'' + cid + '\')">Meeting Invite</button>';
@@ -4200,6 +4232,7 @@ function saveClientProfileScores(clientId, sid) {
     statusEl.style.color = 'var(--success)';
   }
   showToast('FICO score inputs saved', 'success');
+  refreshClientManagementView(clientId);
   renderDashboard();
 }
 
@@ -6560,6 +6593,8 @@ window.updateClientStatus = updateClientStatus;
 window.updateClientStage = updateClientStage;
 window.updateClientNotes = updateClientNotes;
 window.deleteClient = deleteClient;
+window.refreshClientManagementView = refreshClientManagementView;
+window.refreshClientManagementList = refreshClientManagementList;
 window.openScoreModal = openScoreModal;
 window.saveModalScores = saveModalScores;
 window.saveClientProfileScores = saveClientProfileScores;
