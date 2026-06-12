@@ -404,6 +404,113 @@ export default {
       return json({ ok: true });
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // ADMIN DATA ENDPOINTS (D1-backed — replaces localStorage)
+    // ═══════════════════════════════════════════════════════════
+    const DB = env.DB;
+    if (!DB) {
+      // D1 not bound — fall through to 404
+    }
+
+    // Generic CRUD helper for admin tables
+    else if (path.startsWith('/api/admin/')) {
+      if (!auth(request)) return err('Unauthorized', 401);
+
+      const adminParts = path.replace('/api/admin/', '').split('/');
+      const table = adminParts[0]; // quotes, invoices, billing, documents, commitments, funding
+      const recordId = adminParts[1];
+
+      const tableMap = {
+        quotes: 'admin_quotes',
+        invoices: 'admin_invoices',
+        billing: 'admin_billing',
+        documents: 'admin_documents',
+        commitments: 'admin_commitments',
+        funding: 'admin_funding_requests',
+        pifr: 'pifr_enrollments',
+      };
+
+      const dbTable = tableMap[table];
+      if (!dbTable) return err('Unknown resource: ' + table, 404);
+
+      // GET /api/admin/{table}?client_id=XXX — list records
+      if (request.method === 'GET' && !recordId) {
+        const clientId = url.searchParams.get('client_id');
+        let rows;
+        if (clientId) {
+          rows = await DB.prepare('SELECT * FROM ' + dbTable + ' WHERE client_id = ? ORDER BY created_at DESC').bind(clientId).all();
+        } else {
+          rows = await DB.prepare('SELECT * FROM ' + dbTable + ' ORDER BY created_at DESC LIMIT 500').all();
+        }
+        return json({ data: rows.results || [] });
+      }
+
+      // GET /api/admin/{table}/{id} — single record
+      if (request.method === 'GET' && recordId) {
+        const idCol = dbTable === 'pifr_enrollments' ? 'id' : 'id';
+        const row = await DB.prepare('SELECT * FROM ' + dbTable + ' WHERE ' + idCol + ' = ?').bind(recordId).first();
+        if (!row) return err('Not found', 404);
+        return json({ data: row });
+      }
+
+      // POST /api/admin/{table} — create record
+      if (request.method === 'POST') {
+        let body;
+        try { body = await request.json(); } catch(e) { return err('Invalid JSON'); }
+
+        const id = body.id || ('hc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8));
+        body.id = id;
+        body.created_at = body.created_at || new Date().toISOString();
+        body.updated_at = new Date().toISOString();
+
+        // Build INSERT dynamically from body keys
+        const cols = Object.keys(body);
+        const placeholders = cols.map(() => '?').join(',');
+        const vals = cols.map(k => body[k]);
+
+        await DB.prepare('INSERT INTO ' + dbTable + ' (' + cols.join(',') + ') VALUES (' + placeholders + ')').bind(...vals).run();
+        return json({ ok: true, id: id, data: body }, 201);
+      }
+
+      // PATCH /api/admin/{table}/{id} — update record
+      if (request.method === 'PATCH' && recordId) {
+        let body;
+        try { body = await request.json(); } catch(e) { return err('Invalid JSON'); }
+
+        body.updated_at = new Date().toISOString();
+        const sets = Object.keys(body).map(k => k + ' = ?').join(', ');
+        const vals = Object.keys(body).map(k => body[k]);
+        vals.push(recordId);
+
+        await DB.prepare('UPDATE ' + dbTable + ' SET ' + sets + ' WHERE id = ?').bind(...vals).run();
+        return json({ ok: true, id: recordId });
+      }
+
+      // DELETE /api/admin/{table}/{id} — delete record
+      if (request.method === 'DELETE' && recordId) {
+        await DB.prepare('DELETE FROM ' + dbTable + ' WHERE id = ?').bind(recordId).run();
+        return json({ ok: true, deleted: recordId });
+      }
+    }
+
+    // ── PIFR-specific endpoints ──
+    else if (path === '/api/admin/pifr-log' && request.method === 'POST' && DB) {
+      if (!auth(request)) return err('Unauthorized', 401);
+      let body;
+      try { body = await request.json(); } catch(e) { return err('Invalid JSON'); }
+      await DB.prepare('INSERT INTO pifr_activity_log (enrollment_id, action, actor, details) VALUES (?, ?, ?, ?)')
+        .bind(body.enrollment_id, body.action, body.actor || 'admin', JSON.stringify(body.details || {})).run();
+      return json({ ok: true });
+    }
+
+    else if (path === '/api/admin/pifr-log' && request.method === 'GET' && DB) {
+      if (!auth(request)) return err('Unauthorized', 401);
+      const eid = url.searchParams.get('enrollment_id');
+      if (!eid) return err('enrollment_id required');
+      const rows = await DB.prepare('SELECT * FROM pifr_activity_log WHERE enrollment_id = ? ORDER BY created_at DESC LIMIT 100').bind(eid).all();
+      return json({ data: rows.results || [] });
+    }
+
     return err('Not found', 404);
   }
 };

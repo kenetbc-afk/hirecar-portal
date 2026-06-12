@@ -124,18 +124,31 @@ export async function onRequestGet(context) {
       const url = new URL(context.request.url);
       const status = url.searchParams.get('status');
       const memberId = url.searchParams.get('member_id');
+      const email = url.searchParams.get('email');
+      const archived = url.searchParams.get('archived'); // '1' = only archived, '0'/null = exclude archived, 'all' = include both
 
       let query = 'SELECT * FROM pifr_enrollments';
+      const where = [];
       const binds = [];
 
-      if (status) {
-        query += ' WHERE status = ?';
-        binds.push(status);
-      } else if (memberId) {
-        query += ' WHERE member_id = ?';
+      if (memberId) {
+        where.push('member_id = ?');
         binds.push(memberId);
+      } else if (email) {
+        where.push('LOWER(email) = LOWER(?)');
+        binds.push(email);
+      } else if (status) {
+        where.push('status = ?');
+        binds.push(status);
       }
 
+      if (archived === '1') {
+        where.push('archived_at IS NOT NULL');
+      } else if (archived !== 'all') {
+        where.push('archived_at IS NULL');
+      }
+
+      if (where.length) query += ' WHERE ' + where.join(' AND ');
       query += ' ORDER BY created_at DESC LIMIT 200';
 
       const stmt = context.env.DB.prepare(query);
@@ -211,6 +224,15 @@ export async function onRequestPatch(context) {
       }
     }
 
+    // Archive toggle: data.archive === true → set archived_at = now; === false → clear it
+    if (data.archive === true) {
+      sets.push('archived_at = ?');
+      vals.push(new Date().toISOString());
+    } else if (data.archive === false) {
+      sets.push('archived_at = ?');
+      vals.push(null);
+    }
+
     if (sets.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), { status: 400, headers: cors });
     }
@@ -230,6 +252,13 @@ export async function onRequestPatch(context) {
       ).bind(rowId, 'status_changed', data.actor || 'admin', JSON.stringify({
         new_status: data.status, notes: data.notes || ''
       })).run();
+    }
+
+    // Log archive/restore
+    if (data.archive === true || data.archive === false) {
+      await context.env.DB.prepare(
+        'INSERT INTO pifr_activity_log (enrollment_id, action, actor, details) VALUES (?, ?, ?, ?)'
+      ).bind(rowId, data.archive ? 'archived' : 'restored', data.actor || 'admin', JSON.stringify({})).run();
     }
 
     return new Response(JSON.stringify({ success: true, id: rowId }), { headers: cors });

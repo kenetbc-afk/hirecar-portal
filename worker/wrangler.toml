@@ -5,3 +5,8 @@ compatibility_date = "2024-01-01"
 [[kv_namespaces]]
 binding = "KV"
 id = "31944eb74e0d4914a47e7083bcd7208b"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hirecar-db"
+database_id = "ada3c40f-a4d9-4b3c-9b40-dde656f6f099"

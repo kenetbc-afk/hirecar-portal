@@ -761,6 +761,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         <span class="ni-icon">&#9993;</span> Messages
         <span class="ni-badge ni-badge-red" id="badge-messages" style="display:none;">0</span>
       </button>
+      <button class="nav-item" data-section="meetings" onclick="showSection('meetings')">
+        <span class="ni-icon">&#128197;</span> Meeting Requests
+        <span class="ni-badge ni-badge-blue" id="badge-meetings" style="display:none;">0</span>
+      </button>
       <button class="nav-item" data-section="funding" onclick="showSection('funding')">
         <span class="ni-icon">&#36;</span> Funding Requests
       </button>
@@ -841,6 +845,32 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </div>
       </div>
 
+      <div class="stats-grid" style="margin-top:12px;">
+        <div class="stat-card">
+          <div class="s-num s-cyan" id="stat-visits-total">0</div>
+          <div class="s-label">Site Visits — All Sites</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-amber" id="stat-visits-today">0</div>
+          <div class="s-label">Visits Today</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-blue" id="stat-visits-7d">0</div>
+          <div class="s-label">Last 7 Days</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-success" id="stat-visits-unique">0</div>
+          <div class="s-label">Unique Visitors</div>
+        </div>
+      </div>
+
+      <div class="a-card" style="margin-top:12px;">
+        <h3 style="font-size:14px; margin-bottom:12px; color:var(--cyan); text-transform:uppercase; letter-spacing:1.5px;">Visits by Site</h3>
+        <div id="stat-visits-by-site" style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:12px; color:var(--muted);">Loading…</div>
+        </div>
+      </div>
+
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
         <div class="a-card">
           <h3 style="font-size:16px; margin-bottom:14px; color:var(--cyan);">Quick Stats</h3>
@@ -891,7 +921,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <div class="accent-bar"></div>
           <h2>Client Management</h2>
         </div>
-        <button class="btn btn-primary" onclick="openAddClientModal()">+ Add New Client</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="file" id="seedx-csv-input" accept=".csv,text/csv" style="display:none" onchange="importSeedXchangeCsv(event)">
+          <button class="btn btn-ghost" onclick="document.getElementById('seedx-csv-input').click()">Import Old SeedXchange CSV</button>
+          <button class="btn btn-primary" onclick="openAddClientModal()">+ Add New Client</button>
+        </div>
       </div>
       <div class="search-bar">
         <input type="text" id="client-search" placeholder="Search by name, email, or case number..." oninput="filterClients()">
@@ -931,6 +965,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
                 <th>Score (Avg)</th>
                 <th>Status</th>
                 <th>Last Active</th>
+                <th>Meetings</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -1014,6 +1049,56 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       </div>
     </div>
 
+    <!-- ====== MEETING REQUESTS ====== -->
+    <div class="admin-section" id="sec-meetings">
+      <div class="sec-head" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="accent-bar"></div>
+          <h2>Meeting Requests</h2>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <a class="btn btn-ghost" href="https://hirecar.la/meet" target="_blank" rel="noreferrer">Open Public /meet</a>
+          <button class="btn btn-primary" onclick="refreshMeetRequests(true)">Refresh Requests</button>
+        </div>
+      </div>
+      <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="s-num s-cyan" id="meet-total">0</div>
+          <div class="s-label">Total Requests</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-green" id="meet-confirmed">0</div>
+          <div class="s-label">Confirmed</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-amber" id="meet-pending">0</div>
+          <div class="s-label">Pending</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-red" id="meet-failed">0</div>
+          <div class="s-label">Failed</div>
+        </div>
+      </div>
+      <div class="a-card">
+        <div class="a-table-wrap">
+          <table class="a-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Email</th>
+                <th>Start</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Invite</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="meet-requests-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ====== FUNDING REQUESTS ====== -->
     <div class="admin-section" id="sec-funding">
       <div class="sec-head">
@@ -1085,6 +1170,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </div>
       </div>
 
+      <!-- View toggle: Active vs Archive -->
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="pifr-view-active" onclick="setPifrView('active')" style="background:var(--gold);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Active <span id="pifr-view-active-count" style="opacity:.7;margin-left:4px"></span></button>
+        <button id="pifr-view-archived" onclick="setPifrView('archived')" style="background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Archive <span id="pifr-view-archived-count" style="opacity:.5;margin-left:4px"></span></button>
+      </div>
+
       <!-- Filter bar -->
       <div class="a-card" style="padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <select id="pifr-filter-lane" onchange="renderPifrTable()" style="background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 12px;border-radius:8px;font-size:12px">
@@ -1098,6 +1189,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <option value="new">New</option>
           <option value="active">Active</option>
           <option value="completed">Completed</option>
+          <option value="abandoned">Abandoned</option>
         </select>
         <input type="text" id="pifr-search" placeholder="Search by name, email, or member ID..." oninput="renderPifrTable()" style="flex:1;min-width:200px;background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 12px;border-radius:8px;font-size:12px">
         <button onclick="refreshPifrData()" style="background:var(--gold);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s">Refresh</button>
@@ -1117,6 +1209,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
                 <th>Score / Type</th>
                 <th>Call</th>
                 <th>Last Activity</th>
+                <th>Meetings</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -1679,6 +1772,32 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-send-msg')">Cancel</button>
       <button class="btn btn-primary" onclick="sendModalMessage()">Send Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEETING INVITE MODAL -->
+<div class="modal-overlay" id="modal-meeting-invite">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Schedule Meeting Invite</h3>
+      <button class="modal-close" onclick="closeModal('modal-meeting-invite')">&times;</button>
+    </div>
+    <input type="hidden" id="meeting-source-id">
+    <input type="hidden" id="meeting-client-email">
+    <input type="hidden" id="meeting-uid">
+    <div class="form-group"><label>Action</label>
+      <select class="form-select" id="meeting-action"><option value="create">Create</option><option value="update">Update</option><option value="cancel">Cancel</option></select>
+    </div>
+    <div class="form-group"><label>Date & Time (PT)</label><input type="datetime-local" class="form-input" id="meeting-start-dt"></div>
+    <div class="form-group"><label>Duration (minutes)</label><input type="number" class="form-input" id="meeting-duration" value="30" min="15" step="15"></div>
+    <div class="form-group"><label>Title</label><input type="text" class="form-input" id="meeting-title"></div>
+    <div class="form-group"><label>Location / Link</label><input type="text" class="form-input" id="meeting-location" value="Google Meet"></div>
+    <div class="form-group"><label>CC Emails (comma-separated)</label><input type="text" class="form-input" id="meeting-cc" placeholder="ops@hirecar.la, team@hirecar.la"></div>
+    <div class="form-group"><label>Description</label><textarea class="form-textarea" id="meeting-description" rows="3"></textarea></div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-meeting-invite')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitMeetingInvite()">Send Invite</button>
     </div>
   </div>
 </div>
@@ -2312,6 +2431,7 @@ function showSection(name) {
     clients: 'Client Management',
     reports: 'Credit Reports',
     messages: 'Messages',
+    meetings: 'Meeting Requests',
     funding: 'Funding Requests',
     billing: 'Billing Management',
     quotes: 'Quote Management',
@@ -2335,6 +2455,7 @@ function showSection(name) {
     case 'clients': renderClients(); break;
     case 'reports': renderReports(); break;
     case 'messages': renderMessages(); break;
+    case 'meetings': refreshMeetRequests(); break;
     case 'funding': renderFunding(); break;
     case 'billing': renderBilling(); break;
     case 'quotes': renderQuotes(); break;
@@ -2364,6 +2485,47 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 /* ========== DASHBOARD ========== */
+function refreshVisitStats() {
+  fetch('/api/visit')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d || !d.success) return;
+      var fmt = function(n) { return Number(n || 0).toLocaleString(); };
+      var total = document.getElementById('stat-visits-total');
+      var today = document.getElementById('stat-visits-today');
+      var l7 = document.getElementById('stat-visits-7d');
+      var uq = document.getElementById('stat-visits-unique');
+      if (total) total.textContent = fmt(d.total);
+      if (today) today.textContent = fmt(d.today);
+      if (l7) l7.textContent = fmt(d.last7);
+      if (uq) uq.textContent = fmt(d.uniqueVisitors);
+
+      var siteWrap = document.getElementById('stat-visits-by-site');
+      if (siteWrap) {
+        var rows = d.bySite || [];
+        if (!rows.length) {
+          siteWrap.innerHTML = '<div style="font-size:12px;color:var(--muted);">No visits recorded yet.</div>';
+        } else {
+          siteWrap.innerHTML = rows.map(function(r) {
+            var pct = d.total ? Math.round((r.n / d.total) * 100) : 0;
+            return ''
+              + '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--cream);border:1px solid var(--rule);border-radius:8px;">'
+              +   '<div style="flex:1;min-width:0;">'
+              +     '<div style="font-size:13px;font-weight:600;color:var(--ink);">' + r.site + '</div>'
+              +     '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + fmt(r.uniq) + ' unique · ' + fmt(r.today) + ' today</div>'
+              +   '</div>'
+              +   '<div style="text-align:right;">'
+              +     '<div style="font-size:18px;font-weight:700;color:var(--cyan);">' + fmt(r.n) + '</div>'
+              +     '<div style="font-size:10px;color:var(--muted);">' + pct + '%</div>'
+              +   '</div>'
+              + '</div>';
+          }).join('');
+        }
+      }
+    })
+    .catch(function() {});
+}
+
 function renderDashboard() {
   var clients = loadClients();
   var active = clients.filter(function(c) { return c.status === 'Active'; });
@@ -2398,6 +2560,7 @@ function renderDashboard() {
   document.getElementById('stat-docs-pending').textContent = docsPending;
   document.getElementById('stat-completed').textContent = completed.length;
   document.getElementById('stat-paused').textContent = paused.length;
+  refreshVisitStats();
 
   var now = new Date();
   var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -2494,7 +2657,8 @@ function renderClients() {
   var filterStage = document.getElementById('client-filter-stage').value;
 
   var filtered = clients.filter(function(c) {
-    if (search && c.name.toLowerCase().indexOf(search) === -1 && c.email.toLowerCase().indexOf(search) === -1 && c.caseNumber.toLowerCase().indexOf(search) === -1) return false;
+    var sourceText = (c.clientSourceLabel || c.clientSource || '').toLowerCase();
+    if (search && c.name.toLowerCase().indexOf(search) === -1 && c.email.toLowerCase().indexOf(search) === -1 && c.caseNumber.toLowerCase().indexOf(search) === -1 && sourceText.indexOf(search) === -1) return false;
     if (filterStatus && c.status !== filterStatus) return false;
     if (filterProgram && c.program !== filterProgram) return false;
     if (filterStage && c.stage !== filterStage) return false;
@@ -2516,21 +2680,30 @@ function renderClients() {
     html += '<td><strong>' + escapeHtml(c.name) + '</strong></td>';
     html += '<td style="font-size:13px;color:var(--muted);">' + escapeHtml(c.email) + '</td>';
     html += '<td style="font-family:\'Share Tech Mono\',monospace;font-size:12px;">' + escapeHtml(c.caseNumber) + '</td>';
-    html += '<td>' + escapeHtml(c.program) + '</td>';
+    var sourceBadge = c.clientSourceLabel ? ' <span class="badge badge-blue" style="font-size:9px;">' + escapeHtml(c.clientSourceLabel) + '</span>' : '';
+    html += '<td>' + escapeHtml(c.program) + sourceBadge + '</td>';
     html += '<td><span class="stage-badge ' + stageBadgeClass(c.stage) + '">' + escapeHtml(c.stage) + '</span></td>';
     html += '<td style="font-weight:600;color:var(--amber);">' + (avg > 0 ? avg : '---') + '</td>';
+    var meetings = getMeetingHistory(c.caseNumber || c.id);
+    var nextMeeting = meetings.filter(function(m){ return new Date(m.startIso) > new Date() && m.action !== 'cancel'; }).sort(function(a,b){ return new Date(a.startIso)-new Date(b.startIso); })[0];
+    var lastMeeting = meetings.filter(function(m){ return new Date(m.startIso) <= new Date(); }).sort(function(a,b){ return new Date(b.startIso)-new Date(a.startIso); })[0];
     html += '<td><span class="badge ' + statusBadgeClass(c.status) + '">' + escapeHtml(c.status) + '</span></td>';
     html += '<td style="font-size:12px;color:var(--muted);">' + timeAgo(c.lastActive) + '</td>';
+    var mStatus = nextMeeting ? (nextMeeting.confirmed ? 'Confirmed' : 'Pending confirmation') : (lastMeeting ? (lastMeeting.confirmed ? 'Confirmed' : 'Pending confirmation') : '');
+    html += '<td style="font-size:11px;color:var(--muted);">' + (nextMeeting ? ('Upcoming: ' + new Date(nextMeeting.startIso).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + new Date(nextMeeting.startIso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})) : (lastMeeting ? ('Last: ' + new Date(lastMeeting.startIso).toLocaleDateString('en-US',{month:'short',day:'numeric'})) : '—')) + (mStatus ? ('<div style=\"margin-top:2px;color:' + ((mStatus === 'Confirmed') ? '#34d399' : '#f59e0b') + '\">' + mStatus + '</div>') : '') + '</td>';
     html += '<td onclick="event.stopPropagation();">';
     html += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + c.id + '\')" style="margin-right:4px;" title="Update Scores">Scores</button>';
     html += '<button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + c.id + '\')" title="Send Message">Msg</button>';
+    if (c.convertibleToFullClient) {
+      html += ' <button class="btn btn-sm btn-success" onclick="convertOldSeedXchangeClient(\'' + c.id + '\')" title="Convert to full client" style="margin-left:4px;">Convert</button>';
+    }
     if (currentAdmin && currentAdmin.access === 'full') {
       html += ' <button class="btn btn-sm btn-danger" onclick="deleteClient(\'' + c.id + '\')" title="Delete" style="margin-left:4px;">Del</button>';
     }
     html += '</td></tr>';
 
     if (isExpanded) {
-      html += '<tr><td colspan="9" style="padding:0;">';
+      html += '<tr><td colspan="10" style="padding:0;">';
       html += buildClientDetailHtml(c);
       html += '</td></tr>';
     }
@@ -2588,7 +2761,25 @@ function buildClientDetailHtml(c) {
   h += '<div style="margin-top:10px;">';
   h += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + cid + '\')">Update Scores</button>';
   h += ' <button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + cid + '\')">Send Message</button>';
+  h += ' <button class="btn btn-sm btn-success" onclick="openMeetingPromptForClient(\'' + cid + '\')">Meeting Invite</button>';
   h += '</div>';
+  var meetings = getMeetingHistory(c.caseNumber || c.id);
+  var next = meetings.filter(function(m){ return new Date(m.startIso) > new Date() && m.action !== 'cancel'; }).sort(function(a,b){return new Date(a.startIso)-new Date(b.startIso);})[0];
+  var last = meetings.filter(function(m){ return new Date(m.startIso) <= new Date(); }).sort(function(a,b){return new Date(b.startIso)-new Date(a.startIso);})[0];
+  h += '<div style="margin-top:10px;font-size:11px;color:var(--muted)">Upcoming: ' + (next ? new Date(next.startIso).toLocaleString('en-US') : '—') + ' | Last met: ' + (last ? new Date(last.startIso).toLocaleString('en-US') : '—') + '</div>';
+  h += '<div style="margin-top:10px;font-size:11px;color:var(--ink)"><strong>Meeting Requests</strong></div>';
+  if (meetings.length) {
+    h += '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px">';
+    meetings.slice(0,5).forEach(function(m, idx){
+      h += '<div style="font-size:11px;background:var(--cream);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:8px;display:flex;justify-content:space-between;gap:8px;align-items:center">'
+        + '<span>' + (m.title||'Meeting') + ' · ' + new Date(m.startIso).toLocaleString('en-US') + ' · ' + (m.action||'create') + '</span>'
+        + '<span style="display:flex;gap:6px;align-items:center"><span style="font-size:10px;color:' + (m.confirmed ? '#34d399' : '#f59e0b') + '">' + (m.confirmed ? 'Confirmed' : 'Pending') + '</span><button class="btn btn-sm btn-ghost" onclick="toggleMeetingConfirmed(\'' + (c.caseNumber || c.id) + '\',' + idx + ')">Toggle</button><button class="btn btn-sm btn-ghost" onclick="openMeetingEdit(\'' + (c.caseNumber || c.id) + '\',' + idx + ')">Edit</button></span>'
+        + '</div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="font-size:11px;color:var(--muted);margin-top:6px">No meeting requests yet.</div>';
+  }
   h += '</div>';
 
   h += '</div>'; // end first detail-grid row
@@ -2861,6 +3052,78 @@ function addNewClient() {
   showToast('Client "' + name + '" created successfully', 'success');
   renderClients();
   renderDashboard();
+}
+
+function importSeedXchangeCsv(evt) {
+  var file = evt && evt.target && evt.target.files ? evt.target.files[0] : null;
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var text = String((e && e.target && e.target.result) || '');
+      var lines = text.split(/\r?\n/).filter(function(l){ return l.trim(); });
+      if (lines.length < 2) { showToast('CSV has no data rows', 'error'); return; }
+      var headers = lines[0].split(',').map(function(h){ return h.trim().toLowerCase(); });
+      var idx = function(name){ return headers.indexOf(name); };
+      var iName = idx('name'), iEmail = idx('email'), iPhone = idx('phone'), iDob = idx('dob'), iAddress = idx('address'), iCity = idx('city'), iState = idx('state'), iZip = idx('zip');
+      var clients = loadClients();
+      var added = 0, updated = 0;
+      for (var i=1;i<lines.length;i++) {
+        var cols = lines[i].match(/(".*?"|[^",\s]+|)(?=\s*,|\s*$)/g) || [];
+        var email = ((cols[iEmail] || '').replace(/^"|"$/g,'')).trim().toLowerCase();
+        if (!email) continue;
+        var existing = clients.find(function(c){ return (c.email || '').toLowerCase() === email; });
+        var name = ((cols[iName] || '').replace(/^"|"$/g,'')).trim() || email.split('@')[0];
+        var city = ((cols[iCity] || '').replace(/^"|"$/g,'')).trim();
+        var state = ((cols[iState] || '').replace(/^"|"$/g,'')).trim();
+        var cityState = (city || state) ? (city + (city && state ? ', ' : '') + state) : '';
+        if (existing) {
+          existing.clientSource = 'seedx_legacy';
+          existing.clientSourceLabel = 'Old SeedXchange Client';
+          existing.convertibleToFullClient = existing.convertedFromSeedXchange ? false : true;
+          existing.pifrConvertible = true;
+          updated++;
+        } else {
+          clients.push({
+            id: generateId(), portalClientId: '', name: name, email: email,
+            phone: ((cols[iPhone] || '').replace(/^"|"$/g,'')).trim(), caseNumber: generateCaseNumber(), pin: generatePin(),
+            program: 'Credit Repair', stage: 'Intake & Document Collection', scores: { eq: 0, ex: 0, tu: 0 }, status: 'Active',
+            lastActive: new Date().toISOString(), createdAt: new Date().toISOString(), notes: 'Imported from SeedXchange legacy CSV.',
+            dob: ((cols[iDob] || '').replace(/^"|"$/g,'')).trim(), address: ((cols[iAddress] || '').replace(/^"|"$/g,'')).trim(),
+            city_state: cityState, zip: ((cols[iZip] || '').replace(/^"|"$/g,'')).trim(),
+            messages: [], documents: [], fundingRequests: [], creditReports: [],
+            clientSource: 'seedx_legacy', clientSourceLabel: 'Old SeedXchange Client',
+            convertibleToFullClient: true, pifrConvertible: true, convertedFromSeedXchange: false
+          });
+          added++;
+        }
+      }
+      saveClients(clients);
+      addActivity('SeedXchange CSV imported: ' + added + ' added, ' + updated + ' updated', 'green');
+      showToast('Imported old SeedXchange clients: ' + added + ' added, ' + updated + ' updated', 'success');
+      renderClients();
+      renderDashboard();
+    } catch (err) {
+      showToast('CSV import failed', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function convertOldSeedXchangeClient(clientId) {
+  var clients = loadClients();
+  var c = clients.find(function(x){ return x.id === clientId; });
+  if (!c) return;
+  c.convertedFromSeedXchange = true;
+  c.convertibleToFullClient = false;
+  c.clientSourceLabel = 'Converted SeedXchange Client';
+  c.program = 'Full Suite';
+  c.stage = 'Onboarding';
+  c.lastActive = new Date().toISOString();
+  saveClients(clients);
+  addActivity('Converted old SeedXchange client to full client: ' + c.name, 'green');
+  showToast('Converted to full client: ' + c.name, 'success');
+  renderClients();
 }
 
 /* ========== SCORE MODALS ========== */
@@ -4467,6 +4730,20 @@ window.checkPendingClientChanges = checkPendingClientChanges;
 var pifrEnrollments = JSON.parse(localStorage.getItem('hirecar_pifr_enrollments') || '[]');
 var pifrLogs = JSON.parse(localStorage.getItem('hirecar_pifr_logs') || '[]');
 var pifrApprovals = JSON.parse(localStorage.getItem('hirecar_pifr_approvals') || '[]');
+var pifrView = 'active'; // 'active' | 'archived'
+
+function setPifrView(v) {
+  pifrView = v;
+  var aBtn = document.getElementById('pifr-view-active');
+  var arBtn = document.getElementById('pifr-view-archived');
+  if (aBtn && arBtn) {
+    var on = 'background:var(--gold);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer';
+    var off = 'background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer';
+    aBtn.setAttribute('style', v==='active' ? on : off);
+    arBtn.setAttribute('style', v==='archived' ? on : off);
+  }
+  renderPifrTable();
+}
 
 function savePifrEnrollments() { localStorage.setItem('hirecar_pifr_enrollments', JSON.stringify(pifrEnrollments)); }
 function savePifrLogs() { localStorage.setItem('hirecar_pifr_logs', JSON.stringify(pifrLogs.slice(0, 500))); }
@@ -4500,11 +4777,12 @@ function addPifrEnrollment(data) {
 }
 
 function renderPifrSection() {
-  var total = pifrEnrollments.length;
-  var credit = pifrEnrollments.filter(function(e) { return e.lane !== 'tld'; }).length;
-  var tld = pifrEnrollments.filter(function(e) { return e.lane === 'tld'; }).length;
-  var calls = pifrEnrollments.filter(function(e) { return e.calDate && e.calTime; }).length;
-  var rev = pifrEnrollments.reduce(function(s, e) { return s + (parseFloat(e.planPrice) || 0); }, 0);
+  var live = pifrEnrollments.filter(function(e){ return !e.archived_at; });
+  var total = live.length;
+  var credit = live.filter(function(e) { return e.lane !== 'tld'; }).length;
+  var tld = live.filter(function(e) { return e.lane === 'tld'; }).length;
+  var calls = live.filter(function(e) { return e.calDate && e.calTime; }).length;
+  var rev = live.reduce(function(s, e) { return s + (parseFloat(e.planPrice) || 0); }, 0);
 
   document.getElementById('pifr-total').textContent = total;
   document.getElementById('pifr-credit').textContent = credit;
@@ -4527,7 +4805,18 @@ function renderPifrTable() {
   var status = document.getElementById('pifr-filter-status').value;
   var search = (document.getElementById('pifr-search').value || '').toLowerCase();
 
+  // Update view-toggle counts (counts respect lane/status/search? — keep simple: total active vs total archived)
+  var totalArchived = pifrEnrollments.filter(function(e){ return !!e.archived_at; }).length;
+  var totalActive = pifrEnrollments.length - totalArchived;
+  var aCount = document.getElementById('pifr-view-active-count');
+  var arCount = document.getElementById('pifr-view-archived-count');
+  if (aCount) aCount.textContent = '(' + totalActive + ')';
+  if (arCount) arCount.textContent = '(' + totalArchived + ')';
+
   var filtered = pifrEnrollments.filter(function(e) {
+    var isArchived = !!e.archived_at;
+    if (pifrView === 'active' && isArchived) return false;
+    if (pifrView === 'archived' && !isArchived) return false;
     if (lane !== 'all' && (e.lane || 'pifr') !== lane) return false;
     if (status !== 'all' && e.status !== status) return false;
     if (search) {
@@ -4585,9 +4874,21 @@ function renderPifrTable() {
         stepLine = '<span style="color:#f59e0b;font-weight:700">In progress</span>';
       }
     }
+    var meetingRows = [];
+    try { meetingRows = JSON.parse(localStorage.getItem('hc_meetings_' + (e.mid || '')) || '[]'); } catch(_){ meetingRows = []; }
+    var nextMeeting = meetingRows.filter(function(m){ return new Date(m.startIso) > new Date() && m.action !== 'cancel'; }).sort(function(a,b){ return new Date(a.startIso)-new Date(b.startIso); })[0];
+    var lastMeeting = meetingRows.filter(function(m){ return new Date(m.startIso) <= new Date(); }).sort(function(a,b){ return new Date(b.startIso)-new Date(a.startIso); })[0];
+    var meetingLine = '';
+    if (nextMeeting || lastMeeting) {
+      meetingLine = '<div style="font-size:10px;color:rgba(52,211,153,.85);margin-top:2px">'
+        + (nextMeeting ? ('Upcoming: ' + new Date(nextMeeting.startIso).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + new Date(nextMeeting.startIso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})) : ('Last met: ' + new Date(lastMeeting.startIso).toLocaleDateString('en-US',{month:'short',day:'numeric'})))
+        + '</div>';
+    }
+
     var dateCell = stepLine
       ? '<div style="font-size:11px">' + stepLine + '</div><div style="font-size:10px;color:rgba(240,242,247,.4);margin-top:2px">last seen ' + (ago || '—') + '</div>'
       : (e.enrolledAt ? '<div style="font-size:11px">' + new Date(e.enrolledAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}) + '</div>' : '—');
+    var meetingsCell = meetingLine ? meetingLine.replace('<div style="font-size:10px;color:rgba(52,211,153,.85);margin-top:2px">','').replace('</div>','') : '—';
 
     return '<tr onclick="showPifrDetail(\'' + e.mid + '\')" style="cursor:pointer">' +
       '<td><code style="font-family:\'Share Tech Mono\',monospace;color:var(--cyan);font-weight:700">' + (e.mid || '—') + '</code></td>' +
@@ -4598,15 +4899,58 @@ function renderPifrTable() {
       '<td style="font-size:12px">' + scoreOrType + '</td>' +
       '<td style="font-size:11px">' + callInfo + '</td>' +
       '<td>' + dateCell + '</td>' +
+      '<td style="font-size:10px;color:rgba(52,211,153,.85)">' + meetingsCell + '</td>' +
       '<td>' + statusBadge + '</td>' +
-      '<td><select onchange="updatePifrStatus(\'' + e.mid + '\',this.value);event.stopPropagation()" style="background:var(--cream);border:1px solid rgba(255,255,255,.06);color:var(--ink);padding:4px 8px;border-radius:6px;font-size:11px">' +
+      '<td style="white-space:nowrap"><select onchange="updatePifrStatus(\'' + e.mid + '\',this.value);event.stopPropagation()" style="background:var(--cream);border:1px solid rgba(255,255,255,.06);color:var(--ink);padding:4px 8px;border-radius:6px;font-size:11px;margin-right:6px">' +
         '<option value="in_progress"' + (e.status === 'in_progress' ? ' selected' : '') + '>In Progress</option>' +
         '<option value="new"' + (e.status === 'new' ? ' selected' : '') + '>New</option>' +
         '<option value="active"' + (e.status === 'active' ? ' selected' : '') + '>Active</option>' +
         '<option value="completed"' + (e.status === 'completed' ? ' selected' : '') + '>Completed</option>' +
         '<option value="complete"' + (e.status === 'complete' ? ' selected' : '') + '>Complete</option>' +
-      '</select></td></tr>';
+        '<option value="abandoned"' + (e.status === 'abandoned' ? ' selected' : '') + '>Abandoned</option>' +
+      '</select>' +
+      ((e.convertible_to_client || e.pifrConvertible) ? '<button onclick="event.stopPropagation();convertPifrEnrollmentToClient(\'' + e.mid + '\')" title="Convert to client" style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-right:6px">Convert</button>' : '') +
+      (e.archived_at
+        ? '<button onclick="event.stopPropagation();restorePifrEnrollment(\'' + e.mid + '\')" title="Restore" style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">Restore</button>'
+        : '<button onclick="event.stopPropagation();archivePifrEnrollment(\'' + e.mid + '\')" title="Archive" style="background:rgba(166,168,172,.12);color:#a6a8ac;border:1px solid rgba(166,168,172,.3);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">Archive</button>'
+      ) +
+      '</td></tr>';
   }).join('');
+}
+
+function convertPifrEnrollmentToClient(mid) {
+  var e = pifrEnrollments.find(function(x) { return x.mid === mid; });
+  if (!e) return;
+  var clients = loadClients();
+  var email = (e.email || '').toLowerCase();
+  var existing = clients.find(function(c){ return (c.email || '').toLowerCase() === email; });
+  if (existing) {
+    existing.program = 'Full Suite';
+    existing.stage = 'Onboarding';
+    existing.status = 'Active';
+    existing.pifrConvertible = false;
+    existing.convertibleToFullClient = false;
+    existing.convertedFromPifr = true;
+    existing.clientSourceLabel = existing.clientSourceLabel || 'Old SeedXchange Client';
+  } else {
+    clients.push({
+      id: generateId(), portalClientId: '', name: ((e.fname||'') + ' ' + (e.lname||'')).trim() || email, email: email,
+      phone: e.phone || '', caseNumber: generateCaseNumber(), pin: generatePin(), program: 'Full Suite', stage: 'Onboarding',
+      scores: { eq: 0, ex: 0, tu: 0 }, status: 'Active', lastActive: new Date().toISOString(), createdAt: new Date().toISOString(),
+      notes: 'Converted from PIFR enrollment: ' + mid, dob: '', address: '', city_state: ((e.state || '') + ' ' + (e.zip || '')).trim(), zip: e.zip || '',
+      messages: [], documents: [], fundingRequests: [], creditReports: [],
+      clientSource: 'seedx_legacy', clientSourceLabel: 'Old SeedXchange Client',
+      pifrConvertible: false, convertibleToFullClient: false, convertedFromPifr: true
+    });
+  }
+  e.convertible_to_client = false;
+  e.pifrConvertible = false;
+  saveClients(clients);
+  savePifrEnrollments();
+  pifrLog({ type: 'action', mid: mid, text: 'Converted enrollment into Client Management record', by: 'admin' });
+  showToast('PIFR enrollment converted to client', 'success');
+  renderPifrSection();
+  renderClients();
 }
 
 function updatePifrStatus(mid, status) {
@@ -4617,7 +4961,41 @@ function updatePifrStatus(mid, status) {
     savePifrEnrollments();
     pifrLog({ type: 'status', mid: mid, text: 'Status changed: ' + old + ' → ' + status, by: 'admin' });
     renderPifrSection();
+    // Persist to server so the next refresh doesn't overwrite the admin's change
+    fetch('/api/pifr-enroll', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mid: mid, status: status, actor: 'admin' })
+    }).catch(function(err){ console.log('Status PATCH failed:', err.message); });
   }
+}
+
+function archivePifrEnrollment(mid) {
+  var e = pifrEnrollments.find(function(x) { return x.mid === mid; });
+  if (!e) return;
+  e.archived_at = new Date().toISOString();
+  savePifrEnrollments();
+  pifrLog({ type: 'archive', mid: mid, text: 'Archived: ' + (e.fname||'') + ' ' + (e.lname||''), by: 'admin' });
+  renderPifrSection();
+  fetch('/api/pifr-enroll', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mid: mid, archive: true, actor: 'admin' })
+  }).catch(function(err){ console.log('Archive PATCH failed:', err.message); });
+}
+
+function restorePifrEnrollment(mid) {
+  var e = pifrEnrollments.find(function(x) { return x.mid === mid; });
+  if (!e) return;
+  e.archived_at = null;
+  savePifrEnrollments();
+  pifrLog({ type: 'archive', mid: mid, text: 'Restored: ' + (e.fname||'') + ' ' + (e.lname||''), by: 'admin' });
+  renderPifrSection();
+  fetch('/api/pifr-enroll', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mid: mid, archive: false, actor: 'admin' })
+  }).catch(function(err){ console.log('Restore PATCH failed:', err.message); });
 }
 
 function updatePifrStatusWithApproval(mid) {
@@ -4887,7 +5265,8 @@ function showPifrDetail(mid) {
   // ── STATUS + APPROVAL ──
   html += '<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap"><select id="pifr-detail-status" style="background:var(--cream);border:1px solid rgba(255,255,255,.06);color:var(--ink);padding:8px 12px;border-radius:8px;font-size:12px;flex:1">' +
     '<option value="new"'+(e.status==='new'?' selected':'')+'>New</option><option value="active"'+(e.status==='active'?' selected':'')+'>Active</option><option value="completed"'+(e.status==='completed'?' selected':'')+'>Completed</option></select>' +
-    '<button onclick="updatePifrStatusWithApproval(\''+e.mid+'\')" style="background:var(--gold);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Update (Requires Client Approval)</button></div>';
+    '<button onclick="updatePifrStatusWithApproval(\''+e.mid+'\')" style="background:var(--gold);border:none;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Update (Requires Client Approval)</button>' +
+    '<button onclick="openMeetingPromptForPifr(\''+e.mid+'\')" style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:#34d399;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Meeting Invite</button></div>';
 
   document.getElementById('pifr-detail-content').innerHTML = html;
   loadPifrNotes(mid);
@@ -4983,52 +5362,119 @@ function closePifrDetail() {
   document.getElementById('pifr-detail-panel').style.display = 'none';
 }
 
+// Map a D1 row (snake_case, plus admin fields) to the local schema (camelCase, mid).
+// Server is the source of truth for enrollment data; admin overlay adds workflow state.
+function mapApiRowToLocal(row) {
+  var planLower = (row.plan || '').toLowerCase();
+  var lane = (planLower.indexOf('claim') !== -1 || planLower.indexOf('tld') !== -1 || planLower.indexOf('deposit') !== -1) ? 'tld' : 'pifr';
+  return {
+    mid: row.member_id,
+    serverId: row.id,
+    fname: row.fname || '',
+    lname: row.lname || '',
+    email: row.email || '',
+    phone: row.phone || '',
+    lane: lane,
+    plan: row.plan || '',
+    planPrice: row.plan_price || '',
+    scoreRange: row.score_range || '',
+    profileScore: row.profile_score || 0,
+    xp: row.xp || 0,
+    level: row.level || '',
+    issues: row.issues || '',
+    goal: row.goal || '',
+    timeline: row.timeline || '',
+    bureaus: row.bureaus || '',
+    channels: row.channels || '',
+    status: row.status || 'new',
+    notes: row.notes || '',
+    calDate: row.cal_date,
+    calTime: row.cal_time,
+    calMonth: row.cal_month,
+    calYear: row.cal_year,
+    state: row.state || '',
+    zip: row.zip || '',
+    assigned_to: row.assigned_to || null,
+    archived_at: row.archived_at || null,
+    enrolledAt: row.created_at ? new Date(row.created_at.replace(' ', 'T') + (row.created_at.endsWith('Z')?'':'Z')).toISOString() : new Date().toISOString(),
+    updated_at: row.updated_at || row.created_at,
+    _source: 'api'
+  };
+}
+
+// One-time cleanup of hardcoded sample mids that polluted localStorage in past versions.
+function cleanupLegacySampleData() {
+  if (localStorage.getItem('hirecar_pifr_sample_purged_v2')) return;
+  var sampleMids = ['HC-4729-1001','HC-8312-4456','HC-2201-7783'];
+  pifrEnrollments = pifrEnrollments.filter(function(e){ return sampleMids.indexOf(e.mid) === -1; });
+  pifrLogs = pifrLogs.filter(function(l){ return sampleMids.indexOf(l.mid) === -1; });
+  savePifrEnrollments();
+  savePifrLogs();
+  localStorage.setItem('hirecar_pifr_sample_purged_v2', '1');
+}
+
 function refreshPifrData() {
-  // Fetch from API + merge with localStorage
-  fetch('/api/pifr-enroll').then(function(r){return r.json()}).then(function(d){
-    if(d.success && d.enrollments && d.enrollments.length) {
-      d.enrollments.forEach(function(e){
-        if(!pifrEnrollments.some(function(x){return x.mid===e.mid})){
-          e.status = e.status || 'new';
-          e.enrolledAt = e.enrolledAt || e.receivedAt || new Date().toISOString();
-          pifrEnrollments.unshift(e);
-          pifrLog({type:'enrollment',mid:e.mid,text:'New enrollment synced: '+(e.fname||'')+' '+(e.lname||'')+' — '+(e.plan||'Unknown'),by:'system'});
-        }
-      });
-      savePifrEnrollments();
-    }
+  fetch('/api/pifr-enroll?archived=all').then(function(r){return r.json()}).then(function(d){
+    if (!d.success) { renderPifrSection(); return; }
+
+    var apiRows = (d.enrollments || []).map(mapApiRowToLocal);
+    var apiByMid = {};
+    apiRows.forEach(function(r){ if (r.mid) apiByMid[r.mid] = r; });
+
+    // Merge: API data wins on enrollment fields; preserve admin overlay (assigned_to, etc.).
+    var merged = apiRows.map(function(apiRow){
+      var local = pifrEnrollments.find(function(x){ return x.mid === apiRow.mid; });
+      if (!local) return apiRow;
+      // Preserve admin-only fields that the form doesn't set
+      if (local.assigned_to && !apiRow.assigned_to) apiRow.assigned_to = local.assigned_to;
+      // If admin scheduled a call locally and API has none, keep local
+      if (!apiRow.calDate && local.calDate) {
+        apiRow.calDate = local.calDate; apiRow.calTime = local.calTime;
+        apiRow.calMonth = local.calMonth; apiRow.calYear = local.calYear;
+      }
+      return apiRow;
+    });
+
+    // Keep any local rows the server doesn't know about ONLY if they look admin-created
+    // (no _source:'api' marker and not a known stale test pattern).
+    var apiMids = Object.keys(apiByMid);
+    var staleTestPatterns = /^(HC-TEST|PIFR-TEST|HC-E2E)/i;
+    pifrEnrollments.forEach(function(local){
+      if (!local.mid) return;
+      if (apiByMid[local.mid]) return;
+      if (staleTestPatterns.test(local.mid)) return; // drop stale test rows
+      if (local._source === 'api') return; // was from API but server forgot it; drop
+      merged.push(local); // genuine admin-side row, keep
+    });
+
+    // Detect newly-arrived rows for activity log
+    var prevMids = {};
+    pifrEnrollments.forEach(function(e){ prevMids[e.mid] = true; });
+    apiRows.forEach(function(r){
+      if (!prevMids[r.mid]) {
+        pifrLog({type:'enrollment',mid:r.mid,text:'New enrollment synced: '+(r.fname||'')+' '+(r.lname||'')+' — '+(r.plan||'Unknown'),by:'system'});
+      }
+    });
+
+    pifrEnrollments = merged;
+    savePifrEnrollments();
     renderPifrSection();
   }).catch(function(err){
     console.log('API fetch failed, using localStorage:', err.message);
-    pifrEnrollments = JSON.parse(localStorage.getItem('hirecar_pifr_enrollments') || '[]');
     renderPifrSection();
   });
 }
 
-// Load sample data for demo if empty
+// Demo-only sample data — gated behind ?demo=1 so prod admin stays clean.
 function loadPifrSampleData() {
+  if (location.search.indexOf('demo=1') === -1) return;
   if (pifrEnrollments.length > 0) return;
   pifrEnrollments = [
-    {mid:'HC-4729-1001',fname:'Mayra',lname:'Garcia',email:'mayra@example.com',phone:'(310) 555-0102',lane:'tld',plan:'Small Claims Track',planPrice:599,tld_type:'deposit',tld_depositAmt:'1400',tld_monthlyRent:'1400',tld_moveOutDate:'2026-01-31',tld_forwardingDate:'2026-02-11',tld_21dayExceeded:true,tld_landlordName:'John (Manager)',tld_landlordContact:'john@property.com',tld_propertyAddr:'Los Angeles, CA',tld_hasLease:true,tld_hasPhotos:true,tld_hasTexts:true,tld_hasPaymentProof:true,tld_hasForwardingProof:true,channels:'email, sms',xp:420,level:'Commander',calDate:7,calTime:'10:00 AM',calMonth:4,calYear:2026,enrolledAt:'2026-03-30T14:22:00Z',status:'active',state:'CA',zip:'90001',issues:'no_itemization, late_return, habitability',termsAccepted:true},
-    {mid:'HC-8312-4456',fname:'James',lname:'Wilson',email:'jwilson@example.com',phone:'(818) 555-0199',lane:'pifr',plan:'PIFR Plus',planPrice:149,scoreRange:'580-619',profileScore:54,goal:'vehicle',timeline:'90',bureaus:'transunion, equifax, experian',channels:'email, sms',xp:380,level:'Strategist',calDate:9,calTime:'2:30 PM',calMonth:4,calYear:2026,enrolledAt:'2026-03-29T09:15:00Z',status:'new',state:'CA',zip:'91301',issues:'lates, coll, inq',authOn:true,hasReports:true,hasID:true,hasProofAddr:false,priorDisputes:'some-denied',adverseAction:'credit, auto',hasCollectorDebt:true,termsAccepted:true},
-    {mid:'HC-2201-7783',fname:'Sarah',lname:'Chen',email:'schen@example.com',lane:'pifr',plan:'PIFR Max',planPrice:249,scoreRange:'300-579',profileScore:42,goal:'housing',timeline:'180',bureaus:'transunion, equifax, experian, lexisnexis',channels:'email, sms, slack',xp:500,level:'Elite',enrolledAt:'2026-03-28T16:40:00Z',status:'active',state:'CA',zip:'90046',issues:'fraud, coll, repo, judg',authOn:true,policeReport:true,ftcReport:true,eqfxBreach:true,hasReports:true,hasID:true,hasProofAddr:true,termsAccepted:true}
+    {mid:'HC-4729-1001',fname:'Mayra',lname:'Garcia',email:'mayra@example.com',phone:'(310) 555-0102',lane:'tld',plan:'Small Claims Track',planPrice:599,tld_type:'deposit',channels:'email, sms',xp:420,level:'Commander',calDate:7,calTime:'10:00 AM',calMonth:4,calYear:2026,enrolledAt:'2026-03-30T14:22:00Z',status:'active',state:'CA',zip:'90001'},
+    {mid:'HC-8312-4456',fname:'James',lname:'Wilson',email:'jwilson@example.com',phone:'(818) 555-0199',lane:'pifr',plan:'PIFR Plus',planPrice:149,scoreRange:'580-619',profileScore:54,channels:'email, sms',xp:380,level:'Strategist',calDate:9,calTime:'2:30 PM',calMonth:4,calYear:2026,enrolledAt:'2026-03-29T09:15:00Z',status:'new',state:'CA',zip:'91301'},
+    {mid:'HC-2201-7783',fname:'Sarah',lname:'Chen',email:'schen@example.com',lane:'pifr',plan:'PIFR Max',planPrice:249,scoreRange:'300-579',profileScore:42,channels:'email, sms, slack',xp:500,level:'Elite',enrolledAt:'2026-03-28T16:40:00Z',status:'active',state:'CA',zip:'90046'}
   ];
   savePifrEnrollments();
-  // Seed logs
-  if (pifrLogs.length === 0) {
-    pifrLogs = [
-      {id:1,ts:'2026-03-30T14:22:00Z',type:'enrollment',mid:'HC-4729-1001',text:'New enrollment: Mayra Garcia — Small Claims Track (TLD)',by:'client'},
-      {id:2,ts:'2026-03-30T14:25:00Z',type:'status',mid:'HC-4729-1001',text:'Status changed: new → active',by:'admin'},
-      {id:3,ts:'2026-03-30T14:30:00Z',type:'upload',mid:'HC-4729-1001',text:'Lease agreement uploaded (Exhibit A)',by:'client'},
-      {id:4,ts:'2026-03-30T14:32:00Z',type:'upload',mid:'HC-4729-1001',text:'Text thread screenshots uploaded (12 images)',by:'client'},
-      {id:5,ts:'2026-03-29T09:15:00Z',type:'enrollment',mid:'HC-8312-4456',text:'New enrollment: James Wilson — PIFR Plus (PIFR)',by:'client'},
-      {id:6,ts:'2026-03-28T16:40:00Z',type:'enrollment',mid:'HC-2201-7783',text:'New enrollment: Sarah Chen — PIFR Max (PIFR)',by:'client'},
-      {id:7,ts:'2026-03-28T17:00:00Z',type:'status',mid:'HC-2201-7783',text:'Status changed: new → active',by:'admin'},
-      {id:8,ts:'2026-03-28T17:05:00Z',type:'action',mid:'HC-2201-7783',text:'Identity theft response kit initiated (§605B)',by:'admin'},
-      {id:9,ts:'2026-03-29T10:00:00Z',type:'upload',mid:'HC-8312-4456',text:'Credit reports uploaded (TransUnion, Equifax, Experian)',by:'client'},
-    ];
-    savePifrLogs();
-  }
 }
 
 window.renderPifrTable = renderPifrTable;
@@ -5038,20 +5484,206 @@ window.showPifrDetail = showPifrDetail;
 window.closePifrDetail = closePifrDetail;
 window.updatePifrStatus = updatePifrStatus;
 window.updatePifrStatusWithApproval = updatePifrStatusWithApproval;
+window.archivePifrEnrollment = archivePifrEnrollment;
+window.restorePifrEnrollment = restorePifrEnrollment;
+window.setPifrView = setPifrView;
 window.approvePifrChange = approvePifrChange;
 window.rejectPifrChange = rejectPifrChange;
 window.addPifrEnrollment = addPifrEnrollment;
 window.pifrLog = pifrLog;
 
+function openMeetingPromptForClient(clientId) {
+  var clients = loadClients();
+  var c = clients.find(function(x){ return x.id === clientId; });
+  if (!c || !c.email) { showToast('Client email missing', 'error'); return; }
+  openMeetingModal({ clientEmail: c.email, titleDefault: 'HIRECAR Client Management Meeting', descriptionDefault: 'Client Management follow-up', sourceId: c.caseNumber || c.id });
+}
+function openMeetingPromptForPifr(mid) {
+  var e = pifrEnrollments.find(function(x){ return x.mid === mid; });
+  if (!e || !e.email) { showToast('Enrollment email missing', 'error'); return; }
+  openMeetingModal({ clientEmail: e.email, titleDefault: 'HIRECAR PIFR Enrollment Meeting', descriptionDefault: 'PIFR enrollment review', sourceId: e.mid });
+}
+function getMeetingHistory(sourceId){
+  try { return JSON.parse(localStorage.getItem('hc_meetings_'+sourceId) || '[]'); } catch(_){ return []; }
+}
+function saveMeetingHistory(sourceId, entry){
+  var rows = getMeetingHistory(sourceId); rows.unshift(entry); localStorage.setItem('hc_meetings_'+sourceId, JSON.stringify(rows.slice(0,50)));
+  fetch('/api/meetings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ source_id: sourceId, meeting: entry }) }).catch(function(){});
+}
+function syncMeetingHistory(sourceId){
+  return fetch('/api/meetings?source_id=' + encodeURIComponent(sourceId))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d && d.success && Array.isArray(d.meetings)) {
+        localStorage.setItem('hc_meetings_'+sourceId, JSON.stringify(d.meetings));
+      }
+    }).catch(function(){});
+}
+function loadMeetRequests(){
+  try {
+    return JSON.parse(localStorage.getItem('hc_meetings_meet') || '[]');
+  } catch (_) {
+    return [];
+  }
+}
+function refreshMeetRequests(force){
+  var req = fetch('/api/meetings?source_id=meet')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d && d.success && Array.isArray(d.meetings)) {
+        localStorage.setItem('hc_meetings_meet', JSON.stringify(d.meetings));
+      }
+      renderMeetRequests();
+    })
+    .catch(function(){
+      renderMeetRequests();
+    });
+  if (force) {
+    showToast('Refreshing meeting requests…', 'info');
+  }
+  return req;
+}
+function renderMeetRequests(){
+  var rows = loadMeetRequests().slice();
+  rows.sort(function(a, b) {
+    return new Date(b.createdAt || b.requestedAt || b.startIso || 0) - new Date(a.createdAt || a.requestedAt || a.startIso || 0);
+  });
+
+  var total = rows.length;
+  var confirmed = rows.filter(function(r){ return String(r.status || '').toLowerCase() === 'confirmed'; }).length;
+  var failed = rows.filter(function(r){ return String(r.status || '').toLowerCase() === 'failed'; }).length;
+  var pending = Math.max(0, total - confirmed - failed);
+
+  var totalEl = document.getElementById('meet-total');
+  var confirmedEl = document.getElementById('meet-confirmed');
+  var pendingEl = document.getElementById('meet-pending');
+  var failedEl = document.getElementById('meet-failed');
+  if (totalEl) totalEl.textContent = total;
+  if (confirmedEl) confirmedEl.textContent = confirmed;
+  if (pendingEl) pendingEl.textContent = pending;
+  if (failedEl) failedEl.textContent = failed;
+  var badge = document.getElementById('badge-meetings');
+  if (badge) {
+    badge.textContent = total;
+    badge.style.display = total ? '' : 'none';
+  }
+
+  var body = document.getElementById('meet-requests-body');
+  if (!body) return;
+  if (rows.length === 0) {
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;">No meeting requests yet. New requests from hirecar.la/meet will appear here.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = rows.map(function(r) {
+    var start = r.startIso ? new Date(r.startIso) : null;
+    var startText = start && !isNaN(start.getTime())
+      ? start.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })
+      : '—';
+    var status = String(r.status || r.inviteStatus || 'pending').toLowerCase();
+    var statusClass = status === 'confirmed' ? 'badge-green' : (status === 'failed' ? 'badge-red' : 'badge-amber');
+    var inviteClass = String(r.inviteStatus || '').toLowerCase() === 'sent' ? 'badge-green' : (String(r.inviteStatus || '').toLowerCase() === 'failed' ? 'badge-red' : 'badge-amber');
+    var notes = r.description || r.error || '';
+    if (notes.length > 120) notes = notes.slice(0, 117) + '...';
+    return ''
+      + '<tr>'
+      + '<td><strong>' + escapeHtml(r.clientName || 'Guest') + '</strong></td>'
+      + '<td style="font-size:13px;color:var(--muted);">' + escapeHtml(r.clientEmail || '—') + '</td>'
+      + '<td style="font-size:13px;">' + escapeHtml(startText) + '</td>'
+      + '<td>' + escapeHtml(r.title || 'HIRECAR Meeting') + '</td>'
+      + '<td><span class="badge ' + statusClass + '">' + escapeHtml(status) + '</span></td>'
+      + '<td><span class="badge ' + inviteClass + '">' + escapeHtml(r.inviteStatus || 'pending') + '</span></td>'
+      + '<td style="font-size:13px;color:var(--muted);">' + escapeHtml(notes || '—') + '</td>'
+      + '</tr>';
+  }).join('');
+}
+function openMeetingModal(opts){
+  syncMeetingHistory(opts.sourceId);
+  document.getElementById('meeting-source-id').value = opts.sourceId;
+  document.getElementById('meeting-client-email').value = opts.clientEmail;
+  document.getElementById('meeting-title').value = opts.titleDefault || 'HIRECAR Meeting';
+  document.getElementById('meeting-description').value = opts.descriptionDefault || '';
+  document.getElementById('meeting-start-dt').value = '';
+  document.getElementById('meeting-cc').value = '';
+  document.getElementById('meeting-uid').value = '';
+  document.getElementById('meeting-action').value = 'create';
+  openModal('modal-meeting-invite');
+}
+function submitMeetingInvite() {
+  var sourceId = document.getElementById('meeting-source-id').value;
+  var clientEmail = document.getElementById('meeting-client-email').value;
+  var action = document.getElementById('meeting-action').value;
+  var uid = document.getElementById('meeting-uid').value || undefined;
+  var dt = document.getElementById('meeting-start-dt').value;
+  if (!dt) { showToast('Select date and time', 'error'); return; }
+  var title = document.getElementById('meeting-title').value || 'HIRECAR Meeting';
+  var duration = Number(document.getElementById('meeting-duration').value || '30');
+  var location = document.getElementById('meeting-location').value || 'Google Meet';
+  var description = document.getElementById('meeting-description').value || '';
+  var ccEmails = (document.getElementById('meeting-cc').value || '').split(',').map(function(v){return v.trim();}).filter(Boolean);
+  var startIso = new Date(dt).toISOString();
+  fetch('/api/meeting-invite', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: action, uid: uid, startIso: startIso, durationMin: duration, title: title, location: location, description: description, clientEmail: clientEmail, ccEmails: ccEmails })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (!d.success) throw new Error(d.error || 'invite failed');
+    saveMeetingHistory(sourceId, { action: action, clientEmail: clientEmail, startIso: startIso, durationMin: duration, title: title, location: location, description: description, ccEmails: ccEmails, uid: d.uid, confirmed: false, createdAt: new Date().toISOString() });
+    addActivity('Meeting invite ' + action + ' sent for ' + sourceId + ' (' + clientEmail + ')', 'green');
+    showToast('Meeting invite sent via Gmail', 'success');
+    closeModal('modal-meeting-invite');
+    renderClients();
+  }).catch(function(err){ showToast('Meeting invite failed: ' + err.message, 'error'); });
+}
+function openMeetingEdit(sourceId, idx){
+  var rows = getMeetingHistory(sourceId);
+  var m = rows[idx];
+  if (!m) return;
+  document.getElementById('meeting-source-id').value = sourceId;
+  document.getElementById('meeting-client-email').value = m.clientEmail || '';
+  document.getElementById('meeting-uid').value = m.uid || '';
+  document.getElementById('meeting-action').value = 'update';
+  document.getElementById('meeting-title').value = m.title || 'HIRECAR Meeting';
+  document.getElementById('meeting-location').value = m.location || 'Google Meet';
+  document.getElementById('meeting-description').value = m.description || '';
+  document.getElementById('meeting-duration').value = m.durationMin || 30;
+  document.getElementById('meeting-cc').value = (m.ccEmails || []).join(', ');
+  document.getElementById('meeting-start-dt').value = new Date(m.startIso).toISOString().slice(0,16);
+  openModal('modal-meeting-invite');
+}
+function toggleMeetingConfirmed(sourceId, idx){
+  var rows = getMeetingHistory(sourceId);
+  if (!rows[idx]) return;
+  rows[idx].confirmed = !rows[idx].confirmed;
+  localStorage.setItem('hc_meetings_'+sourceId, JSON.stringify(rows));
+  if (rows[idx].uid) {
+    fetch('/api/meetings', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ source_id: sourceId, uid: rows[idx].uid, patch: { confirmed: rows[idx].confirmed } }) }).catch(function(){});
+  }
+  renderClients();
+}
+window.openMeetingPromptForClient = openMeetingPromptForClient;
+window.openMeetingPromptForPifr = openMeetingPromptForPifr;
+window.submitMeetingInvite = submitMeetingInvite;
+window.openMeetingEdit = openMeetingEdit;
+window.addPifrNote = addPifrNote;
+window.deletePifrNote = deletePifrNote;
+
 window.checkPendingClientChanges = checkPendingClientChanges;
 
 // Init PIFR on load
+cleanupLegacySampleData();
 loadPifrSampleData();
 renderPifrSection();
+refreshPifrData();
+refreshMeetRequests();
+// Auto-refresh every 15s so admin reflects new enrollments in near real-time
+setInterval(refreshPifrData, 15000);
+setInterval(refreshMeetRequests, 30000);
 
 init();
 
 })();
 </script>
+<script src="/visit.js" data-site="portal-admin" async></script>
 </body>
 </html>
