@@ -330,6 +330,117 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 .badge-blue { background: rgba(96,165,250,.1); color: var(--blue); border: 1px solid rgba(96,165,250,.3); }
 .badge-muted { background: rgba(160,174,192,.08); color: var(--muted); border: 1px solid rgba(160,174,192,.2); }
 
+/* MEETING REQUESTS */
+.meet-week-stack { display: flex; flex-direction: column; gap: 12px; }
+.meet-week-shell {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 10px;
+  min-width: 0;
+}
+.meet-week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.meet-week-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+.meet-week-range { font-size: 10px; color: var(--muted); overflow-wrap: anywhere; }
+.meet-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+.meet-day-col {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 10px;
+  min-width: 0;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.meet-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.meet-day-title {
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meet-day-count { flex: 0 0 auto; font-size: 10px; color: var(--muted); }
+.meet-empty { font-size: 11px; color: rgba(240,242,247,.3); padding: 8px 0; }
+.meet-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 9px 10px;
+  min-width: 0;
+}
+.meet-card-title,
+.meet-list-name,
+.meet-list-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meet-card-meta,
+.meet-list-email,
+.meet-list-location {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meet-card-time { font-size: 11px; color: var(--cyan); margin-top: 3px; }
+.meet-card-desc,
+.meet-list-desc {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.meet-card-badges { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.meet-list { display: flex; flex-direction: column; gap: 10px; }
+.meet-list-row {
+  display: grid;
+  grid-template-columns: minmax(110px,1fr) minmax(90px,.7fr) minmax(140px,1fr) minmax(0,1.5fr) auto;
+  gap: 10px;
+  align-items: start;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 0;
+}
+.meet-list-cell { min-width: 0; }
+.meet-list-date { font-size: 11px; color: var(--cyan); overflow-wrap: anywhere; }
+.meet-list-time { margin-top: 2px; color: var(--ink); font-size: 12px; }
+.meet-list-badges { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+
 /* BUTTONS */
 .btn {
   padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
@@ -684,10 +795,23 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   #sec-funding .a-card { padding: 14px; }
   .settings-grid { grid-template-columns: 1fr; }
   .topbar-clock { display: none; }
+  .meet-days-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meet-day-col { min-height: 120px; padding: 9px; }
+  .meet-list-row { grid-template-columns: 1fr 1fr; }
+  .meet-list-badges { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
 }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
   .scores-row { grid-template-columns: 1fr 1fr; }
+  .meet-week-header { align-items: flex-start; flex-direction: column; }
+  .meet-days-grid { grid-template-columns: 1fr; }
+  .meet-list-row { grid-template-columns: 1fr; }
+  .meet-card-title,
+  .meet-list-name,
+  .meet-list-title,
+  .meet-card-meta,
+  .meet-list-email,
+  .meet-list-location { white-space: normal; overflow-wrap: anywhere; }
 }
 
 /* Focus ring */
@@ -763,6 +887,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     <div class="sidebar-nav">
       <button class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
         <span class="ni-icon">&#9632;</span> Dashboard
+      </button>
+      <button class="nav-item" data-section="work" onclick="showSection('work')">
+        <span class="ni-icon">&#9745;</span> Tasks &amp; Projects
+        <span class="ni-badge ni-badge-red" id="badge-work" style="display:none;">0</span>
       </button>
       <button class="nav-item" data-section="clients" onclick="showSection('clients')">
         <span class="ni-icon">&#9824;</span> Client Management
@@ -925,6 +1053,106 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       <div class="a-card" style="margin-top:16px;">
         <h3 style="font-size:16px; margin-bottom:14px; color:var(--cyan);">Clients by Workflow Stage</h3>
         <div class="stage-breakdown" id="stage-breakdown"></div>
+      </div>
+      <div class="a-card" style="margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <h3 style="font-size:16px;color:var(--cyan);">Task &amp; Project Snapshot</h3>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Admin view of open work, owner dashboards, client gaps, and quantified opportunity value.</div>
+          </div>
+          <button class="btn btn-primary" onclick="showSection('work')">Open Work Dashboard</button>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px;">
+          <div class="stat-card"><div class="s-num s-cyan" id="dash-work-open">0</div><div class="s-label">Open Tasks</div></div>
+          <div class="stat-card"><div class="s-num s-amber" id="dash-project-open">0</div><div class="s-label">Open Projects</div></div>
+          <div class="stat-card"><div class="s-num s-red" id="dash-files-incomplete">0</div><div class="s-label">Incomplete Files</div></div>
+          <div class="stat-card"><div class="s-num s-success" id="dash-work-value">$0</div><div class="s-label">Open Value</div></div>
+        </div>
+        <div id="dash-work-gaps" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+      </div>
+    </div>
+
+    <!-- ====== TASKS & PROJECTS ====== -->
+    <div class="admin-section" id="sec-work">
+      <div class="sec-head" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="accent-bar"></div>
+          <h2>Tasks &amp; Projects</h2>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="seedWorkTemplates()">Load Templates</button>
+          <button class="btn btn-ghost" onclick="refreshWorkDashboardFromD1()">Refresh</button>
+          <button class="btn btn-primary" onclick="saveWorkItemFromForm()">Save Work Item</button>
+        </div>
+      </div>
+
+      <div class="a-card" style="margin-bottom:16px;">
+        <h3 style="font-size:14px;color:var(--cyan);margin-bottom:12px;text-transform:uppercase;letter-spacing:1.5px;">Create / Adjust Task or Project</h3>
+        <input type="hidden" id="work-id">
+        <div class="form-row" style="grid-template-columns:1.2fr .8fr .8fr .8fr;">
+          <div class="form-group"><label>Title</label><input class="form-input" id="work-title" placeholder="Cindy and Bennett funding follow-up"></div>
+          <div class="form-group"><label>Type</label><select class="form-select" id="work-type"><option value="task">Task</option><option value="project">Project</option></select></div>
+          <div class="form-group"><label>Owner</label><select class="form-select" id="work-owner"></select></div>
+          <div class="form-group"><label>Co-owner</label><select class="form-select" id="work-coowner"></select></div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+          <div class="form-group"><label>Client / Reference</label><select class="form-select" id="work-client"></select></div>
+          <div class="form-group"><label>Status</label><select class="form-select" id="work-status"><option>Not Started</option><option>In Progress</option><option>Waiting</option><option>Blocked</option><option>Completed</option></select></div>
+          <div class="form-group"><label>Priority</label><select class="form-select" id="work-priority"><option>High</option><option>Medium</option><option>Low</option></select></div>
+          <div class="form-group"><label>Dollar Value</label><input class="form-input" id="work-value" type="number" min="0" step="1" placeholder="0"></div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 2fr;">
+          <div class="form-group"><label>Deadline</label><input class="form-input" id="work-deadline" type="date"></div>
+          <div class="form-group"><label>Email Alias / Source</label><input class="form-input" id="work-source" placeholder="myra-tasks@..."></div>
+          <div class="form-group"><label>Template / Reference</label><input class="form-input" id="work-template" placeholder="Funding follow-up, enrollment review, dispute package..."></div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr;">
+          <div class="form-group"><label>Expectations</label><textarea class="form-textarea" id="work-expectations" rows="3" placeholder="Definition of done, quality bar, expected output..."></textarea></div>
+          <div class="form-group"><label>Checklist Items</label><textarea class="form-textarea" id="work-checklist" rows="3" placeholder="One item per line. Use [x] to mark complete."></textarea></div>
+        </div>
+        <div class="form-group"><label>Notes / Internal Communication</label><textarea class="form-textarea" id="work-notes" rows="3" placeholder="Add context, blockers, links, or the internal thread."></textarea></div>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+        <div class="stat-card"><div class="s-num s-cyan" id="work-stat-open">0</div><div class="s-label">Open Tasks</div></div>
+        <div class="stat-card"><div class="s-num s-amber" id="work-stat-projects">0</div><div class="s-label">Open Projects</div></div>
+        <div class="stat-card"><div class="s-num s-red" id="work-stat-overdue">0</div><div class="s-label">Overdue</div></div>
+        <div class="stat-card"><div class="s-num s-success" id="work-stat-value">$0</div><div class="s-label">Open Value</div></div>
+      </div>
+
+      <div class="search-bar">
+        <input type="text" id="work-search" placeholder="Search title, notes, client, owner..." oninput="renderWorkDashboard()">
+        <select id="work-filter-owner" onchange="renderWorkDashboard()"></select>
+        <select id="work-filter-type" onchange="renderWorkDashboard()"><option value="">All Types</option><option value="task">Tasks</option><option value="project">Projects</option></select>
+        <select id="work-filter-status" onchange="renderWorkDashboard()"><option value="">All Statuses</option><option>Not Started</option><option>In Progress</option><option>Waiting</option><option>Blocked</option><option>Completed</option></select>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.35fr .65fr;gap:16px;">
+        <div class="a-card" style="padding:0;overflow:visible;">
+          <div class="a-table-wrap">
+            <table class="a-table">
+              <thead><tr><th>Work</th><th>Owner</th><th>Client</th><th>Deadline</th><th>Value</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="work-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="a-card">
+            <h3 style="font-size:14px;color:var(--cyan);margin-bottom:12px;">Owner Dashboards</h3>
+            <div id="work-owner-cards" style="display:flex;flex-direction:column;gap:10px;"></div>
+          </div>
+          <div class="a-card">
+            <h3 style="font-size:14px;color:var(--cyan);margin-bottom:12px;">Client Gaps</h3>
+            <div id="work-client-gaps" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+          <div class="a-card">
+            <h3 style="font-size:14px;color:var(--cyan);margin-bottom:8px;">Email Routing Setup</h3>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+              Ready for aliases for Myra, Omar, Ken, and Virtual Admin. To make inbound email create records and outbound owner/co-owner update emails fire, wire an email provider inbound webhook plus a send provider key.
+            </div>
+            <div id="work-alias-list" style="font-size:12px;color:var(--ink);margin-top:10px;display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1096,23 +1324,24 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <div class="s-label">Failed</div>
         </div>
       </div>
-      <div class="a-card">
-        <div class="a-table-wrap">
-          <table class="a-table">
-            <thead>
-              <tr>
-                <th>Client</th>
-                <th>Email</th>
-                <th>Start</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Invite</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody id="meet-requests-body"></tbody>
-          </table>
+      <div class="a-card" style="margin-bottom:16px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;">Weekly Calendar</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:4px;">Sunday through Saturday</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <div style="font-size:11px;color:var(--muted);">Week of <strong id="meet-week-label" style="color:var(--ink);font-weight:600;">---</strong></div>
+          </div>
         </div>
+        <div id="meet-week-grid" class="meet-week-stack"></div>
+      </div>
+      <div class="a-card" style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;">All Meeting Requests</div>
+          <div style="font-size:11px;color:var(--muted);">Who it’s with, the time, and a short description</div>
+        </div>
+        <div id="meet-request-list" class="meet-list"></div>
       </div>
     </div>
 
@@ -2096,6 +2325,7 @@ var SESSION_KEY = 'hc_admin_session';
 var CLIENTS_KEY = 'hc_admin_clients';
 var ACTIVITY_KEY = 'hc_admin_activity';
 var SETTINGS_KEY = 'hc_admin_settings';
+var WORK_ITEMS_KEY = 'hc_admin_work_items';
 var SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
 
 var currentAdmin = null;
@@ -2105,6 +2335,14 @@ var selectedMsgClientId = null;
 var scoreModalClientId = null;
 var msgModalClientId = null;
 var fundingBankResultsDraft = null;
+var workItemsSyncing = false;
+var workItemsLastSync = 0;
+var WORK_OWNERS = [
+  { id: 'ken', name: 'Ken', alias: 'ken-tasks@hirecar.la' },
+  { id: 'myra', name: 'Myra', alias: 'myra-tasks@hirecar.la' },
+  { id: 'omar', name: 'Omar', alias: 'omar-tasks@hirecar.la' },
+  { id: 'virtual_admin', name: 'Virtual Admin', alias: 'va-tasks@hirecar.la' }
+];
 
 var DEMO_CLIENT_EMAILS = {
   'marcus.j@email.com': true,
@@ -2907,6 +3145,7 @@ function showSection(name) {
 
   var titles = {
     dashboard: 'Dashboard',
+    work: 'Tasks & Projects',
     clients: 'Client Management',
     reports: 'Credit Reports',
     messages: 'Messages',
@@ -2931,6 +3170,7 @@ function showSection(name) {
 
   switch (name) {
     case 'dashboard': renderDashboard(); break;
+    case 'work': renderWorkDashboard(); break;
     case 'clients': renderClients(); break;
     case 'reports': renderReports(); break;
     case 'messages': renderMessages(); break;
@@ -3003,6 +3243,357 @@ function refreshVisitStats() {
       }
     })
     .catch(function() {});
+}
+
+function workOwnerName(id) {
+  var owner = WORK_OWNERS.find(function(o) { return o.id === id; });
+  return owner ? owner.name : (id || 'Unassigned');
+}
+
+function loadWorkItems() {
+  try {
+    var rows = JSON.parse(localStorage.getItem(WORK_ITEMS_KEY) || '[]');
+    return Array.isArray(rows) ? rows : [];
+  } catch (e) { return []; }
+}
+
+function saveWorkItems(rows) {
+  localStorage.setItem(WORK_ITEMS_KEY, JSON.stringify(rows || []));
+}
+
+function upsertLocalWorkItem(item) {
+  var rows = loadWorkItems();
+  var idx = rows.findIndex(function(r) { return r.id === item.id; });
+  if (idx >= 0) rows[idx] = item;
+  else rows.unshift(item);
+  saveWorkItems(rows);
+}
+
+function refreshWorkItemsFromD1(force) {
+  var now = Date.now();
+  if (workItemsSyncing || (!force && now - workItemsLastSync < 10000)) return Promise.resolve({ rows: loadWorkItems(), refreshed: false });
+  workItemsSyncing = true;
+  return fetch('/api/work-items')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.success && Array.isArray(d.workItems)) {
+        saveWorkItems(d.workItems);
+        workItemsLastSync = Date.now();
+      }
+      return { rows: loadWorkItems(), refreshed: true };
+    })
+    .catch(function() { return { rows: loadWorkItems(), refreshed: false }; })
+    .finally(function() { workItemsSyncing = false; });
+}
+
+function saveWorkItemToD1(item, method) {
+  return fetch('/api/work-items', {
+    method: method || 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(item)
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d && d.success && d.workItem) {
+      upsertLocalWorkItem(d.workItem);
+      return d.workItem;
+    }
+    throw new Error((d && d.error) || 'Work API save failed');
+  });
+}
+
+function formatWorkCurrency(val) {
+  var n = Number(val || 0);
+  return '$' + n.toLocaleString('en-US');
+}
+
+function parseWorkChecklist(text) {
+  return String(text || '').split(/\n/).map(function(line) {
+    var raw = line.trim();
+    if (!raw) return null;
+    var done = /^\[[xX]\]\s*/.test(raw);
+    return { text: raw.replace(/^\[[xX ]\]\s*/, '').trim(), done: done };
+  }).filter(Boolean);
+}
+
+function stringifyWorkChecklist(items) {
+  return (items || []).map(function(item) {
+    return (item.done ? '[x] ' : '[ ] ') + item.text;
+  }).join('\n');
+}
+
+function getWorkClientLabel(clientId) {
+  if (!clientId) return 'Internal';
+  var c = loadClients().find(function(x) { return x.id === clientId || x.caseNumber === clientId || x.email === clientId; });
+  return c ? (c.name || c.email || c.caseNumber) : clientId;
+}
+
+function populateWorkControls() {
+  var ownerSelects = ['work-owner','work-coowner','work-filter-owner'];
+  ownerSelects.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var keep = el.value;
+    var label = id === 'work-filter-owner' ? 'All Owners' : (id === 'work-coowner' ? 'None' : 'Select Owner');
+    el.innerHTML = '<option value="">' + label + '</option>' + WORK_OWNERS.map(function(o) {
+      return '<option value="' + o.id + '">' + o.name + '</option>';
+    }).join('');
+    el.value = keep;
+  });
+  var clientEl = document.getElementById('work-client');
+  if (clientEl) {
+    var current = clientEl.value;
+    var clients = loadClients();
+    clientEl.innerHTML = '<option value="">Internal / No Client</option>' + clients.map(function(c) {
+      return '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.name || c.email || c.caseNumber || c.id) + '</option>';
+    }).join('');
+    clientEl.value = current;
+  }
+}
+
+function clearWorkForm() {
+  ['work-id','work-title','work-value','work-deadline','work-source','work-template','work-expectations','work-checklist','work-notes'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['work-type','work-owner','work-coowner','work-client','work-status','work-priority'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.selectedIndex = 0;
+  });
+}
+
+function saveWorkItemFromForm() {
+  populateWorkControls();
+  var title = (document.getElementById('work-title').value || '').trim();
+  if (!title) { showToast('Add a title before saving', 'error'); return; }
+  var rows = loadWorkItems();
+  var id = document.getElementById('work-id').value || ('w_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7));
+  var existing = rows.find(function(r) { return r.id === id; });
+  var item = existing || { id: id, createdAt: new Date().toISOString(), updates: [] };
+  item.type = document.getElementById('work-type').value || 'task';
+  item.title = title;
+  item.owner = document.getElementById('work-owner').value || '';
+  item.coowner = document.getElementById('work-coowner').value || '';
+  item.clientId = document.getElementById('work-client').value || '';
+  item.status = document.getElementById('work-status').value || 'Not Started';
+  item.priority = document.getElementById('work-priority').value || 'Medium';
+  item.value = Number(document.getElementById('work-value').value || 0);
+  item.deadline = document.getElementById('work-deadline').value || '';
+  item.source = document.getElementById('work-source').value || '';
+  item.template = document.getElementById('work-template').value || '';
+  item.expectations = document.getElementById('work-expectations').value || '';
+  item.checklist = parseWorkChecklist(document.getElementById('work-checklist').value || '');
+  item.notes = document.getElementById('work-notes').value || '';
+  item.updatedAt = new Date().toISOString();
+  item.updatedBy = currentAdmin ? currentAdmin.name : 'Admin';
+  item.updates.unshift({ by: item.updatedBy, at: item.updatedAt, text: 'Saved ' + item.type + ': ' + item.title });
+  item.updates = item.updates.slice(0, 25);
+  if (!existing) rows.unshift(item);
+  saveWorkItems(rows);
+  addActivity('Updated ' + item.type + ': ' + item.title, 'blue');
+  saveWorkItemToD1(item, existing ? 'PATCH' : 'POST')
+    .then(function(saved) {
+      addActivity('Synced ' + saved.type + ' to D1: ' + saved.title, 'green');
+      renderWorkDashboard();
+      renderDashboard();
+    })
+    .catch(function(err) {
+      addActivity('D1 sync failed for ' + item.title + ': ' + err.message, 'red');
+      queueWorkUpdateNotification(item);
+    });
+  clearWorkForm();
+  renderWorkDashboard();
+  renderDashboard();
+  showToast('Work item saved', 'success');
+}
+
+function queueWorkUpdateNotification(item) {
+  var recipients = [item.owner, item.coowner].filter(Boolean).map(workOwnerName).join(', ');
+  if (!recipients) return;
+  addActivity('Email notification queued for ' + recipients + ': ' + item.title, 'green');
+}
+
+function editWorkItem(id) {
+  var item = loadWorkItems().find(function(r) { return r.id === id; });
+  if (!item) return;
+  populateWorkControls();
+  document.getElementById('work-id').value = item.id;
+  document.getElementById('work-type').value = item.type || 'task';
+  document.getElementById('work-title').value = item.title || '';
+  document.getElementById('work-owner').value = item.owner || '';
+  document.getElementById('work-coowner').value = item.coowner || '';
+  document.getElementById('work-client').value = item.clientId || '';
+  document.getElementById('work-status').value = item.status || 'Not Started';
+  document.getElementById('work-priority').value = item.priority || 'Medium';
+  document.getElementById('work-value').value = item.value || '';
+  document.getElementById('work-deadline').value = item.deadline || '';
+  document.getElementById('work-source').value = item.source || '';
+  document.getElementById('work-template').value = item.template || '';
+  document.getElementById('work-expectations').value = item.expectations || '';
+  document.getElementById('work-checklist').value = stringifyWorkChecklist(item.checklist || []);
+  document.getElementById('work-notes').value = item.notes || '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function completeWorkItem(id) {
+  var rows = loadWorkItems();
+  var item = rows.find(function(r) { return r.id === id; });
+  if (!item) return;
+  item.status = 'Completed';
+  item.completedAt = new Date().toISOString();
+  item.updatedAt = item.completedAt;
+  saveWorkItems(rows);
+  saveWorkItemToD1(item, 'PATCH').catch(function() { queueWorkUpdateNotification(item); });
+  renderWorkDashboard();
+  renderDashboard();
+}
+
+function toggleWorkChecklist(id, idx) {
+  var rows = loadWorkItems();
+  var item = rows.find(function(r) { return r.id === id; });
+  if (!item || !item.checklist || !item.checklist[idx]) return;
+  item.checklist[idx].done = !item.checklist[idx].done;
+  item.updatedAt = new Date().toISOString();
+  saveWorkItems(rows);
+  saveWorkItemToD1(item, 'PATCH').catch(function() { queueWorkUpdateNotification(item); });
+  renderWorkDashboard();
+}
+
+function getClientGapMetrics() {
+  var clients = loadClients();
+  var incomplete = [];
+  var enrolledNoMeeting = [];
+  clients.forEach(function(c) {
+    var pendingDocs = (c.documents || []).filter(function(d) { return d.status === 'Pending' || d.status === 'Rejected' || d.status === 'Needs Reupload'; });
+    if (pendingDocs.length || c.stage === 'Intake & Document Collection' || c.stage === 'Documents Needed') {
+      incomplete.push({ name: c.name || c.email || c.caseNumber || 'Client', detail: pendingDocs.length ? pendingDocs.length + ' pending document(s)' : (c.stage || 'Incomplete file') });
+    }
+    var enrolled = c.clientSource === 'pifr_enrollment' || c.pifrMemberId || c.pifrEnrollmentStatus || c.enrollmentComplete;
+    var sourceId = c.caseNumber || c.id;
+    var meetings = getMeetingHistory(sourceId).filter(function(m) { return m.action !== 'cancel'; });
+    if (enrolled && !meetings.length) enrolledNoMeeting.push({ name: c.name || c.email || sourceId, detail: c.email || sourceId });
+  });
+  return { incomplete: incomplete, enrolledNoMeeting: enrolledNoMeeting };
+}
+
+function renderWorkSnapshot() {
+  var rows = loadWorkItems();
+  var open = rows.filter(function(r) { return r.status !== 'Completed'; });
+  var projects = open.filter(function(r) { return r.type === 'project'; });
+  var value = open.reduce(function(sum, r) { return sum + Number(r.value || 0); }, 0);
+  var gaps = getClientGapMetrics();
+  var setText = function(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; };
+  setText('dash-work-open', open.filter(function(r) { return r.type !== 'project'; }).length);
+  setText('dash-project-open', projects.length);
+  setText('dash-files-incomplete', gaps.incomplete.length);
+  setText('dash-work-value', formatWorkCurrency(value));
+  var badge = document.getElementById('badge-work');
+  if (badge) {
+    var n = open.length + gaps.incomplete.length;
+    badge.style.display = n ? '' : 'none';
+    badge.textContent = n;
+  }
+  var wrap = document.getElementById('dash-work-gaps');
+  if (wrap) {
+    wrap.innerHTML = renderMiniGapList('Incomplete Files', gaps.incomplete) + renderMiniGapList('Enrollments Without Meetings', gaps.enrolledNoMeeting);
+  }
+}
+
+function renderMiniGapList(title, rows) {
+  var html = '<div style="background:var(--cream);border:1px solid var(--rule);border-radius:10px;padding:12px;"><div style="font-size:12px;color:var(--cyan);font-weight:700;margin-bottom:8px;">' + title + ' (' + rows.length + ')</div>';
+  if (!rows.length) return html + '<div style="font-size:12px;color:var(--muted);">No gaps found.</div></div>';
+  rows.slice(0, 5).forEach(function(r) {
+    html += '<div style="font-size:12px;color:var(--ink);padding:6px 0;border-top:1px solid rgba(255,255,255,.05);">' + escapeHtml(r.name) + '<div style="font-size:10px;color:var(--muted);">' + escapeHtml(r.detail) + '</div></div>';
+  });
+  return html + '</div>';
+}
+
+function renderWorkDashboard() {
+  populateWorkControls();
+  refreshWorkItemsFromD1(false).then(function(result) {
+    if (!result.refreshed) return;
+    if (currentSection === 'work') renderWorkDashboard();
+    else renderWorkSnapshot();
+  });
+  var rows = loadWorkItems();
+  var q = ((document.getElementById('work-search') || {}).value || '').toLowerCase();
+  var owner = ((document.getElementById('work-filter-owner') || {}).value || '');
+  var type = ((document.getElementById('work-filter-type') || {}).value || '');
+  var status = ((document.getElementById('work-filter-status') || {}).value || '');
+  var filtered = rows.filter(function(r) {
+    var hay = [r.title, r.notes, r.expectations, r.template, r.source, workOwnerName(r.owner), workOwnerName(r.coowner), getWorkClientLabel(r.clientId)].join(' ').toLowerCase();
+    if (q && hay.indexOf(q) === -1) return false;
+    if (owner && r.owner !== owner && r.coowner !== owner) return false;
+    if (type && r.type !== type) return false;
+    if (status && r.status !== status) return false;
+    return true;
+  });
+  var open = rows.filter(function(r) { return r.status !== 'Completed'; });
+  var today = new Date().toISOString().slice(0, 10);
+  var overdue = open.filter(function(r) { return r.deadline && r.deadline < today; }).length;
+  document.getElementById('work-stat-open').textContent = open.filter(function(r) { return r.type !== 'project'; }).length;
+  document.getElementById('work-stat-projects').textContent = open.filter(function(r) { return r.type === 'project'; }).length;
+  document.getElementById('work-stat-overdue').textContent = overdue;
+  document.getElementById('work-stat-value').textContent = formatWorkCurrency(open.reduce(function(sum, r) { return sum + Number(r.value || 0); }, 0));
+
+  var tbody = document.getElementById('work-tbody');
+  if (tbody) {
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;">No tasks or projects found.</td></tr>';
+    } else {
+      tbody.innerHTML = filtered.map(function(r) {
+        var checklist = (r.checklist || []).map(function(item, idx) {
+          return '<label style="display:block;font-size:11px;color:var(--muted);margin-top:4px;"><input type="checkbox" ' + (item.done ? 'checked' : '') + ' onchange="toggleWorkChecklist(\'' + r.id + '\',' + idx + ')"> ' + escapeHtml(item.text) + '</label>';
+        }).join('');
+        return '<tr>'
+          + '<td><strong>' + escapeHtml(r.title) + '</strong><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">' + escapeHtml(r.type || 'task') + ' · ' + escapeHtml(r.priority || 'Medium') + '</div>' + checklist + '</td>'
+          + '<td>' + escapeHtml(workOwnerName(r.owner)) + (r.coowner ? '<div style="font-size:10px;color:var(--muted);">Co: ' + escapeHtml(workOwnerName(r.coowner)) + '</div>' : '') + '</td>'
+          + '<td>' + escapeHtml(getWorkClientLabel(r.clientId)) + '</td>'
+          + '<td>' + escapeHtml(r.deadline || '---') + '</td>'
+          + '<td>' + formatWorkCurrency(Number(r.value || 0)) + '</td>'
+          + '<td><span class="badge ' + (r.status === 'Completed' ? 'badge-green' : (r.status === 'Blocked' ? 'badge-red' : 'badge-blue')) + '">' + escapeHtml(r.status || 'Not Started') + '</span></td>'
+          + '<td><button class="btn btn-sm btn-ghost" onclick="editWorkItem(\'' + r.id + '\')">Edit</button> <button class="btn btn-sm btn-primary" onclick="completeWorkItem(\'' + r.id + '\')">Check Off</button></td>'
+          + '</tr>';
+      }).join('');
+    }
+  }
+
+  var ownerWrap = document.getElementById('work-owner-cards');
+  if (ownerWrap) {
+    ownerWrap.innerHTML = WORK_OWNERS.map(function(o) {
+      var mine = open.filter(function(r) { return r.owner === o.id || r.coowner === o.id; });
+      var total = mine.reduce(function(sum, r) { return sum + Number(r.value || 0); }, 0);
+      return '<div style="padding:10px 12px;background:var(--cream);border:1px solid var(--rule);border-radius:9px;"><div style="display:flex;justify-content:space-between;gap:8px;"><strong>' + o.name + '</strong><span style="color:var(--success);">' + formatWorkCurrency(total) + '</span></div><div style="font-size:11px;color:var(--muted);">' + mine.length + ' open · ' + escapeHtml(o.alias) + '</div></div>';
+    }).join('');
+  }
+  var gaps = getClientGapMetrics();
+  var gapWrap = document.getElementById('work-client-gaps');
+  if (gapWrap) gapWrap.innerHTML = renderMiniGapList('Incomplete Files', gaps.incomplete) + renderMiniGapList('Enrollments Without Meetings', gaps.enrolledNoMeeting);
+  var aliases = document.getElementById('work-alias-list');
+  if (aliases) aliases.innerHTML = WORK_OWNERS.map(function(o) { return '<div><strong>' + o.name + ':</strong> ' + escapeHtml(o.alias) + '</div>'; }).join('');
+  renderWorkSnapshot();
+}
+
+function refreshWorkDashboardFromD1() {
+  refreshWorkItemsFromD1(true).then(function() {
+    renderWorkDashboard();
+    renderDashboard();
+    showToast('Tasks and projects refreshed from D1', 'success');
+  });
+}
+
+function seedWorkTemplates() {
+  var rows = loadWorkItems();
+  var now = new Date().toISOString();
+  var templates = [
+    { title: 'Cindy and Bennett funding package', type: 'project', owner: 'myra', coowner: 'ken', value: 0, priority: 'High', template: 'Funding readiness', expectations: 'Track funding readiness, assigned next steps, underwriting blockers, and funded amount once known.', checklist: [{ text: 'Confirm enrollment and funding target', done: false }, { text: 'Collect missing documents', done: false }, { text: 'Log funding offer and funded value', done: false }] },
+    { title: 'Enrollment without meeting follow-up', type: 'task', owner: 'virtual_admin', coowner: 'omar', value: 0, priority: 'High', template: 'Meeting recovery', expectations: 'Find clients who enrolled but have no meeting record and schedule follow-up.', checklist: [{ text: 'Review enrollment list', done: false }, { text: 'Send meeting request', done: false }, { text: 'Confirm meeting record', done: false }] }
+  ];
+  templates.forEach(function(t) {
+    if (rows.some(function(r) { return r.title === t.title; })) return;
+    var item = Object.assign({ id: 'w_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7), status: 'Not Started', notes: '', source: '', clientId: '', deadline: '', createdAt: now, updatedAt: now, updates: [] }, t);
+    rows.unshift(item);
+    saveWorkItemToD1(item, 'POST').catch(function() {});
+  });
+  saveWorkItems(rows);
+  renderWorkDashboard();
+  showToast('Work templates loaded', 'success');
 }
 
 function renderDashboard() {
@@ -3103,6 +3694,7 @@ function renderDashboard() {
   }
 
   document.getElementById('badge-clients').textContent = clients.length;
+  renderWorkSnapshot();
   var badgeMsg = document.getElementById('badge-messages');
   if (msgAwaiting > 0) { badgeMsg.style.display = ''; badgeMsg.textContent = msgAwaiting; }
   else { badgeMsg.style.display = 'none'; }
@@ -6608,6 +7200,13 @@ window.renderMessages = renderMessages;
 window.filterMessages = filterMessages;
 window.selectMsgClient = selectMsgClient;
 window.sendAdminReply = sendAdminReply;
+window.renderWorkDashboard = renderWorkDashboard;
+window.refreshWorkDashboardFromD1 = refreshWorkDashboardFromD1;
+window.saveWorkItemFromForm = saveWorkItemFromForm;
+window.seedWorkTemplates = seedWorkTemplates;
+window.editWorkItem = editWorkItem;
+window.completeWorkItem = completeWorkItem;
+window.toggleWorkChecklist = toggleWorkChecklist;
 window.updateFundingStatus = updateFundingStatus;
 window.renderFunding = renderFunding;
 window.populateFundingImportOptions = populateFundingImportOptions;
@@ -7720,6 +8319,115 @@ function refreshMeetRequests(force){
   }
   return req;
 }
+
+function getMeetingWeekStart(date) {
+  var d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+function meetingDayLabel(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function clipMeetingText(text, maxLen) {
+  var s = String(text || '').trim();
+  if (!s) return '—';
+  if (s.length <= maxLen) return s;
+  return s.slice(0, Math.max(0, maxLen - 1)) + '…';
+}
+
+function renderMeetingCard(r) {
+  var start = r.startIso ? new Date(r.startIso) : null;
+  var startText = start && !isNaN(start.getTime())
+    ? start.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })
+    : '—';
+  var who = r.clientName || r.clientEmail || 'Guest';
+  var status = String(r.status || r.inviteStatus || 'pending').toLowerCase();
+  var badgeClass = status === 'confirmed' ? 'badge-green' : (status === 'failed' ? 'badge-red' : 'badge-amber');
+  return ''
+    + '<div class="meet-card">'
+    + '<div class="meet-card-title">' + escapeHtml(r.title || 'HIRECAR Meeting') + '</div>'
+    + '<div class="meet-card-meta">With ' + escapeHtml(who) + '</div>'
+    + '<div class="meet-card-time">' + escapeHtml(startText) + '</div>'
+    + '<div class="meet-card-desc">' + escapeHtml(clipMeetingText(r.description || r.error || '', 96)) + '</div>'
+    + '<div class="meet-card-badges">'
+    + '<span class="badge ' + badgeClass + '">' + escapeHtml(status) + '</span>'
+    + '</div>'
+    + '</div>';
+}
+
+function renderMeetingWeekGrid(rows) {
+  var grid = document.getElementById('meet-week-grid');
+  var label = document.getElementById('meet-week-label');
+  if (!grid) return;
+  if (!rows.length) {
+    if (label) label.textContent = '---';
+    grid.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:12px 0;">No meetings</div>';
+    return;
+  }
+
+  var weekMap = {};
+  rows.forEach(function(r) {
+    var dt = r.startIso ? new Date(r.startIso) : null;
+    if (!dt || isNaN(dt.getTime())) return;
+    var start = getMeetingWeekStart(dt);
+    var key = start.toISOString().slice(0, 10);
+    if (!weekMap[key]) weekMap[key] = { start: start, rows: [] };
+    weekMap[key].rows.push(r);
+  });
+
+  var weeks = Object.keys(weekMap).map(function(key) { return weekMap[key]; }).sort(function(a, b) {
+    return b.start - a.start;
+  });
+
+  if (label && weeks[0]) {
+    var firstEnd = new Date(weeks[0].start);
+    firstEnd.setDate(firstEnd.getDate() + 6);
+    label.textContent = weeks[0].start.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' - ' + firstEnd.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  }
+
+  grid.innerHTML = weeks.map(function(week) {
+    var weekStart = new Date(week.start);
+    var weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    var days = [];
+    for (var i = 0; i < 7; i++) {
+      var day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
+      days.push(day);
+    }
+    return ''
+      + '<div class="meet-week-shell">'
+      + '<div class="meet-week-header">'
+      + '<div class="meet-week-title">Week of ' + escapeHtml(weekStart.toLocaleDateString('en-US', { month:'short', day:'numeric' })) + '</div>'
+      + '<div class="meet-week-range">' + escapeHtml(weekStart.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) + ' - ' + weekEnd.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })) + '</div>'
+      + '</div>'
+      + '<div class="meet-days-grid">'
+      + days.map(function(day) {
+          var dayStart = new Date(day);
+          dayStart.setHours(0, 0, 0, 0);
+          var dayEnd = new Date(day);
+          dayEnd.setHours(23, 59, 59, 999);
+          var dayRows = week.rows.filter(function(r) {
+            var dt = r.startIso ? new Date(r.startIso) : null;
+            return dt && !isNaN(dt.getTime()) && dt >= dayStart && dt <= dayEnd;
+          }).sort(function(a, b) { return new Date(a.startIso || 0) - new Date(b.startIso || 0); });
+          return ''
+            + '<div class="meet-day-col">'
+            + '<div class="meet-day-head">'
+            + '<div class="meet-day-title">' + escapeHtml(meetingDayLabel(day)) + '</div>'
+            + '<div class="meet-day-count">' + dayRows.length + '</div>'
+            + '</div>'
+            + (dayRows.length ? dayRows.map(renderMeetingCard).join('') : '<div class="meet-empty">No meetings</div>')
+            + '</div>';
+        }).join('')
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
 function renderMeetRequests(){
   var rows = loadMeetRequests().slice();
   rows.sort(function(a, b) {
@@ -7745,33 +8453,32 @@ function renderMeetRequests(){
     badge.style.display = total ? '' : 'none';
   }
 
-  var body = document.getElementById('meet-requests-body');
-  if (!body) return;
+  var weekGrid = document.getElementById('meet-week-grid');
+  var requestList = document.getElementById('meet-request-list');
+  if (!weekGrid || !requestList) return;
+  renderMeetingWeekGrid(rows);
   if (rows.length === 0) {
-    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px;">No meeting requests yet. New requests from hirecar.la/meet will appear here.</td></tr>';
+    requestList.innerHTML = '<div style="text-align:center;color:var(--muted);padding:28px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:10px;">No meeting requests yet. New requests from hirecar.la/meet will appear here.</div>';
     return;
   }
 
-  body.innerHTML = rows.map(function(r) {
+  requestList.innerHTML = rows.map(function(r) {
     var start = r.startIso ? new Date(r.startIso) : null;
-    var startText = start && !isNaN(start.getTime())
-      ? start.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })
-      : '—';
     var status = String(r.status || r.inviteStatus || 'pending').toLowerCase();
-    var statusClass = status === 'confirmed' ? 'badge-green' : (status === 'failed' ? 'badge-red' : 'badge-amber');
-    var inviteClass = String(r.inviteStatus || '').toLowerCase() === 'sent' ? 'badge-green' : (String(r.inviteStatus || '').toLowerCase() === 'failed' ? 'badge-red' : 'badge-amber');
-    var notes = r.description || r.error || '';
-    if (notes.length > 120) notes = notes.slice(0, 117) + '...';
+    var badgeClass = status === 'confirmed' ? 'badge-green' : (status === 'failed' ? 'badge-red' : 'badge-amber');
+    var dayText = start && !isNaN(start.getTime()) ? start.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) : '—';
+    var timeText = start && !isNaN(start.getTime()) ? start.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '—';
     return ''
-      + '<tr>'
-      + '<td><strong>' + escapeHtml(r.clientName || 'Guest') + '</strong></td>'
-      + '<td style="font-size:13px;color:var(--muted);">' + escapeHtml(r.clientEmail || '—') + '</td>'
-      + '<td style="font-size:13px;">' + escapeHtml(startText) + '</td>'
-      + '<td>' + escapeHtml(r.title || 'HIRECAR Meeting') + '</td>'
-      + '<td><span class="badge ' + statusClass + '">' + escapeHtml(status) + '</span></td>'
-      + '<td><span class="badge ' + inviteClass + '">' + escapeHtml(r.inviteStatus || 'pending') + '</span></td>'
-      + '<td style="font-size:13px;color:var(--muted);">' + escapeHtml(notes || '—') + '</td>'
-      + '</tr>';
+      + '<div class="meet-list-row">'
+      + '<div class="meet-list-cell"><div class="meet-list-name">' + escapeHtml(r.clientName || 'Guest') + '</div><div class="meet-list-email">' + escapeHtml(r.clientEmail || '—') + '</div></div>'
+      + '<div class="meet-list-cell meet-list-date">' + escapeHtml(dayText) + '<div class="meet-list-time">' + escapeHtml(timeText) + '</div></div>'
+      + '<div class="meet-list-cell"><div class="meet-list-title">' + escapeHtml(r.title || 'HIRECAR Meeting') + '</div><div class="meet-list-location">' + escapeHtml(r.location || 'Google Meet') + '</div></div>'
+      + '<div class="meet-list-cell meet-list-desc">' + escapeHtml(clipMeetingText(r.description || r.error || '', 150)) + '</div>'
+      + '<div class="meet-list-badges">'
+      + '<span class="badge ' + badgeClass + '">' + escapeHtml(status) + '</span>'
+      + '<span class="badge ' + (String(r.inviteStatus || '').toLowerCase() === 'sent' ? 'badge-green' : 'badge-amber') + '">' + escapeHtml(r.inviteStatus || 'pending') + '</span>'
+      + '</div>'
+      + '</div>';
   }).join('');
 }
 function openMeetingModal(opts){
@@ -7842,6 +8549,8 @@ window.openMeetingPromptForClient = openMeetingPromptForClient;
 window.openMeetingPromptForPifr = openMeetingPromptForPifr;
 window.submitMeetingInvite = submitMeetingInvite;
 window.openMeetingEdit = openMeetingEdit;
+window.refreshMeetRequests = refreshMeetRequests;
+window.renderMeetRequests = renderMeetRequests;
 window.addPifrNote = addPifrNote;
 window.deletePifrNote = deletePifrNote;
 
