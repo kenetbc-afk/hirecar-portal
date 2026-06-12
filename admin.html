@@ -1945,7 +1945,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 <div class="modal-overlay" id="modal-update-scores">
   <div class="modal-box">
     <div class="modal-header">
-      <h3>Update Credit Scores</h3>
+      <h3>Update FICO Scores</h3>
       <button class="modal-close" onclick="closeModal('modal-update-scores')">&times;</button>
     </div>
     <div style="font-size:14px; margin-bottom:16px; color:var(--muted);">
@@ -1953,15 +1953,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     </div>
     <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
       <div class="form-group">
-        <label>Equifax</label>
+        <label>FICO Equifax</label>
         <input type="number" class="form-input" id="modal-score-eq" min="300" max="850" placeholder="---">
       </div>
       <div class="form-group">
-        <label>Experian</label>
+        <label>FICO Experian</label>
         <input type="number" class="form-input" id="modal-score-ex" min="300" max="850" placeholder="---">
       </div>
       <div class="form-group">
-        <label>TransUnion</label>
+        <label>FICO TransUnion</label>
         <input type="number" class="form-input" id="modal-score-tu" min="300" max="850" placeholder="---">
       </div>
     </div>
@@ -2216,6 +2216,8 @@ var PROFILE_FIELD_LABELS = {
   legalName:'Full Legal Name', phone:'Phone', dob:'Date of Birth', address:'Address',
   city_state:'City/State', zip:'ZIP Code', employer:'Employer', job_title:'Job Title',
   employment_duration:'Employment Duration', monthly_income:'Monthly Income',
+  email:'Email', caseNumber:'Case Number', pin:'PIN', program:'Program',
+  pifrPlan:'PIFR Plan', pifrPlanMembers:'Under Plan',
   funding_email_username:'Funding Email Username', funding_email_details:'Funding Email Details',
   membership_balance_due:'Membership Balance Due', engagement_fee_balance_due:'Engagement Fee Balance Due',
   report_access_status:'Client Report Access', report_access_details:'Client Report / Access Details',
@@ -2229,17 +2231,58 @@ var PROFILE_FIELD_LABELS = {
   name:'Preferred Name', preferredName:'Preferred Name'
 };
 
+var CLIENT_FIELD_ALIASES = {
+  name: ['preferredName'],
+  preferredName: ['name'],
+  job_title: ['jobTitle'],
+  jobTitle: ['job_title'],
+  employment_duration: ['tenure'],
+  tenure: ['employment_duration'],
+  monthly_income: ['monthlyIncome'],
+  monthlyIncome: ['monthly_income'],
+  vehicle: ['vehicleInterest'],
+  vehicleInterest: ['vehicle'],
+  emergency_name: ['emergencyName'],
+  emergencyName: ['emergency_name'],
+  emergency_phone: ['emergencyPhone'],
+  emergencyPhone: ['emergency_phone'],
+  emergency_relationship: ['emergencyRelation'],
+  emergencyRelation: ['emergency_relationship']
+};
+
+function firstClientValue(c, fields) {
+  for (var i = 0; i < fields.length; i++) {
+    var v = c[fields[i]];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return '';
+}
+
+function syncClientAliasFields(c, field, value) {
+  c[field] = value;
+  (CLIENT_FIELD_ALIASES[field] || []).forEach(function(alias) { c[alias] = value; });
+}
+
+function buildClientFieldPatch(field, value) {
+  var patch = {};
+  patch[field] = value;
+  (CLIENT_FIELD_ALIASES[field] || []).forEach(function(alias) { patch[alias] = value; });
+  return patch;
+}
+
 function updateClientField(clientId, field, value) {
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
   var oldVal = c[field] || '';
-  c[field] = value;
+  syncClientAliasFields(c, field, value);
   c.lastActive = new Date().toISOString();
+  c.updatedAt = c.lastActive;
   saveClients(clients);
   /* Sync edit to cloud API */
-  var patch = {};
-  patch[field] = value;
+  var patch = buildClientFieldPatch(field, value);
+  patch.lastActive = c.lastActive;
+  patch.updatedAt = c.updatedAt;
   fetch(HIRECAR_API + '/api/clients/' + clientId, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
@@ -2274,7 +2317,7 @@ function startInlineEdit(clientId, field, el) {
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
   var currentVal = c[field] || '';
-  var longTextFields = ['funding_email_details','report_access_details','bank_result_notes'];
+  var longTextFields = ['funding_email_details','report_access_details','bank_result_notes','pifrPlanMembers'];
   var input = document.createElement(longTextFields.indexOf(field) !== -1 ? 'textarea' : 'input');
   input.className = 'inline-edit';
   if (longTextFields.indexOf(field) !== -1) {
@@ -2370,13 +2413,83 @@ function stripDemoClients(clients) {
   return clients.filter(function(c) { return !isDemoClientRecord(c); });
 }
 
+function normalizeClientRecord(c) {
+  if (!c) return c;
+  c.name = firstClientValue(c, ['name','preferredName']) || '';
+  c.preferredName = firstClientValue(c, ['preferredName','name']);
+  c.email = c.email || '';
+  c.caseNumber = c.caseNumber || '';
+  c.pin = c.pin || '';
+  c.program = c.program || 'Credit Repair';
+  c.stage = c.stage || 'Intake & Document Collection';
+  c.status = c.status || 'Active';
+  c.legalName = firstClientValue(c, ['legalName','fullLegalName','full_legal_name']);
+  c.city_state = firstClientValue(c, ['city_state','cityState']);
+  c.job_title = firstClientValue(c, ['job_title','jobTitle']);
+  c.jobTitle = c.job_title;
+  c.employment_duration = firstClientValue(c, ['employment_duration','tenure']);
+  c.tenure = c.employment_duration;
+  c.monthly_income = firstClientValue(c, ['monthly_income','monthlyIncome']);
+  c.monthlyIncome = c.monthly_income;
+  c.vehicle = firstClientValue(c, ['vehicle','vehicleInterest']);
+  c.vehicleInterest = c.vehicle;
+  c.emergency_name = firstClientValue(c, ['emergency_name','emergencyName']);
+  c.emergencyName = c.emergency_name;
+  c.emergency_phone = firstClientValue(c, ['emergency_phone','emergencyPhone']);
+  c.emergencyPhone = c.emergency_phone;
+  c.emergency_relationship = firstClientValue(c, ['emergency_relationship','emergencyRelation']);
+  c.emergencyRelation = c.emergency_relationship;
+  c.createdAt = firstClientValue(c, ['createdAt','created_at','memberSince','lastActive','updatedAt']);
+  c.lastActive = firstClientValue(c, ['lastActive','updatedAt','createdAt','memberSince']);
+  c.updatedAt = c.updatedAt || c.lastActive || c.createdAt || '';
+  c.scores = c.scores || {};
+  c.scores.eq = c.scores.eq || c.scores.equifax || 0;
+  c.scores.ex = c.scores.ex || c.scores.experian || 0;
+  c.scores.tu = c.scores.tu || c.scores.transunion || 0;
+  c.messages = Array.isArray(c.messages) ? c.messages : [];
+  c.documents = Array.isArray(c.documents) ? c.documents : [];
+  c.fundingRequests = Array.isArray(c.fundingRequests) ? c.fundingRequests : [];
+  c.creditReports = Array.isArray(c.creditReports) ? c.creditReports : [];
+  return c;
+}
+
+function normalizeClientList(clients) {
+  return stripDemoClients(clients).map(normalizeClientRecord).filter(function(c) { return c && (c.name || c.email || c.caseNumber); });
+}
+
+function clientRecordTimestamp(c) {
+  var fields = ['updatedAt','lastActive','createdAt','created_at','memberSince'];
+  for (var i = 0; i < fields.length; i++) {
+    if (!c || !c[fields[i]]) continue;
+    var t = new Date(c[fields[i]]).getTime();
+    if (!isNaN(t)) return t;
+  }
+  return 0;
+}
+
+function clientAddedTimestamp(c) {
+  var fields = ['createdAt','created_at','memberSince'];
+  for (var i = 0; i < fields.length; i++) {
+    if (!c || !c[fields[i]]) continue;
+    var t = new Date(c[fields[i]]).getTime();
+    if (!isNaN(t)) return t;
+  }
+  return clientRecordTimestamp(c);
+}
+
 function cleanupDemoClients() {
   var raw = [];
   try { raw = JSON.parse(localStorage.getItem(CLIENTS_KEY) || '[]'); } catch (e) { raw = []; }
-  var cleaned = stripDemoClients(raw);
-  if (cleaned.length !== raw.length) {
+  var rawJson = '';
+  var cleanedJson = '';
+  try { rawJson = JSON.stringify(raw); } catch (e) {}
+  var cleaned = normalizeClientList(raw);
+  try { cleanedJson = JSON.stringify(cleaned); } catch (e) {}
+  if (cleaned.length !== raw.length || rawJson !== cleanedJson) {
     try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(cleaned)); } catch (e) {}
-    addActivity('Removed ' + (raw.length - cleaned.length) + ' demo client record' + ((raw.length - cleaned.length) === 1 ? '' : 's') + ' from Client Management', 'amber');
+    if (cleaned.length !== raw.length) {
+      addActivity('Removed ' + (raw.length - cleaned.length) + ' demo client record' + ((raw.length - cleaned.length) === 1 ? '' : 's') + ' from Client Management', 'amber');
+    }
   }
   return cleaned;
 }
@@ -2392,17 +2505,46 @@ function deleteDemoClientFromCloud(id) {
 function loadClients() {
   try {
     var raw = localStorage.getItem(CLIENTS_KEY);
-    if (raw) return stripDemoClients(JSON.parse(raw));
+    if (raw) return normalizeClientList(JSON.parse(raw));
   } catch (e) {}
   return [];
 }
 
 function saveClients(clients) {
-  try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(stripDemoClients(clients))); } catch (e) {}
+  try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(normalizeClientList(clients))); } catch (e) {}
 }
 
 /* ========== CLOUD SYNC (KV API) ========== */
 var _syncInProgress = false;
+var CLIENT_SYNC_FIELDS = ['name','preferredName','legalName','email','phone','dob','address','city_state','zip',
+  'employer','job_title','employment_duration','monthly_income','vehicle','vin',
+  'emergency_name','emergency_phone','emergency_relationship','caseNumber','pin','memberSince',
+  'program','stage','status','funding_email_username','funding_email_details',
+  'report_access_status','report_access_details','ssn_funding_status','bnpl_status',
+  'bnpl_approved_amount','client_review_status','score_model','report_last_updated',
+  'fico_scores','fico_auto_score_average','fico_score_8','fico_real_estate_rental_score',
+  'pifrPlan','pifrPlanMembers','clientSource','clientSourceLabel','source','createdAt'];
+
+function mergeRemoteClientFields(localClient, remoteClient) {
+  var remoteIsNewer = clientRecordTimestamp(remoteClient) > clientRecordTimestamp(localClient);
+  var updated = false;
+  CLIENT_SYNC_FIELDS.forEach(function(f) {
+    var remoteVal = remoteClient[f];
+    if (remoteVal === undefined || remoteVal === null || String(remoteVal).trim() === '') return;
+    if (remoteIsNewer || !localClient[f]) {
+      syncClientAliasFields(localClient, f, remoteVal);
+      updated = true;
+    }
+  });
+  if (remoteClient.scores && (remoteIsNewer || !localClient.scores)) {
+    localClient.scores = remoteClient.scores;
+    updated = true;
+  }
+  if (remoteIsNewer && remoteClient.updatedAt) localClient.updatedAt = remoteClient.updatedAt;
+  if (remoteIsNewer && remoteClient.lastActive) localClient.lastActive = remoteClient.lastActive;
+  normalizeClientRecord(localClient);
+  return updated;
+}
 
 function syncFromCloud(callback) {
   if (_syncInProgress) { if (callback) callback(); return; }
@@ -2421,6 +2563,7 @@ function syncFromCloud(callback) {
     var updatedCount = 0;
     data.clients.forEach(function(remote) {
       if (!remote || !remote.email) return;
+      remote = normalizeClientRecord(remote);
       if (isDemoClientRecord(remote)) {
         deleteDemoClientFromCloud(remote.id);
         return;
@@ -2428,22 +2571,8 @@ function syncFromCloud(callback) {
       var rEmail = remote.email.toLowerCase();
       // Check if already in local by id
       if (localMap[remote.id]) {
-        // Merge: update local fields from remote if remote has newer data
         var l = localMap[remote.id];
-        var mergeFields = ['name','preferredName','phone','dob','address','employer','jobTitle',
-          'tenure','monthlyIncome','vehicleInterest','vin','emergencyName','emergencyPhone',
-          'emergencyRelation','caseNumber','memberSince','funding_email_username','funding_email_details',
-          'score_model','report_last_updated','fico_scores','fico_auto_score_average','fico_score_8','fico_real_estate_rental_score','createdAt','source'];
-        var updated = false;
-        mergeFields.forEach(function(f) {
-          if ((f === 'funding_email_username' || f === 'funding_email_details') && remote[f] !== undefined && remote[f] !== l[f]) {
-            l[f] = remote[f];
-            updated = true;
-          } else if (remote[f] && !l[f]) {
-            l[f] = remote[f];
-            updated = true;
-          }
-        });
+        var updated = mergeRemoteClientFields(l, remote);
         if (updated) updatedCount++;
         return;
       }
@@ -2451,18 +2580,7 @@ function syncFromCloud(callback) {
       if (localEmailMap[rEmail]) {
         var l2 = localEmailMap[rEmail];
         l2.id = remote.id; // sync to cloud ID
-        var mergeFields2 = ['name','preferredName','phone','dob','address','employer','jobTitle',
-          'tenure','monthlyIncome','vehicleInterest','vin','emergencyName','emergencyPhone',
-          'emergencyRelation','caseNumber','memberSince','funding_email_username','funding_email_details',
-          'score_model','report_last_updated','fico_scores','fico_auto_score_average','fico_score_8','fico_real_estate_rental_score','createdAt','source'];
-        mergeFields2.forEach(function(f) {
-          if ((f === 'funding_email_username' || f === 'funding_email_details') && remote[f] !== undefined && remote[f] !== l2[f]) {
-            l2[f] = remote[f];
-          } else if (remote[f] && !l2[f]) {
-            l2[f] = remote[f];
-          }
-        });
-        updatedCount++;
+        if (mergeRemoteClientFields(l2, remote)) updatedCount++;
         return;
       }
       // Truly new client from portal signup — add to local
@@ -3162,6 +3280,98 @@ function uploadPifrDocument(input, mid, docType) {
     });
 }
 
+function renderClientDocumentUploadSection(c, sid) {
+  var memberId = c.caseNumber || c.id;
+  var html = '<div class="detail-section" style="margin-top:12px;">';
+  html += '<h4>Client Document Uploads</h4>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">';
+  PIFR_DOC_TYPES.forEach(function(t) {
+    html += '<div style="background:var(--cream);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;">';
+    html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">';
+    html += '<div><div style="font-size:12px;font-weight:700;color:var(--ink);">' + escapeHtml(t.label) + '</div><div id="client-doc-status-' + sid + '-' + t.id + '" style="font-size:10px;color:rgba(240,242,247,.45);margin-top:2px;">Checking files...</div></div>';
+    html += '<label style="background:rgba(42,107,184,.14);border:1px solid rgba(42,107,184,.35);color:#60a5fa;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;">Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" style="display:none" onchange="uploadClientDocument(this,\'' + c.id + '\',\'' + sid + '\',\'' + t.id + '\')"></label>';
+    html += '</div><div id="client-doc-list-' + sid + '-' + t.id + '" style="margin-top:8px;display:flex;flex-direction:column;gap:5px;"></div>';
+    html += '</div>';
+  });
+  html += '</div><div style="font-size:11px;color:var(--muted);margin-top:8px;">Documents save under this client profile for admin review and presentation.</div>';
+  html += '</div>';
+  return html;
+}
+
+function loadClientDocuments(clientId, sid) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  var memberId = c.caseNumber || c.id;
+  fetch('/api/upload?memberId=' + encodeURIComponent(memberId))
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var files = d.files || [];
+      PIFR_DOC_TYPES.forEach(function(t) {
+        var localRows = (c.documents || []).filter(function(doc) { return doc.docType === t.id || doc.type === pifrDocLabel(t.id); });
+        var cloudRows = files.filter(function(f) { return f.docType === t.id; });
+        var rows = cloudRows.concat(localRows);
+        var statusEl = document.getElementById('client-doc-status-' + sid + '-' + t.id);
+        var listEl = document.getElementById('client-doc-list-' + sid + '-' + t.id);
+        if (statusEl) statusEl.textContent = rows.length ? rows.length + ' file' + (rows.length === 1 ? '' : 's') + ' uploaded' : 'No file uploaded';
+        if (!listEl) return;
+        listEl.innerHTML = rows.map(function(f) {
+          var name = f.name || ((f.key || '').split('/').pop()) || 'Document';
+          if (f.key) return '<a href="/api/upload?key=' + encodeURIComponent(f.key) + '" target="_blank" rel="noreferrer" style="font-size:11px;color:var(--cyan);text-decoration:none;word-break:break-all;">' + escapeHtml(name) + '</a>';
+          return '<span style="font-size:11px;color:var(--cyan);word-break:break-all;">' + escapeHtml(name) + '</span>';
+        }).join('');
+      });
+    })
+    .catch(function() {
+      PIFR_DOC_TYPES.forEach(function(t) {
+        var localRows = (c.documents || []).filter(function(doc) { return doc.docType === t.id || doc.type === pifrDocLabel(t.id); });
+        var statusEl = document.getElementById('client-doc-status-' + sid + '-' + t.id);
+        var listEl = document.getElementById('client-doc-list-' + sid + '-' + t.id);
+        if (statusEl) statusEl.textContent = localRows.length ? localRows.length + ' file' + (localRows.length === 1 ? '' : 's') + ' uploaded' : 'No file uploaded';
+        if (listEl) listEl.innerHTML = localRows.map(function(f) { return '<span style="font-size:11px;color:var(--cyan);word-break:break-all;">' + escapeHtml(f.name || 'Document') + '</span>'; }).join('');
+      });
+    });
+}
+
+function uploadClientDocument(input, clientId, sid, docType) {
+  var file = input && input.files && input.files[0];
+  if (!file || !clientId || !docType) return;
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  var memberId = c.caseNumber || c.id;
+  var label = pifrDocLabel(docType);
+  var statusEl = document.getElementById('client-doc-status-' + sid + '-' + docType);
+  if (statusEl) statusEl.textContent = 'Uploading ' + file.name + '...';
+  var doc = { id: generateId(), name: file.name, type: label, docType: docType, status: 'Pending', uploadedAt: new Date().toISOString(), url: '' };
+  c.documents = c.documents || [];
+  c.documents.push(doc);
+  c.lastActive = new Date().toISOString();
+  c.updatedAt = c.lastActive;
+  saveClients(clients);
+  updateClientInCloud(c.id, { documents: c.documents, lastActive: c.lastActive, updatedAt: c.updatedAt });
+
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('memberId', memberId);
+  fd.append('docType', docType);
+  fd.append('metadata', JSON.stringify({ label: label, source: 'admin-client-profile', clientId: c.id, uploadedBy: currentAdmin ? currentAdmin.name : 'admin' }));
+  fetch('/api/upload', { method: 'POST', body: fd })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+      if (!res.ok || !res.data.success) throw new Error(res.data.error || 'Upload failed');
+      showToast(label + ' saved for ' + c.name, 'success');
+      input.value = '';
+      loadClientDocuments(clientId, sid);
+    })
+    .catch(function(err) {
+      if (statusEl) statusEl.textContent = 'Saved locally; cloud upload failed';
+      showToast(label + ' saved locally; upload failed: ' + err.message, 'error');
+      input.value = '';
+      loadClientDocuments(clientId, sid);
+    });
+}
+
 function renderClients() {
   var clients = loadClients();
   var search = (document.getElementById('client-search').value || '').toLowerCase();
@@ -3171,12 +3381,20 @@ function renderClients() {
 
   var filtered = clients.filter(function(c) {
     var sourceText = (c.clientSourceLabel || c.clientSource || '').toLowerCase();
-    if (search && c.name.toLowerCase().indexOf(search) === -1 && c.email.toLowerCase().indexOf(search) === -1 && c.caseNumber.toLowerCase().indexOf(search) === -1 && sourceText.indexOf(search) === -1) return false;
+    var nameText = (c.name || '').toLowerCase();
+    var emailText = (c.email || '').toLowerCase();
+    var caseText = (c.caseNumber || '').toLowerCase();
+    if (search && nameText.indexOf(search) === -1 && emailText.indexOf(search) === -1 && caseText.indexOf(search) === -1 && sourceText.indexOf(search) === -1) return false;
     if (filterStatus && c.status !== filterStatus) return false;
     if (filterProgram && c.program !== filterProgram) return false;
     if (filterStage && c.stage !== filterStage) return false;
     return true;
-  });
+  }).map(function(c, i) {
+    return { client: c, index: i };
+  }).sort(function(a, b) {
+    var diff = clientAddedTimestamp(b.client) - clientAddedTimestamp(a.client);
+    return diff || (b.index - a.index);
+  }).map(function(row) { return row.client; });
 
   var tbody = document.getElementById('client-tbody');
   if (filtered.length === 0) {
@@ -3225,6 +3443,14 @@ function renderClients() {
     }
   });
   tbody.innerHTML = html;
+  if (expandedClientId) {
+    var expanded = filtered.find(function(c) { return c.id === expandedClientId; });
+    if (expanded) {
+      setTimeout(function() {
+        loadClientDocuments(expanded.id, String(expanded.id || '').replace(/[^a-zA-Z0-9_-]/g, '_'));
+      }, 50);
+    }
+  }
 }
 
 function filterClients() { renderClients(); }
@@ -3240,18 +3466,21 @@ function toggleClientDetail(clientId) {
 function buildClientDetailHtml(c) {
   var avg = calcAvgScore(c);
   var cid = c.id;
+  var sid = String(cid || '').replace(/[^a-zA-Z0-9_-]/g, '_');
   var h = '<div class="client-detail-panel visible">';
   h += '<div class="detail-grid">';
 
   /* ---- Column 1: Client Profile ---- */
   h += '<div class="detail-section">';
   h += '<h4>Client Profile</h4>';
-  h += '<div class="detail-row"><span class="detail-label">Preferred Name</span><span class="detail-val">' + escapeHtml(c.name) + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Preferred Name</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'name\',this)">' + escapeHtml(c.name || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Full Legal Name</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'legalName\',this)" style="color:#f87171;font-weight:600;">' + escapeHtml(c.legalName || '--- Click to set ---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val">' + escapeHtml(c.email) + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Case #</span><span class="detail-val" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.caseNumber) + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">PIN</span><span class="detail-val" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.pin) + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Program</span><span class="detail-val">' + escapeHtml(c.program) + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'email\',this)">' + escapeHtml(c.email || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Case #</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'caseNumber\',this)" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.caseNumber || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">PIN</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'pin\',this)" style="font-family:\'Share Tech Mono\',monospace;">' + escapeHtml(c.pin || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Program</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'program\',this)">' + escapeHtml(c.program || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">PIFR Plan</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'pifrPlan\',this)">' + escapeHtml(c.pifrPlan || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Under Plan</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'pifrPlanMembers\',this)">' + escapeHtml(c.pifrPlanMembers || (c.pifrCoveredMembers && c.pifrCoveredMembers.length ? c.pifrCoveredMembers.join(', ') : '---')) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Created</span><span class="detail-val">' + formatDate(c.createdAt) + '</span></div>';
   h += '</div>';
 
@@ -3267,27 +3496,32 @@ function buildClientDetailHtml(c) {
 
   /* ---- Column 3: Credit Scores ---- */
   h += '<div class="detail-section">';
-  h += '<h4>Credit Scores</h4>';
+  h += '<h4>FICO Credit Scores</h4>';
   h += '<div class="scores-row">';
-  h += '<div class="score-box"><div class="sb-bureau">Equifax</div><div class="sb-val">' + (c.scores.eq || '---') + '</div></div>';
-  h += '<div class="score-box"><div class="sb-bureau">Experian</div><div class="sb-val">' + (c.scores.ex || '---') + '</div></div>';
-  h += '<div class="score-box"><div class="sb-bureau">TransUnion</div><div class="sb-val">' + (c.scores.tu || '---') + '</div></div>';
-  h += '<div class="score-box"><div class="sb-bureau">Average</div><div class="sb-val" style="color:var(--cyan);">' + (avg || '---') + '</div></div>';
+  h += '<div class="score-box"><div class="sb-bureau">FICO Equifax</div><div class="sb-val">' + (c.scores.eq || '---') + '</div></div>';
+  h += '<div class="score-box"><div class="sb-bureau">FICO Experian</div><div class="sb-val">' + (c.scores.ex || '---') + '</div></div>';
+  h += '<div class="score-box"><div class="sb-bureau">FICO TransUnion</div><div class="sb-val">' + (c.scores.tu || '---') + '</div></div>';
+  h += '<div class="score-box"><div class="sb-bureau">FICO Average</div><div class="sb-val" style="color:var(--cyan);">' + (avg || '---') + '</div></div>';
   h += '</div>';
-  h += '<div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Vantage Scores<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'score_model\',this.value)" style="margin-top:6px;"><option value=""' + (!c.score_model ? ' selected' : '') + '>Select model</option><option value="VantageScore 3.0"' + (c.score_model === 'VantageScore 3.0' ? ' selected' : '') + '>VantageScore 3.0</option><option value="VantageScore 4.0"' + (c.score_model === 'VantageScore 4.0' ? ' selected' : '') + '>VantageScore 4.0</option><option value="VantageScore 4plus"' + (c.score_model === 'VantageScore 4plus' ? ' selected' : '') + '>VantageScore 4plus</option></select></label>';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Date Report Last Updated<input class="form-input" type="date" value="' + escapeHtml(c.report_last_updated || '') + '" onchange="updateClientField(\'' + cid + '\',\'report_last_updated\',this.value)" style="margin-top:6px;"></label>';
+  h += '<div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Equifax<input class="form-input" type="number" min="300" max="850" id="client-score-eq-' + sid + '" value="' + escapeHtml(c.scores.eq || '') + '" placeholder="---" style="margin-top:6px;"></label>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Experian<input class="form-input" type="number" min="300" max="850" id="client-score-ex-' + sid + '" value="' + escapeHtml(c.scores.ex || '') + '" placeholder="---" style="margin-top:6px;"></label>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO TransUnion<input class="form-input" type="number" min="300" max="850" id="client-score-tu-' + sid + '" value="' + escapeHtml(c.scores.tu || '') + '" placeholder="---" style="margin-top:6px;"></label>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Date Updated<input class="form-input" type="date" id="client-report-date-' + sid + '" value="' + escapeHtml(c.report_last_updated || '') + '" style="margin-top:6px;"></label>';
   h += '</div>';
   h += '<div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;">';
-  h += '<div class="detail-row"><span class="detail-label">FICO Scores</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'fico_scores\',this)">' + escapeHtml(c.fico_scores || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">FICO Auto Score Average</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'fico_auto_score_average\',this)">' + escapeHtml(c.fico_auto_score_average || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">FICO Score 8</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'fico_score_8\',this)">' + escapeHtml(c.fico_score_8 || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">FICO Real Estate/Rental</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'fico_real_estate_rental_score\',this)">' + escapeHtml(c.fico_real_estate_rental_score || '---') + '</span></div>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Vantage Scores<select class="form-select" id="client-score-model-' + sid + '" style="margin-top:6px;"><option value=""' + (!c.score_model ? ' selected' : '') + '>Select model</option><option value="VantageScore 3.0"' + (c.score_model === 'VantageScore 3.0' ? ' selected' : '') + '>VantageScore 3.0</option><option value="VantageScore 4.0"' + (c.score_model === 'VantageScore 4.0' ? ' selected' : '') + '>VantageScore 4.0</option><option value="VantageScore 4plus"' + (c.score_model === 'VantageScore 4plus' ? ' selected' : '') + '>VantageScore 4plus</option></select></label>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Scores<input class="form-input" type="text" id="client-fico-scores-' + sid + '" value="' + escapeHtml(c.fico_scores || '') + '" placeholder="e.g. 716 / 716 / 716" style="margin-top:6px;"></label>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Auto Score Avg<input class="form-input" type="number" min="300" max="900" id="client-fico-auto-' + sid + '" value="' + escapeHtml(c.fico_auto_score_average || '') + '" placeholder="---" style="margin-top:6px;"></label>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Score 8<input class="form-input" type="number" min="300" max="900" id="client-fico-8-' + sid + '" value="' + escapeHtml(c.fico_score_8 || '') + '" placeholder="---" style="margin-top:6px;"></label>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Real Estate/Rental<input class="form-input" type="number" min="300" max="900" id="client-fico-rental-' + sid + '" value="' + escapeHtml(c.fico_real_estate_rental_score || '') + '" placeholder="---" style="margin-top:6px;"></label>';
   h += '</div>';
   h += '<div style="margin-top:10px;">';
+  h += '<button class="btn btn-sm btn-success" onclick="saveClientProfileScores(\'' + cid + '\',\'' + sid + '\')">Save FICO Scores</button> ';
   h += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + cid + '\')">Update Scores</button>';
   h += ' <button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + cid + '\')">Send Message</button>';
   h += ' <button class="btn btn-sm btn-success" onclick="openMeetingPromptForClient(\'' + cid + '\')">Meeting Invite</button>';
+  h += '<div id="client-score-save-status-' + sid + '" style="font-size:11px;color:var(--muted);margin-top:6px;">Enter or update FICO score inputs, then save.</div>';
   h += '</div>';
   var meetings = getMeetingHistory(c.caseNumber || c.id);
   var next = meetings.filter(function(m){ return new Date(m.startIso) > new Date() && m.action !== 'cancel'; }).sort(function(a,b){return new Date(a.startIso)-new Date(b.startIso);})[0];
@@ -3396,6 +3630,8 @@ function buildClientDetailHtml(c) {
 
   h += '</div>';
 
+  h += renderClientDocumentUploadSection(c, sid);
+
   if (c.documents && c.documents.length > 0) {
     h += '<div class="detail-section" style="margin-top:12px;">';
     h += '<h4>Uploaded Documents (' + c.documents.length + ')</h4>';
@@ -3498,7 +3734,9 @@ function updateClientStatus(clientId, status) {
   if (!c) return;
   c.status = status;
   c.lastActive = new Date().toISOString();
+  c.updatedAt = c.lastActive;
   saveClients(clients);
+  updateClientInCloud(c.id, { status: c.status, lastActive: c.lastActive, updatedAt: c.updatedAt });
   addActivity('Status updated to "' + status + '" for ' + c.name, 'blue');
   showToast('Status updated to ' + status, 'success');
   renderClients();
@@ -3510,7 +3748,9 @@ function updateClientStage(clientId, stage) {
   if (!c) return;
   c.stage = stage;
   c.lastActive = new Date().toISOString();
+  c.updatedAt = c.lastActive;
   saveClients(clients);
+  updateClientInCloud(c.id, { stage: c.stage, lastActive: c.lastActive, updatedAt: c.updatedAt });
   addActivity('Stage updated to "' + stage + '" for ' + c.name, 'blue');
   showToast('Stage updated to ' + stage, 'success');
   renderClients();
@@ -3522,7 +3762,10 @@ function updateClientNotes(clientId, notes) {
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
   c.notes = notes;
+  c.lastActive = new Date().toISOString();
+  c.updatedAt = c.lastActive;
   saveClients(clients);
+  updateClientInCloud(c.id, { notes: c.notes, lastActive: c.lastActive, updatedAt: c.updatedAt });
 }
 
 function deleteClient(clientId) {
@@ -3602,6 +3845,7 @@ function addNewClient() {
 
   clients.push(client);
   saveClients(clients);
+  pushClientToCloud(client);
   closeModal('modal-add-client');
   addActivity('New client "' + name + '" added by ' + currentAdmin.name, 'green');
   showToast('Client "' + name + '" created successfully', 'success');
@@ -3675,7 +3919,9 @@ function convertOldSeedXchangeClient(clientId) {
   c.program = 'Full Suite';
   c.stage = 'Onboarding';
   c.lastActive = new Date().toISOString();
+  c.updatedAt = c.lastActive;
   saveClients(clients);
+  updateClientInCloud(c.id, { convertedFromSeedXchange: c.convertedFromSeedXchange, convertibleToFullClient: c.convertibleToFullClient, clientSourceLabel: c.clientSourceLabel, program: c.program, stage: c.stage, lastActive: c.lastActive, updatedAt: c.updatedAt });
   addActivity('Converted old SeedXchange client to full client: ' + c.name, 'green');
   showToast('Converted to full client: ' + c.name, 'success');
   renderClients();
@@ -3707,6 +3953,47 @@ function setScoreUploadStatus(text, type) {
   if (!el) return;
   el.textContent = text;
   el.style.color = type === 'error' ? 'var(--error)' : (type === 'success' ? 'var(--success)' : 'var(--muted)');
+}
+
+function normalizeScoreNumber(value, max) {
+  var n = parseInt(value, 10) || 0;
+  if (!n) return 0;
+  if (n < 300 || n > (max || 850)) return null;
+  return n;
+}
+
+function persistClientScores(clientId, fields, sourceLabel) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return null;
+  c.scores = {
+    eq: fields.eq || 0,
+    ex: fields.ex || 0,
+    tu: fields.tu || 0
+  };
+  c.score_model = fields.score_model || '';
+  c.report_last_updated = fields.report_last_updated || '';
+  c.fico_scores = fields.fico_scores || '';
+  c.fico_auto_score_average = fields.fico_auto_score_average || '';
+  c.fico_score_8 = fields.fico_score_8 || '';
+  c.fico_real_estate_rental_score = fields.fico_real_estate_rental_score || '';
+  c.lastActive = new Date().toISOString();
+  c.updatedAt = c.lastActive;
+  saveClients(clients);
+  syncScoresToClientPortal(c);
+  updateClientInCloud(c.id, {
+    scores: c.scores,
+    score_model: c.score_model,
+    report_last_updated: c.report_last_updated,
+    fico_scores: c.fico_scores,
+    fico_auto_score_average: c.fico_auto_score_average,
+    fico_score_8: c.fico_score_8,
+    fico_real_estate_rental_score: c.fico_real_estate_rental_score,
+    lastActive: c.lastActive,
+    updatedAt: c.updatedAt
+  });
+  addActivity((sourceLabel || 'FICO scores') + ' saved for ' + c.name, 'amber');
+  return c;
 }
 
 function loadPdfJsForScores() {
@@ -3849,9 +4136,9 @@ function uploadScoreReport(input) {
 
 function saveModalScores() {
   if (!scoreModalClientId) return;
-  var eq = parseInt(document.getElementById('modal-score-eq').value) || 0;
-  var ex = parseInt(document.getElementById('modal-score-ex').value) || 0;
-  var tu = parseInt(document.getElementById('modal-score-tu').value) || 0;
+  var eq = normalizeScoreNumber(document.getElementById('modal-score-eq').value, 850);
+  var ex = normalizeScoreNumber(document.getElementById('modal-score-ex').value, 850);
+  var tu = normalizeScoreNumber(document.getElementById('modal-score-tu').value, 850);
   var scoreModel = document.getElementById('modal-score-model').value || '';
   var reportLastUpdated = document.getElementById('modal-report-last-updated').value || '';
   var ficoScores = document.getElementById('modal-fico-scores').value.trim();
@@ -3859,39 +4146,60 @@ function saveModalScores() {
   var ficoScore8 = document.getElementById('modal-fico-score-8').value.trim();
   var ficoRealEstateRentalScore = document.getElementById('modal-fico-real-estate-rental-score').value.trim();
 
-  if ((eq && (eq < 300 || eq > 850)) || (ex && (ex < 300 || ex > 850)) || (tu && (tu < 300 || tu > 850))) {
+  if (eq === null || ex === null || tu === null) {
     showToast('Scores must be between 300 and 850', 'error');
     return;
   }
 
-  var clients = loadClients();
-  var c = clients.find(function(x) { return x.id === scoreModalClientId; });
+  var c = persistClientScores(scoreModalClientId, {
+    eq: eq,
+    ex: ex,
+    tu: tu,
+    score_model: scoreModel,
+    report_last_updated: reportLastUpdated,
+    fico_scores: ficoScores,
+    fico_auto_score_average: ficoAutoScoreAverage,
+    fico_score_8: ficoScore8,
+    fico_real_estate_rental_score: ficoRealEstateRentalScore
+  }, 'FICO scores');
   if (!c) return;
 
-  c.scores = { eq: eq, ex: ex, tu: tu };
-  c.score_model = scoreModel;
-  c.report_last_updated = reportLastUpdated;
-  c.fico_scores = ficoScores;
-  c.fico_auto_score_average = ficoAutoScoreAverage;
-  c.fico_score_8 = ficoScore8;
-  c.fico_real_estate_rental_score = ficoRealEstateRentalScore;
-  c.lastActive = new Date().toISOString();
-  saveClients(clients);
-  syncScoresToClientPortal(c);
-  updateClientInCloud(c.id, {
-    scores: c.scores,
-    score_model: c.score_model,
-    report_last_updated: c.report_last_updated,
-    fico_scores: c.fico_scores,
-    fico_auto_score_average: c.fico_auto_score_average,
-    fico_score_8: c.fico_score_8,
-    fico_real_estate_rental_score: c.fico_real_estate_rental_score
-  });
-
   closeModal('modal-update-scores');
-  addActivity('Scores updated for ' + c.name + ': EQ=' + (eq || '---') + ' EX=' + (ex || '---') + ' TU=' + (tu || '---'), 'amber');
-  showToast('Scores updated and synced to client portal', 'success');
+  showToast('FICO score inputs saved and synced', 'success');
   renderClients();
+  renderDashboard();
+}
+
+function saveClientProfileScores(clientId, sid) {
+  var eq = normalizeScoreNumber((document.getElementById('client-score-eq-' + sid) || {}).value, 850);
+  var ex = normalizeScoreNumber((document.getElementById('client-score-ex-' + sid) || {}).value, 850);
+  var tu = normalizeScoreNumber((document.getElementById('client-score-tu-' + sid) || {}).value, 850);
+  var ficoAuto = normalizeScoreNumber((document.getElementById('client-fico-auto-' + sid) || {}).value, 900);
+  var fico8 = normalizeScoreNumber((document.getElementById('client-fico-8-' + sid) || {}).value, 900);
+  var ficoRental = normalizeScoreNumber((document.getElementById('client-fico-rental-' + sid) || {}).value, 900);
+  var statusEl = document.getElementById('client-score-save-status-' + sid);
+  if (eq === null || ex === null || tu === null || ficoAuto === null || fico8 === null || ficoRental === null) {
+    if (statusEl) { statusEl.textContent = 'Scores must be between 300 and 850. FICO specialty scores can be up to 900.'; statusEl.style.color = 'var(--error)'; }
+    showToast('Check score ranges before saving', 'error');
+    return;
+  }
+  var c = persistClientScores(clientId, {
+    eq: eq,
+    ex: ex,
+    tu: tu,
+    score_model: (document.getElementById('client-score-model-' + sid) || {}).value || '',
+    report_last_updated: (document.getElementById('client-report-date-' + sid) || {}).value || '',
+    fico_scores: ((document.getElementById('client-fico-scores-' + sid) || {}).value || '').trim(),
+    fico_auto_score_average: ficoAuto || '',
+    fico_score_8: fico8 || '',
+    fico_real_estate_rental_score: ficoRental || ''
+  }, 'FICO score inputs');
+  if (!c) return;
+  if (statusEl) {
+    statusEl.textContent = 'Saved ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    statusEl.style.color = 'var(--success)';
+  }
+  showToast('FICO score inputs saved', 'success');
   renderDashboard();
 }
 
@@ -6254,6 +6562,8 @@ window.updateClientNotes = updateClientNotes;
 window.deleteClient = deleteClient;
 window.openScoreModal = openScoreModal;
 window.saveModalScores = saveModalScores;
+window.saveClientProfileScores = saveClientProfileScores;
+window.uploadClientDocument = uploadClientDocument;
 window.saveManualScores = saveManualScores;
 window.openMsgModal = openMsgModal;
 window.sendModalMessage = sendModalMessage;
