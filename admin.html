@@ -1128,6 +1128,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
             <label>Import From</label>
             <select class="form-select" id="funding-import-source" onchange="populateFundingImportOptions()">
               <option value="clients">Client Management</option>
+              <option value="funding_ready">Funding Ready Clients</option>
               <option value="pifr">PIFR Enrollments</option>
             </select>
           </div>
@@ -4143,6 +4144,12 @@ function getFundingPifrRows() {
   catch (e) { return []; }
 }
 
+function isFundingReadyClient(c) {
+  var stage = String((c && c.stage) || '').toLowerCase();
+  var program = String((c && c.program) || '').toLowerCase();
+  return stage === 'funding ready' || program === 'funding ready' || stage.indexOf('funding ready') !== -1;
+}
+
 function populateFundingImportOptions() {
   var source = document.getElementById('funding-import-source');
   var select = document.getElementById('funding-import-select');
@@ -4153,7 +4160,12 @@ function populateFundingImportOptions() {
       html += '<option value="' + escapeHtml(e.mid || '') + '">' + escapeHtml(((e.fname || '') + ' ' + (e.lname || '')).trim() || e.email || e.mid) + ' - ' + escapeHtml(e.mid || '') + '</option>';
     });
   } else {
-    loadClients().forEach(function(c) {
+    var clients = loadClients();
+    if (source.value === 'funding_ready') clients = clients.filter(isFundingReadyClient);
+    if (source.value === 'funding_ready' && clients.length === 0) {
+      html += '<option value="" disabled>No funding-ready clients found</option>';
+    }
+    clients.forEach(function(c) {
       html += '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.name || c.email || c.id) + ' - ' + escapeHtml(c.caseNumber || c.id) + '</option>';
     });
   }
@@ -4170,6 +4182,7 @@ function fundingSelectedRecord() {
     return e ? { source: source, enrollment: e } : null;
   }
   var c = loadClients().find(function(x) { return x.id === id; });
+  if (source === 'funding_ready' && c && !isFundingReadyClient(c)) return null;
   return c ? { source: source, client: c } : null;
 }
 
