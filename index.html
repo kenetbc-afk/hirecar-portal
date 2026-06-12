@@ -5867,6 +5867,127 @@ function sendCoachMsg(){
     }
   }
 
+  function pifrClientEscape(value){
+    return String(value == null ? '' : value)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  function pifrClientMemberList(value){
+    if(!value)return[];
+    if(Array.isArray(value))return value.map(function(v){return typeof v==='string'?v.trim():(v&&v.name?v.name:'');}).filter(Boolean);
+    var raw=String(value).trim();
+    if(!raw)return[];
+    try{
+      var parsed=JSON.parse(raw);
+      if(Array.isArray(parsed))return pifrClientMemberList(parsed);
+    }catch(e){}
+    return raw.split(/\n|,/).map(function(v){return v.trim();}).filter(Boolean);
+  }
+
+  function pifrClientLane(row){
+    if(row&&row.lane)return row.lane==='tld'?'Tenant/Landlord':'PIFR';
+    var plan=String(row&&row.plan||'').toLowerCase();
+    return (plan.indexOf('claim')!==-1||plan.indexOf('tld')!==-1||plan.indexOf('deposit')!==-1)?'Tenant/Landlord':'PIFR';
+  }
+
+  function pifrClientStatusLabel(status){
+    var map={in_progress:'In Progress',new:'New',active:'Active',completed:'Completed',complete:'Complete',abandoned:'Abandoned'};
+    return map[status]||status||'New';
+  }
+
+  function pifrClientPlanMembers(row){
+    if(!row)return'';
+    var explicit=pifrClientMemberList(row.plan_members);
+    if(explicit.length)return explicit.join(', ');
+    var names=[];
+    var primary=String(row.primary_member||[row.fname,row.lname].filter(Boolean).join(' ')||'').trim();
+    if(primary)names.push(primary);
+    pifrClientMemberList(row.covered_members).forEach(function(name){if(names.indexOf(name)===-1)names.push(name);});
+    return names.join(', ');
+  }
+
+  function renderClientPifrEnrollment(row){
+    if(!row)return;
+    var setText=function(id,value){
+      var el=document.getElementById(id);
+      if(el)el.textContent=value||'—';
+    };
+    var memberId=row.member_id||row.mid||'';
+    var price=row.plan_price?(' · $'+row.plan_price+(pifrClientLane(row)==='PIFR'?'/mo':'')):'';
+    setText('pifr-my-mid',memberId);
+    setText('pifr-my-plan',(row.plan||'—')+price);
+    setText('pifr-my-lane',pifrClientLane(row));
+    setText('pifr-my-status',pifrClientStatusLabel(row.status));
+    setText('pifr-my-xp',(row.xp||0)+' XP'+(row.level?(' · '+row.level):''));
+
+    var detailRows=[
+      ['Primary Member',row.primary_member||[row.fname,row.lname].filter(Boolean).join(' ')],
+      ['Under Plan',pifrClientPlanMembers(row)],
+      ['Dependent Count',row.dependent_count],
+      ['Email',row.email],
+      ['Phone',row.phone],
+      ['Score / Type',row.score_range||row.tld_type],
+      ['State / ZIP',[row.state,row.zip].filter(Boolean).join(' ')],
+      ['Assigned To',row.assigned_to],
+      ['Goal',row.goal],
+      ['Timeline',row.timeline],
+      ['Issues',row.issues],
+      ['Bureaus',row.bureaus],
+      ['Channels',row.channels]
+    ].filter(function(r){return r[1]!==undefined&&r[1]!==null&&String(r[1]).trim()!=='';});
+
+    var details=document.getElementById('pifr-my-details');
+    if(details){
+      details.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">'
+        + detailRows.map(function(r){
+          return '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px 12px">'
+            + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">'+pifrClientEscape(r[0])+'</div>'
+            + '<div style="font-size:13px;color:var(--text);line-height:1.4">'+pifrClientEscape(r[1])+'</div>'
+            + '</div>';
+        }).join('')
+        + '</div>';
+    }
+
+    var timeline=document.getElementById('pifr-my-timeline');
+    if(timeline&&row.timeline){
+      timeline.innerHTML='<div style="font-size:13px;color:var(--text);line-height:1.6">'+pifrClientEscape(row.timeline).replace(/\n/g,'<br>')+'</div>';
+    }
+  }
+
+  function fetchPifrEnrollment(query){
+    if(!query)return Promise.resolve(null);
+    return fetch('https://hirecar-portal.pages.dev/api/pifr-enroll?'+query+'&archived=all')
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(data){return data&&data.enrollments&&data.enrollments[0]||null;});
+  }
+
+  function loadClientPifrEnrollment(seed){
+    seed=seed||{};
+    var params=new URLSearchParams(window.location.search||'');
+    var email=normalizeEmail(seed.email||params.get('email')||localStorage.getItem('hirecar_email')||'');
+    var mid=String(seed.mid||params.get('mid')||params.get('member_id')||params.get('client_id')||localStorage.getItem('hirecar_case')||localStorage.getItem('hirecar_caseNumber')||localStorage.getItem('hirecar_client_id')||'').trim();
+    var first=mid?fetchPifrEnrollment('member_id='+encodeURIComponent(mid)):Promise.resolve(null);
+    return first.then(function(row){
+      if(row)return row;
+      return email?fetchPifrEnrollment('email='+encodeURIComponent(email)):null;
+    }).then(function(row){
+      if(row){
+        applyPortalIdentity({
+          email:row.email,
+          memberId:row.member_id,
+          fname:row.fname,
+          lname:row.lname
+        });
+        renderClientPifrEnrollment(row);
+      }
+      return row;
+    }).catch(function(e){console.warn('[HIRECAR] PIFR profile lookup failed:',e);return null;});
+  }
+
   function loadInboundPortalIdentity(){
     try{
       var params=new URLSearchParams(window.location.search||'');
@@ -5875,37 +5996,7 @@ function sendCoachMsg(){
       if(email||mid){
         applyPortalIdentity({email:email,memberId:mid});
       }
-      if(mid){
-        fetch('https://hirecar-portal.pages.dev/api/pifr-enroll?member_id='+encodeURIComponent(mid)+'&archived=all')
-          .then(function(r){return r.ok?r.json():null;})
-          .then(function(data){
-            var row=data&&data.enrollments&&data.enrollments[0];
-            if(row){
-              applyPortalIdentity({
-                email:row.email,
-                memberId:row.member_id,
-                fname:row.fname,
-                lname:row.lname
-              });
-            }
-          })
-          .catch(function(e){console.warn('[HIRECAR] PIFR profile lookup failed:',e);});
-      }else if(email){
-        fetch('https://hirecar-portal.pages.dev/api/pifr-enroll?email='+encodeURIComponent(email)+'&archived=all')
-          .then(function(r){return r.ok?r.json():null;})
-          .then(function(data){
-            var row=data&&data.enrollments&&data.enrollments[0];
-            if(row){
-              applyPortalIdentity({
-                email:row.email,
-                memberId:row.member_id,
-                fname:row.fname,
-                lname:row.lname
-              });
-            }
-          })
-          .catch(function(e){console.warn('[HIRECAR] PIFR profile lookup failed:',e);});
-      }
+      loadClientPifrEnrollment({email:email,mid:mid});
     }catch(e){
       console.warn('[HIRECAR] Inbound portal identity ignored:',e);
     }
@@ -5921,6 +6012,7 @@ function sendCoachMsg(){
     }
     errEl.textContent='';
     applyPortalIdentity({email:email});
+    loadClientPifrEnrollment({email:email});
 
     /* ===== GENERATE UNIQUE CLIENT IDENTIFIERS (first-time onboarding) ===== */
     if(!localStorage.getItem('hirecar_case')){

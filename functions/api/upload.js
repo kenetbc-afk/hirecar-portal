@@ -5,7 +5,9 @@
  * Accepts multipart/form-data with:
  *   - file: the uploaded file (image or PDF)
  *   - memberId: PIFR member ID or client ID
- *   - docType: "id-front" | "id-back" | "credit-report" | "dispute-doc" | "general"
+ *   - docType: "id-front" | "id-back" | "driver-license-front" | "driver-license-back"
+ *              | "utility-bill" | "second-id" | "client-docs" | "business-details"
+ *              | "credit-report" | "dispute-doc" | "general"
  *   - metadata: optional JSON string with extra context
  *
  * Stores to R2 bucket (DOCS_BUCKET) with path: {memberId}/{docType}/{timestamp}_{filename}
@@ -50,7 +52,19 @@ export async function onRequestPost(context) {
     }
 
     // Validate doc type
-    const validTypes = ['id-front', 'id-back', 'credit-report', 'dispute-doc', 'general'];
+    const validTypes = [
+      'id-front',
+      'id-back',
+      'driver-license-front',
+      'driver-license-back',
+      'utility-bill',
+      'second-id',
+      'client-docs',
+      'business-details',
+      'credit-report',
+      'dispute-doc',
+      'general',
+    ];
     if (!validTypes.includes(docType)) {
       return new Response(JSON.stringify({ error: 'Invalid docType. Valid: ' + validTypes.join(', ') }), {
         status: 400, headers: cors

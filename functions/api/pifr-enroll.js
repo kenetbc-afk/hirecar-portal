@@ -1,7 +1,54 @@
 // Cloudflare Pages Function — /api/pifr-enroll
 // Receives enrollment data from hirecar-pifr-enrollment.pages.dev
 // Stores in KV (PIFR_ENROLLMENTS) + D1 (pifr_enrollments) for persistence
-// Supports GET (list), POST (create), PATCH (update status)
+// Supports GET (list), POST (create), PATCH (admin edits/status)
+
+const PIFR_COL_MAP = {
+  fname: 'fname',
+  lname: 'lname',
+  email: 'email',
+  phone: 'phone',
+  lane: 'lane',
+  plan: 'plan',
+  planPrice: 'plan_price',
+  plan_price: 'plan_price',
+  scoreRange: 'score_range',
+  score_range: 'score_range',
+  issues: 'issues',
+  goal: 'goal',
+  timeline: 'timeline',
+  bureaus: 'bureaus',
+  channels: 'channels',
+  profileScore: 'profile_score',
+  profile_score: 'profile_score',
+  xp: 'xp',
+  level: 'level',
+  status: 'status',
+  notes: 'notes',
+  calDate: 'cal_date',
+  cal_date: 'cal_date',
+  calTime: 'cal_time',
+  cal_time: 'cal_time',
+  calMonth: 'cal_month',
+  cal_month: 'cal_month',
+  calYear: 'cal_year',
+  cal_year: 'cal_year',
+  state: 'state',
+  zip: 'zip',
+  assigned_to: 'assigned_to',
+  primaryMember: 'primary_member',
+  primary_member: 'primary_member',
+  coveredMembers: 'covered_members',
+  covered_members: 'covered_members',
+  planMembers: 'plan_members',
+  plan_members: 'plan_members',
+  dependentCount: 'dependent_count',
+  dependent_count: 'dependent_count',
+  email_day0_sent: 'email_day0_sent',
+  email_day0_opened: 'email_day0_opened',
+  email_day1_sent: 'email_day1_sent',
+  email_day1_opened: 'email_day1_opened',
+};
 
 export async function onRequestPost(context) {
   const cors = {
@@ -46,21 +93,11 @@ export async function onRequestPost(context) {
         resolvedId = existing.id;
         action = 'updated';
         // Build dynamic UPDATE — only touch fields the client supplied.
-        const colMap = {
-          fname:'fname', lname:'lname', email:'email', phone:'phone',
-          plan:'plan', planPrice:'plan_price', scoreRange:'score_range',
-          issues:'issues', goal:'goal', timeline:'timeline',
-          bureaus:'bureaus', channels:'channels',
-          profileScore:'profile_score', xp:'xp', level:'level',
-          status:'status', notes:'notes',
-          calDate:'cal_date', calTime:'cal_time', calMonth:'cal_month', calYear:'cal_year',
-          state:'state', zip:'zip'
-        };
         const sets = [];
         const vals = [];
-        for (const k in colMap) {
+        for (const k in PIFR_COL_MAP) {
           if (data[k] !== undefined && data[k] !== null && data[k] !== '') {
-            sets.push(colMap[k] + ' = ?');
+            sets.push(PIFR_COL_MAP[k] + ' = ?');
             vals.push(data[k]);
           }
         }
@@ -83,8 +120,9 @@ export async function onRequestPost(context) {
         await context.env.DB.prepare(`
           INSERT INTO pifr_enrollments (id, member_id, fname, lname, email, phone, plan, plan_price,
             score_range, issues, goal, timeline, bureaus, channels, profile_score, xp, level,
-            status, cal_date, cal_time, cal_month, cal_year, state, zip, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            status, cal_date, cal_time, cal_month, cal_year, state, zip, notes, lane,
+            primary_member, covered_members, plan_members, dependent_count)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           resolvedId, data.mid, data.fname || '', data.lname || '', data.email, data.phone || '',
           data.plan || '', data.planPrice || '', data.scoreRange || '', data.issues || '',
@@ -92,7 +130,9 @@ export async function onRequestPost(context) {
           data.profileScore || 0, data.xp || 0, data.level || '',
           data.status || 'new',
           data.calDate || null, data.calTime || null, data.calMonth || null, data.calYear || null,
-          data.state || '', data.zip || '', data.notes || ''
+          data.state || '', data.zip || '', data.notes || '', data.lane || '',
+          data.primaryMember || data.primary_member || '', data.coveredMembers || data.covered_members || '',
+          data.planMembers || data.plan_members || '', data.dependentCount || data.dependent_count || 0
         ).run();
 
         await context.env.DB.prepare(
@@ -212,14 +252,11 @@ export async function onRequestPatch(context) {
       rowId = found.id;
     }
 
-    // Build dynamic SET clause
-    const allowed = ['status', 'assigned_to', 'notes', 'email_day0_sent', 'email_day0_opened',
-      'email_day1_sent', 'email_day1_opened'];
     const sets = [];
     const vals = [];
-    for (const key of allowed) {
+    for (const key in PIFR_COL_MAP) {
       if (data[key] !== undefined) {
-        sets.push(key + ' = ?');
+        sets.push(PIFR_COL_MAP[key] + ' = ?');
         vals.push(data[key]);
       }
     }
@@ -245,12 +282,18 @@ export async function onRequestPatch(context) {
       'UPDATE pifr_enrollments SET ' + sets.join(', ') + ' WHERE id = ?'
     ).bind(...vals).run();
 
-    // Log the status change
+    // Log admin edits/status changes
     if (data.status) {
       await context.env.DB.prepare(
         'INSERT INTO pifr_activity_log (enrollment_id, action, actor, details) VALUES (?, ?, ?, ?)'
       ).bind(rowId, 'status_changed', data.actor || 'admin', JSON.stringify({
         new_status: data.status, notes: data.notes || ''
+      })).run();
+    } else if (sets.length) {
+      await context.env.DB.prepare(
+        'INSERT INTO pifr_activity_log (enrollment_id, action, actor, details) VALUES (?, ?, ?, ?)'
+      ).bind(rowId, 'admin_edit', data.actor || 'admin', JSON.stringify({
+        fields: Object.keys(data).filter(k => PIFR_COL_MAP[k])
       })).run();
     }
 

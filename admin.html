@@ -961,6 +961,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
                 <th>Email</th>
                 <th>Case #</th>
                 <th>Program</th>
+                <th>PIFR Plan</th>
+                <th>Under Plan</th>
                 <th>Stage</th>
                 <th>Score (Avg)</th>
                 <th>Status</th>
@@ -1205,6 +1207,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
                 <th>Name</th>
                 <th>Lane</th>
                 <th>Plan</th>
+                <th>Under Plan</th>
                 <th>Price</th>
                 <th>Score / Type</th>
                 <th>Call</th>
@@ -2649,6 +2652,171 @@ function renderDashboard() {
 }
 
 /* ========== CLIENTS ========== */
+function normalizePifrMemberList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map(function(v) {
+      if (typeof v === 'string') return v.trim();
+      if (v && typeof v === 'object') return (v.name || v.fullName || v.email || '').trim();
+      return '';
+    }).filter(Boolean);
+  }
+  var raw = String(value).trim();
+  if (!raw) return [];
+  try {
+    var parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return normalizePifrMemberList(parsed);
+  } catch (e) {}
+  return raw.split(/\n|,/).map(function(v) { return v.trim(); }).filter(Boolean);
+}
+
+function getPifrPrimaryMember(e) {
+  return (e && (e.primaryMember || e.primary_member)) || (((e && e.fname) || '') + ' ' + ((e && e.lname) || '')).trim();
+}
+
+function getPifrCoveredMembers(e) {
+  if (!e) return [];
+  return normalizePifrMemberList(e.coveredMembers || e.covered_members);
+}
+
+function getPifrPlanMembersText(e) {
+  if (!e) return '—';
+  var explicit = e.planMembers || e.plan_members;
+  if (explicit) {
+    var explicitList = normalizePifrMemberList(explicit);
+    if (explicitList.length) return explicitList.join(', ');
+    return String(explicit);
+  }
+  var names = [];
+  var primary = getPifrPrimaryMember(e);
+  if (primary) names.push(primary);
+  getPifrCoveredMembers(e).forEach(function(name) {
+    if (names.indexOf(name) === -1) names.push(name);
+  });
+  return names.length ? names.join(', ') : '—';
+}
+
+function findClientForPifr(e) {
+  if (!e) return null;
+  var clients = loadClients();
+  var mid = e.mid || e.member_id || e.pifrMemberId;
+  var email = (e.email || '').toLowerCase();
+  return clients.find(function(c) {
+    return (mid && (c.pifrMemberId === mid || c.caseNumber === mid || c.portalClientId === mid)) ||
+      (email && (c.email || '').toLowerCase() === email);
+  }) || null;
+}
+
+function applyPifrFieldsToClient(client, e) {
+  var primary = getPifrPrimaryMember(e);
+  var covered = getPifrCoveredMembers(e);
+  client.program = e.plan || client.program || 'PIFR';
+  client.pifrPlan = e.plan || '';
+  client.pifrPlanPrice = e.planPrice || '';
+  client.pifrLane = e.lane || 'pifr';
+  client.pifrMemberId = e.mid || '';
+  client.pifrPrimaryMember = primary || client.name || '';
+  client.pifrCoveredMembers = covered;
+  client.pifrPlanMembers = getPifrPlanMembersText(e);
+  client.pifrEnrollmentStatus = e.status || '';
+  client.pifrDependentCount = e.dependentCount || e.dependent_count || covered.length || 0;
+  client.clientSource = 'pifr_enrollment';
+  client.clientSourceLabel = 'PIFR Enrollment';
+  client.convertedFromPifr = true;
+  client.pifrConvertible = false;
+  client.convertibleToFullClient = false;
+  client.lastActive = new Date().toISOString();
+}
+
+var PIFR_DOC_TYPES = [
+  { id: 'driver-license-front', label: 'Driver License Front' },
+  { id: 'driver-license-back', label: 'Driver License Back' },
+  { id: 'utility-bill', label: 'Utility Bill' },
+  { id: 'second-id', label: 'Second Form of ID' },
+  { id: 'client-docs', label: 'Other Client Documents' },
+  { id: 'business-details', label: 'Client Business Details' }
+];
+
+function pifrDocLabel(docType) {
+  var found = PIFR_DOC_TYPES.find(function(t) { return t.id === docType; });
+  return found ? found.label : docType;
+}
+
+function renderPifrUploadSection(mid) {
+  var html = '<div style="margin-top:16px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid rgba(34,211,238,.1)">Client Uploads</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px">';
+  PIFR_DOC_TYPES.forEach(function(t) {
+    html += '<div style="background:var(--cream);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px">';
+    html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">';
+    html += '<div><div style="font-size:12px;font-weight:700;color:var(--ink)">' + escapeHtml(t.label) + '</div><div id="pifr-doc-status-' + t.id + '" style="font-size:10px;color:rgba(240,242,247,.45);margin-top:2px">Checking files...</div></div>';
+    html += '<label style="background:rgba(42,107,184,.14);border:1px solid rgba(42,107,184,.35);color:#60a5fa;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" style="display:none" onchange="uploadPifrDocument(this,\'' + mid + '\',\'' + t.id + '\')"></label>';
+    html += '</div><div id="pifr-doc-list-' + t.id + '" style="margin-top:8px;display:flex;flex-direction:column;gap:5px"></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function loadPifrDocuments(mid) {
+  if (!mid) return;
+  fetch('/api/upload?memberId=' + encodeURIComponent(mid))
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var files = d.files || [];
+      PIFR_DOC_TYPES.forEach(function(t) {
+        var rows = files.filter(function(f) { return f.docType === t.id; });
+        var statusEl = document.getElementById('pifr-doc-status-' + t.id);
+        var listEl = document.getElementById('pifr-doc-list-' + t.id);
+        if (statusEl) statusEl.textContent = rows.length ? rows.length + ' file' + (rows.length === 1 ? '' : 's') + ' uploaded' : 'No file uploaded';
+        if (!listEl) return;
+        if (!rows.length) {
+          listEl.innerHTML = '';
+          return;
+        }
+        listEl.innerHTML = rows.map(function(f) {
+          var name = (f.key || '').split('/').pop() || 'Document';
+          return '<a href="/api/upload?key=' + encodeURIComponent(f.key) + '" target="_blank" rel="noreferrer" style="font-size:11px;color:var(--cyan);text-decoration:none;word-break:break-all">' + escapeHtml(name) + '</a>';
+        }).join('');
+      });
+    })
+    .catch(function() {
+      PIFR_DOC_TYPES.forEach(function(t) {
+        var statusEl = document.getElementById('pifr-doc-status-' + t.id);
+        if (statusEl) statusEl.textContent = 'Unable to load files';
+      });
+    });
+}
+
+function uploadPifrDocument(input, mid, docType) {
+  var file = input && input.files && input.files[0];
+  if (!file || !mid || !docType) return;
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('memberId', mid);
+  fd.append('docType', docType);
+  fd.append('metadata', JSON.stringify({
+    label: pifrDocLabel(docType),
+    source: 'admin-pifr',
+    uploadedBy: currentAdmin ? currentAdmin.name : 'admin'
+  }));
+  var statusEl = document.getElementById('pifr-doc-status-' + docType);
+  if (statusEl) statusEl.textContent = 'Uploading ' + file.name + '...';
+  fetch('/api/upload', { method: 'POST', body: fd })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+      if (!res.ok || !res.data.success) throw new Error(res.data.error || 'Upload failed');
+      pifrLog({ type: 'upload', mid: mid, text: pifrDocLabel(docType) + ' uploaded: ' + file.name, by: currentAdmin ? currentAdmin.name : 'admin' });
+      showToast(pifrDocLabel(docType) + ' uploaded', 'success');
+      input.value = '';
+      loadPifrDocuments(mid);
+      renderPifrLogs();
+    })
+    .catch(function(err) {
+      if (statusEl) statusEl.textContent = 'Upload failed';
+      showToast('Upload failed: ' + err.message, 'error');
+    });
+}
+
 function renderClients() {
   var clients = loadClients();
   var search = (document.getElementById('client-search').value || '').toLowerCase();
@@ -2667,7 +2835,7 @@ function renderClients() {
 
   var tbody = document.getElementById('client-tbody');
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px;">No clients found. Click "Add New Client" to get started.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:32px;">No clients found. Click "Add New Client" to get started.</td></tr>';
     document.getElementById('client-detail-container').innerHTML = '';
     return;
   }
@@ -2682,6 +2850,8 @@ function renderClients() {
     html += '<td style="font-family:\'Share Tech Mono\',monospace;font-size:12px;">' + escapeHtml(c.caseNumber) + '</td>';
     var sourceBadge = c.clientSourceLabel ? ' <span class="badge badge-blue" style="font-size:9px;">' + escapeHtml(c.clientSourceLabel) + '</span>' : '';
     html += '<td>' + escapeHtml(c.program) + sourceBadge + '</td>';
+    html += '<td style="font-size:12px;">' + escapeHtml(c.pifrPlan || '—') + (c.pifrMemberId ? '<div style="font-family:\'Share Tech Mono\',monospace;font-size:10px;color:var(--cyan);margin-top:2px">' + escapeHtml(c.pifrMemberId) + '</div>' : '') + '</td>';
+    html += '<td style="font-size:11px;color:var(--muted);max-width:180px;">' + escapeHtml(c.pifrPlanMembers || (c.pifrCoveredMembers && c.pifrCoveredMembers.length ? c.pifrCoveredMembers.join(', ') : '—')) + '</td>';
     html += '<td><span class="stage-badge ' + stageBadgeClass(c.stage) + '">' + escapeHtml(c.stage) + '</span></td>';
     html += '<td style="font-weight:600;color:var(--amber);">' + (avg > 0 ? avg : '---') + '</td>';
     var meetings = getMeetingHistory(c.caseNumber || c.id);
@@ -2703,7 +2873,7 @@ function renderClients() {
     html += '</td></tr>';
 
     if (isExpanded) {
-      html += '<tr><td colspan="10" style="padding:0;">';
+      html += '<tr><td colspan="12" style="padding:0;">';
       html += buildClientDetailHtml(c);
       html += '</td></tr>';
     }
@@ -4820,7 +4990,7 @@ function renderPifrTable() {
     if (lane !== 'all' && (e.lane || 'pifr') !== lane) return false;
     if (status !== 'all' && e.status !== status) return false;
     if (search) {
-      var hay = ((e.fname||'') + ' ' + (e.lname||'') + ' ' + (e.email||'') + ' ' + (e.mid||'')).toLowerCase();
+      var hay = ((e.fname||'') + ' ' + (e.lname||'') + ' ' + (e.email||'') + ' ' + (e.mid||'') + ' ' + (e.plan||'') + ' ' + getPifrPlanMembersText(e)).toLowerCase();
       if (hay.indexOf(search) === -1) return false;
     }
     return true;
@@ -4843,7 +5013,8 @@ function renderPifrTable() {
       'complete': '<span class="inline-badge" style="background:rgba(184,144,40,.1);color:#b89028">Complete</span>',
       'new': '<span class="inline-badge" style="background:rgba(96,165,250,.1);color:#60a5fa">New</span>',
       'active': '<span class="inline-badge" style="background:rgba(52,211,153,.1);color:#34d399">Active</span>',
-      'completed': '<span class="inline-badge" style="background:rgba(184,144,40,.1);color:#b89028">Completed</span>'
+      'completed': '<span class="inline-badge" style="background:rgba(184,144,40,.1);color:#b89028">Completed</span>',
+      'abandoned': '<span class="inline-badge" style="background:rgba(248,113,113,.12);color:#f87171">Abandoned</span>'
     }[e.status] || '<span class="inline-badge" style="background:rgba(96,165,250,.1);color:#60a5fa">New</span>';
     var callInfo = e.calDate && e.calTime ? e.calTime : '<span style="color:rgba(240,242,247,.3)">—</span>';
     var scoreOrType = isTld ? (e.tld_type || '—') : (e.scoreRange || '—');
@@ -4889,12 +5060,17 @@ function renderPifrTable() {
       ? '<div style="font-size:11px">' + stepLine + '</div><div style="font-size:10px;color:rgba(240,242,247,.4);margin-top:2px">last seen ' + (ago || '—') + '</div>'
       : (e.enrolledAt ? '<div style="font-size:11px">' + new Date(e.enrolledAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}) + '</div>' : '—');
     var meetingsCell = meetingLine ? meetingLine.replace('<div style="font-size:10px;color:rgba(52,211,153,.85);margin-top:2px">','').replace('</div>','') : '—';
+    var linkedClient = findClientForPifr(e);
+    var clientAction = linkedClient
+      ? '<button onclick="event.stopPropagation();openClientFromPifr(\'' + e.mid + '\')" title="Open linked client" style="background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.3);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-right:6px">View Client</button>'
+      : '<button onclick="event.stopPropagation();convertPifrEnrollmentToClient(\'' + e.mid + '\')" title="Add to Client Management" style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-right:6px">Add to Clients</button>';
 
     return '<tr onclick="showPifrDetail(\'' + e.mid + '\')" style="cursor:pointer">' +
       '<td><code style="font-family:\'Share Tech Mono\',monospace;color:var(--cyan);font-weight:700">' + (e.mid || '—') + '</code></td>' +
       '<td>' + (e.fname || '') + ' ' + (e.lname || '') + '<br><span style="font-size:10px;color:rgba(240,242,247,.4)">' + (e.email || '') + '</span></td>' +
       '<td>' + laneBadge + '</td>' +
       '<td style="font-size:12px">' + (e.plan || '—') + '</td>' +
+      '<td style="font-size:11px;color:var(--muted);max-width:180px">' + escapeHtml(getPifrPlanMembersText(e)) + '</td>' +
       '<td style="font-family:\'Share Tech Mono\',monospace;font-weight:700">$' + (e.planPrice || 0) + (isTld ? '' : '/mo') + '</td>' +
       '<td style="font-size:12px">' + scoreOrType + '</td>' +
       '<td style="font-size:11px">' + callInfo + '</td>' +
@@ -4909,7 +5085,7 @@ function renderPifrTable() {
         '<option value="complete"' + (e.status === 'complete' ? ' selected' : '') + '>Complete</option>' +
         '<option value="abandoned"' + (e.status === 'abandoned' ? ' selected' : '') + '>Abandoned</option>' +
       '</select>' +
-      ((e.convertible_to_client || e.pifrConvertible) ? '<button onclick="event.stopPropagation();convertPifrEnrollmentToClient(\'' + e.mid + '\')" title="Convert to client" style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-right:6px">Convert</button>' : '') +
+      clientAction +
       (e.archived_at
         ? '<button onclick="event.stopPropagation();restorePifrEnrollment(\'' + e.mid + '\')" title="Restore" style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">Restore</button>'
         : '<button onclick="event.stopPropagation();archivePifrEnrollment(\'' + e.mid + '\')" title="Archive" style="background:rgba(166,168,172,.12);color:#a6a8ac;border:1px solid rgba(166,168,172,.3);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">Archive</button>'
@@ -4925,23 +5101,21 @@ function convertPifrEnrollmentToClient(mid) {
   var email = (e.email || '').toLowerCase();
   var existing = clients.find(function(c){ return (c.email || '').toLowerCase() === email; });
   if (existing) {
-    existing.program = 'Full Suite';
+    applyPifrFieldsToClient(existing, e);
     existing.stage = 'Onboarding';
     existing.status = 'Active';
-    existing.pifrConvertible = false;
-    existing.convertibleToFullClient = false;
-    existing.convertedFromPifr = true;
-    existing.clientSourceLabel = existing.clientSourceLabel || 'Old SeedXchange Client';
   } else {
-    clients.push({
+    var newClient = {
       id: generateId(), portalClientId: '', name: ((e.fname||'') + ' ' + (e.lname||'')).trim() || email, email: email,
-      phone: e.phone || '', caseNumber: generateCaseNumber(), pin: generatePin(), program: 'Full Suite', stage: 'Onboarding',
+      phone: e.phone || '', caseNumber: e.mid || generateCaseNumber(), pin: generatePin(), program: e.plan || 'PIFR', stage: 'Onboarding',
       scores: { eq: 0, ex: 0, tu: 0 }, status: 'Active', lastActive: new Date().toISOString(), createdAt: new Date().toISOString(),
       notes: 'Converted from PIFR enrollment: ' + mid, dob: '', address: '', city_state: ((e.state || '') + ' ' + (e.zip || '')).trim(), zip: e.zip || '',
       messages: [], documents: [], fundingRequests: [], creditReports: [],
-      clientSource: 'seedx_legacy', clientSourceLabel: 'Old SeedXchange Client',
+      clientSource: 'pifr_enrollment', clientSourceLabel: 'PIFR Enrollment',
       pifrConvertible: false, convertibleToFullClient: false, convertedFromPifr: true
-    });
+    };
+    applyPifrFieldsToClient(newClient, e);
+    clients.push(newClient);
   }
   e.convertible_to_client = false;
   e.pifrConvertible = false;
@@ -4950,6 +5124,20 @@ function convertPifrEnrollmentToClient(mid) {
   pifrLog({ type: 'action', mid: mid, text: 'Converted enrollment into Client Management record', by: 'admin' });
   showToast('PIFR enrollment converted to client', 'success');
   renderPifrSection();
+  renderClients();
+}
+
+function openClientFromPifr(mid) {
+  var e = pifrEnrollments.find(function(x) { return x.mid === mid; });
+  var client = findClientForPifr(e);
+  if (!client) {
+    convertPifrEnrollmentToClient(mid);
+    client = findClientForPifr(e);
+  }
+  if (!client) return;
+  closePifrDetail();
+  expandedClientId = client.id;
+  showSection('clients');
   renderClients();
 }
 
@@ -5087,6 +5275,136 @@ function renderPifrLogs() {
   }).join('');
 }
 
+function pifrAttr(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function pifrEditInput(id, label, value, type) {
+  return '<label style="display:flex;flex-direction:column;gap:5px;font-size:10px;color:rgba(240,242,247,.45);text-transform:uppercase;letter-spacing:.5px">'
+    + label
+    + '<input id="' + id + '" type="' + (type || 'text') + '" value="' + pifrAttr(value || '') + '" style="background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 10px;border-radius:8px;font-size:12px;font-family:inherit;text-transform:none;letter-spacing:0">'
+    + '</label>';
+}
+
+function pifrEditTextarea(id, label, value) {
+  return '<label style="display:flex;flex-direction:column;gap:5px;font-size:10px;color:rgba(240,242,247,.45);text-transform:uppercase;letter-spacing:.5px">'
+    + label
+    + '<textarea id="' + id + '" style="background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 10px;border-radius:8px;font-size:12px;font-family:inherit;min-height:58px;resize:vertical;text-transform:none;letter-spacing:0">' + escapeHtml(value || '') + '</textarea>'
+    + '</label>';
+}
+
+function renderPifrEditSection(e) {
+  var coveredText = getPifrCoveredMembers(e).join('\n');
+  var html = '<div style="margin-top:16px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid rgba(34,211,238,.1);display:flex;justify-content:space-between;align-items:center">'
+    + '<span>Edit Enrollment</span>'
+    + '<button onclick="openClientFromPifr(\'' + e.mid + '\')" style="background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);color:#60a5fa;padding:6px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">' + (findClientForPifr(e) ? 'View Client' : 'Add to Clients') + '</button>'
+    + '</div>';
+  html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;margin-top:10px;display:grid;gap:10px">';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  html += pifrEditInput('pifr-edit-fname', 'First Name', e.fname);
+  html += pifrEditInput('pifr-edit-lname', 'Last Name', e.lname);
+  html += pifrEditInput('pifr-edit-email', 'Email', e.email, 'email');
+  html += pifrEditInput('pifr-edit-phone', 'Phone', e.phone);
+  html += pifrEditInput('pifr-edit-plan', 'Plan', e.plan);
+  html += pifrEditInput('pifr-edit-plan-price', 'Price', e.planPrice, 'number');
+  html += pifrEditInput('pifr-edit-score-range', 'Score / Type', e.scoreRange || e.tld_type);
+  html += pifrEditInput('pifr-edit-assigned-to', 'Assigned To', e.assigned_to || '');
+  html += pifrEditInput('pifr-edit-state', 'State', e.state);
+  html += pifrEditInput('pifr-edit-zip', 'ZIP', e.zip);
+  html += pifrEditInput('pifr-edit-primary-member', 'Primary Member', getPifrPrimaryMember(e));
+  html += pifrEditInput('pifr-edit-dependent-count', 'Dependent Count', e.dependentCount || e.dependent_count || getPifrCoveredMembers(e).length || 0, 'number');
+  html += '</div>';
+  html += '<label style="display:flex;flex-direction:column;gap:5px;font-size:10px;color:rgba(240,242,247,.45);text-transform:uppercase;letter-spacing:.5px">Lane'
+    + '<select id="pifr-edit-lane" style="background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 10px;border-radius:8px;font-size:12px;font-family:inherit;text-transform:none;letter-spacing:0">'
+    + '<option value="pifr"' + ((e.lane || 'pifr') !== 'tld' ? ' selected' : '') + '>PIFR</option>'
+    + '<option value="tld"' + (e.lane === 'tld' ? ' selected' : '') + '>TLD</option>'
+    + '</select></label>';
+  html += '<label style="display:flex;flex-direction:column;gap:5px;font-size:10px;color:rgba(240,242,247,.45);text-transform:uppercase;letter-spacing:.5px">Status'
+    + '<select id="pifr-edit-status" style="background:var(--cream);border:1px solid rgba(255,255,255,.08);color:var(--ink);padding:8px 10px;border-radius:8px;font-size:12px;font-family:inherit;text-transform:none;letter-spacing:0">'
+    + ['in_progress','new','active','completed','complete','abandoned'].map(function(s){ return '<option value="' + s + '"' + ((e.status || 'new') === s ? ' selected' : '') + '>' + s.replace('_',' ') + '</option>'; }).join('')
+    + '</select></label>';
+  html += pifrEditTextarea('pifr-edit-covered-members', 'Members Under Plan (one per line)', coveredText);
+  html += pifrEditTextarea('pifr-edit-issues', 'Issues', e.issues);
+  html += pifrEditTextarea('pifr-edit-goal', 'Goal', e.goal);
+  html += pifrEditTextarea('pifr-edit-timeline', 'Timeline', e.timeline);
+  html += '<button onclick="updatePifrEnrollmentDetails(\'' + e.mid + '\')" style="background:var(--gold);border:none;color:#fff;padding:9px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;justify-self:end">Save Enrollment Details</button>';
+  html += '</div>';
+  return html;
+}
+
+function pifrFieldValue(id) {
+  var el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function updatePifrEnrollmentDetails(mid) {
+  var e = pifrEnrollments.find(function(x) { return x.mid === mid; });
+  if (!e) return;
+  var covered = normalizePifrMemberList(pifrFieldValue('pifr-edit-covered-members'));
+  var primary = pifrFieldValue('pifr-edit-primary-member') || ((pifrFieldValue('pifr-edit-fname') + ' ' + pifrFieldValue('pifr-edit-lname')).trim());
+  var planMembers = [];
+  if (primary) planMembers.push(primary);
+  covered.forEach(function(name) { if (planMembers.indexOf(name) === -1) planMembers.push(name); });
+
+  var updates = {
+    fname: pifrFieldValue('pifr-edit-fname'),
+    lname: pifrFieldValue('pifr-edit-lname'),
+    email: pifrFieldValue('pifr-edit-email'),
+    phone: pifrFieldValue('pifr-edit-phone'),
+    lane: pifrFieldValue('pifr-edit-lane') || 'pifr',
+    plan: pifrFieldValue('pifr-edit-plan'),
+    planPrice: pifrFieldValue('pifr-edit-plan-price'),
+    scoreRange: pifrFieldValue('pifr-edit-score-range'),
+    state: pifrFieldValue('pifr-edit-state'),
+    zip: pifrFieldValue('pifr-edit-zip'),
+    assigned_to: pifrFieldValue('pifr-edit-assigned-to'),
+    primaryMember: primary,
+    coveredMembers: covered.join('\n'),
+    planMembers: planMembers.join('\n'),
+    dependentCount: parseInt(pifrFieldValue('pifr-edit-dependent-count') || covered.length || '0', 10) || 0,
+    status: pifrFieldValue('pifr-edit-status') || e.status || 'new',
+    issues: pifrFieldValue('pifr-edit-issues'),
+    goal: pifrFieldValue('pifr-edit-goal'),
+    timeline: pifrFieldValue('pifr-edit-timeline')
+  };
+
+  Object.keys(updates).forEach(function(key) { e[key] = updates[key]; });
+  e.updated_at = new Date().toISOString();
+  savePifrEnrollments();
+
+  var client = findClientForPifr(e);
+  if (client) {
+    applyPifrFieldsToClient(client, e);
+    var clients = loadClients();
+    var idx = clients.findIndex(function(c) { return c.id === client.id; });
+    if (idx !== -1) {
+      clients[idx] = client;
+      saveClients(clients);
+    }
+  }
+
+  pifrLog({ type: 'edit', mid: mid, text: 'Enrollment details updated', by: currentAdmin ? currentAdmin.name : 'admin' });
+  renderPifrSection();
+  renderClients();
+  showPifrDetail(mid);
+  showToast('PIFR enrollment updated', 'success');
+
+  fetch('/api/pifr-enroll', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ mid: mid, actor: currentAdmin ? currentAdmin.name : 'admin' }, updates))
+  }).then(function(r) {
+    if (!r.ok) throw new Error('Server update failed');
+    return r.json();
+  }).catch(function(err) {
+    showToast('Saved locally, but cloud sync failed: ' + err.message, 'error');
+  });
+}
+
 function showPifrDetail(mid) {
   var e = pifrEnrollments.find(function(x) { return x.mid === mid; });
   if (!e) return;
@@ -5105,6 +5423,8 @@ function showPifrDetail(mid) {
         return '<tr><td style="padding:6px 0;color:rgba(240,242,247,.4);width:140px;vertical-align:top">' + r[0] + '</td><td style="padding:6px 0;color:var(--ink)">' + r[1] + '</td></tr>';
       }).join('') + '</table>';
   }
+
+  html += renderPifrEditSection(e);
 
   // ── PERSONAL INFO ──
   html += section('Personal Information', [
@@ -5239,6 +5559,8 @@ function showPifrDetail(mid) {
     html += section('Referral & Preferences', refRows);
   }
 
+  html += renderPifrUploadSection(mid);
+
   // ── ADMIN NOTES (timestamped) ──
   html += '<div style="margin-top:16px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid rgba(34,211,238,.1);display:flex;justify-content:space-between;align-items:center">'
     + '<span>Admin Notes</span>'
@@ -5270,6 +5592,7 @@ function showPifrDetail(mid) {
 
   document.getElementById('pifr-detail-content').innerHTML = html;
   loadPifrNotes(mid);
+  loadPifrDocuments(mid);
 }
 
 // ── Admin notes (timestamped, per enrollment) ──
@@ -5366,7 +5689,7 @@ function closePifrDetail() {
 // Server is the source of truth for enrollment data; admin overlay adds workflow state.
 function mapApiRowToLocal(row) {
   var planLower = (row.plan || '').toLowerCase();
-  var lane = (planLower.indexOf('claim') !== -1 || planLower.indexOf('tld') !== -1 || planLower.indexOf('deposit') !== -1) ? 'tld' : 'pifr';
+  var lane = row.lane || ((planLower.indexOf('claim') !== -1 || planLower.indexOf('tld') !== -1 || planLower.indexOf('deposit') !== -1) ? 'tld' : 'pifr');
   return {
     mid: row.member_id,
     serverId: row.id,
@@ -5377,6 +5700,10 @@ function mapApiRowToLocal(row) {
     lane: lane,
     plan: row.plan || '',
     planPrice: row.plan_price || '',
+    primaryMember: row.primary_member || '',
+    coveredMembers: row.covered_members || '',
+    planMembers: row.plan_members || '',
+    dependentCount: row.dependent_count || 0,
     scoreRange: row.score_range || '',
     profileScore: row.profile_score || 0,
     xp: row.xp || 0,
@@ -5482,6 +5809,10 @@ window.renderPifrLogs = renderPifrLogs;
 window.refreshPifrData = refreshPifrData;
 window.showPifrDetail = showPifrDetail;
 window.closePifrDetail = closePifrDetail;
+window.updatePifrEnrollmentDetails = updatePifrEnrollmentDetails;
+window.uploadPifrDocument = uploadPifrDocument;
+window.openClientFromPifr = openClientFromPifr;
+window.convertPifrEnrollmentToClient = convertPifrEnrollmentToClient;
 window.updatePifrStatus = updatePifrStatus;
 window.updatePifrStatusWithApproval = updatePifrStatusWithApproval;
 window.archivePifrEnrollment = archivePifrEnrollment;
