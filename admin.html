@@ -1183,6 +1183,91 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
             </select>
           </div>
         </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px;">
+          <div class="form-group">
+            <label>Client Report Access</label>
+            <select class="form-select" id="funding-report-access-status">
+              <option value="Pending">Pending</option>
+              <option value="Requested">Requested</option>
+              <option value="Received">Received</option>
+              <option value="Reviewed">Reviewed</option>
+              <option value="Blocked">Blocked</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>SSN Funding</label>
+            <select class="form-select" id="funding-ssn-status">
+              <option value="Pending">Pending</option>
+              <option value="Needed">Needed</option>
+              <option value="Verified">Verified</option>
+              <option value="Not Required">Not Required</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Client Funding Email</label>
+            <input class="form-input" id="funding-client-email" placeholder="funding inbox / username">
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px;">
+          <div class="form-group">
+            <label>BNPL Decision</label>
+            <select class="form-select" id="funding-bnpl-status">
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Denied">Denied</option>
+              <option value="Not Reviewed">Not Reviewed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>BNPL Approved Amount</label>
+            <input type="number" class="form-input" id="funding-bnpl-approved-amount" min="0" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>Client Review / Approval</label>
+            <select class="form-select" id="funding-client-review-status">
+              <option value="Pending Client Review">Pending Client Review</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Approved">Approved</option>
+              <option value="Denied">Denied</option>
+              <option value="Changes Requested">Changes Requested</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px;">
+          <div class="form-group">
+            <label>Bank Filter</label>
+            <input class="form-input" id="funding-bank-filter-input" oninput="populateFundingBankOptions()" placeholder="Filter bank, bureau, type, docs...">
+          </div>
+          <div class="form-group">
+            <label>Bank / Lender Match</label>
+            <select class="form-select" id="funding-bank-select" onchange="populateFundingBankPrefill()"></select>
+          </div>
+          <div class="form-group">
+            <label>Bank Result Status</label>
+            <select class="form-select" id="funding-bank-result-status">
+              <option value="Not Started">Not Started</option>
+              <option value="Matched">Matched</option>
+              <option value="Applied">Applied</option>
+              <option value="Approved">Approved</option>
+              <option value="Denied">Denied</option>
+              <option value="Needs Docs">Needs Docs</option>
+              <option value="Funded">Funded</option>
+            </select>
+          </div>
+        </div>
+        <div id="funding-bank-prefill-details" style="font-size:12px;color:var(--muted);margin-top:8px;">Select a bank to prefill pull type, bureau, max funding, and document requirements.</div>
+        <div class="form-group" style="margin-top:8px;">
+          <label>Banking Result Notes</label>
+          <textarea class="form-textarea" id="funding-bank-result-notes" placeholder="Application result, offer terms, denial reason, docs needed, follow-up date..."></textarea>
+        </div>
+        <div class="a-card" style="margin-top:10px;margin-bottom:0;padding:12px;background:rgba(255,255,255,.025);">
+          <h4 style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px;">BNPL Preapproval Staging</h4>
+          <div id="funding-bnpl-lender-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;"></div>
+        </div>
+        <div class="form-group" style="margin-top:8px;">
+          <label>Client Report / Access Details</label>
+          <textarea class="form-textarea" id="funding-report-access-details" placeholder="Credit report portal, report date, login/access notes, SSN/funding identifiers, lender package notes..."></textarea>
+        </div>
         <div class="form-group" style="margin-top:8px;">
           <label>Tracking Notes</label>
           <textarea class="form-textarea" id="funding-tracking-notes" placeholder="Application notes, lender conditions, missing documents, next action..."></textarea>
@@ -1193,15 +1278,38 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </div>
       </div>
       <div class="a-card">
+        <div class="form-row" style="grid-template-columns:1fr 180px 180px;margin-bottom:12px;">
+          <div class="form-group">
+            <label>Filter Funding Requests</label>
+            <input class="form-input" id="funding-table-search" oninput="renderFunding()" placeholder="Filter by client, bank, bureau, status, notes...">
+          </div>
+          <div class="form-group">
+            <label>Bank</label>
+            <select class="form-select" id="funding-table-bank-filter" onchange="renderFunding()"></select>
+          </div>
+          <div class="form-group">
+            <label>BNPL</label>
+            <select class="form-select" id="funding-table-bnpl-filter" onchange="renderFunding()">
+              <option value="">All BNPL</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Denied">Denied</option>
+              <option value="Not Reviewed">Not Reviewed</option>
+            </select>
+          </div>
+        </div>
         <div class="a-table-wrap">
           <table class="a-table">
             <thead>
               <tr>
                 <th>Client</th>
+                <th>Bank</th>
                 <th>Amount</th>
                 <th>Purpose</th>
                 <th>Balance Due</th>
                 <th>App Stage</th>
+                <th>BNPL</th>
+                <th>Client Review</th>
                 <th>Submitted</th>
                 <th>Avg Score</th>
                 <th>Status</th>
@@ -2058,6 +2166,10 @@ var PROFILE_FIELD_LABELS = {
   city_state:'City/State', zip:'ZIP Code', employer:'Employer', job_title:'Job Title',
   employment_duration:'Employment Duration', monthly_income:'Monthly Income',
   funding_email_username:'Funding Email Username', funding_email_details:'Funding Email Details',
+  membership_balance_due:'Membership Balance Due', engagement_fee_balance_due:'Engagement Fee Balance Due',
+  report_access_status:'Client Report Access', report_access_details:'Client Report / Access Details',
+  ssn_funding_status:'SSN Funding', bnpl_status:'BNPL Decision',
+  bnpl_approved_amount:'BNPL Approved Amount', client_review_status:'Client Review / Approval',
   score_model:'Vantage Score Model', report_last_updated:'Date Report Last Updated',
   fico_scores:'FICO Scores', fico_auto_score_average:'FICO Auto Score Average',
   fico_score_8:'FICO Score 8', fico_real_estate_rental_score:'FICO Score for Real Estate/Rental',
@@ -2111,9 +2223,10 @@ function startInlineEdit(clientId, field, el) {
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
   var currentVal = c[field] || '';
-  var input = document.createElement(field === 'funding_email_details' ? 'textarea' : 'input');
+  var longTextFields = ['funding_email_details','report_access_details','bank_result_notes'];
+  var input = document.createElement(longTextFields.indexOf(field) !== -1 ? 'textarea' : 'input');
   input.className = 'inline-edit';
-  if (field === 'funding_email_details') {
+  if (longTextFields.indexOf(field) !== -1) {
     input.style.minHeight = '72px';
     input.style.resize = 'vertical';
     input.style.width = '100%';
@@ -2133,7 +2246,7 @@ function startInlineEdit(clientId, field, el) {
 
   input.addEventListener('blur', finishEdit);
   input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && field !== 'funding_email_details') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Enter' && longTextFields.indexOf(field) === -1) { e.preventDefault(); input.blur(); }
     if (e.key === 'Escape') { el.classList.remove('editing'); el.textContent = currentVal || '---'; }
   });
 }
@@ -3010,6 +3123,7 @@ function renderClients() {
     html += '<td onclick="event.stopPropagation();">';
     html += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + c.id + '\')" style="margin-right:4px;" title="Update Scores">Scores</button>';
     html += '<button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + c.id + '\')" title="Send Message">Msg</button>';
+    html += ' <button class="btn btn-sm btn-success" onclick="openFundingFromClient(\'' + c.id + '\')" title="Add to Funding Request" style="margin-left:4px;">Funding</button>';
     if (c.convertibleToFullClient) {
       html += ' <button class="btn btn-sm btn-success" onclick="convertOldSeedXchangeClient(\'' + c.id + '\')" title="Convert to full client" style="margin-left:4px;">Convert</button>';
     }
@@ -3127,6 +3241,28 @@ function buildClientDetailHtml(c) {
   h += '<h4>Client Login Credentials</h4>';
   h += '<div class="detail-row"><span class="detail-label">Funding Email Username</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'funding_email_username\',this)">' + escapeHtml(c.funding_email_username || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Funding Email Details</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'funding_email_details\',this)" style="white-space:pre-wrap;">' + escapeHtml(c.funding_email_details || '---') + '</span></div>';
+  h += '</div>';
+
+  /* ---- Funding Access & Review (editable) ---- */
+  h += '<div class="detail-section">';
+  h += '<h4>Funding Access & Review</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Membership Balance Due</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'membership_balance_due\',this)">' + escapeHtml(c.membership_balance_due || '0') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Engagement Fee Due</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'engagement_fee_balance_due\',this)">' + escapeHtml(c.engagement_fee_balance_due || '0') + '</span></div>';
+  h += '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">Client Report Access<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'report_access_status\',this.value)" style="margin-top:6px;">';
+  ['Pending','Requested','Received','Reviewed','Blocked'].forEach(function(status) { h += '<option value="' + status + '"' + ((c.report_access_status || 'Pending') === status ? ' selected' : '') + '>' + status + '</option>'; });
+  h += '</select></label>';
+  h += '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">SSN Funding<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'ssn_funding_status\',this.value)" style="margin-top:6px;">';
+  ['Pending','Needed','Verified','Not Required'].forEach(function(status) { h += '<option value="' + status + '"' + ((c.ssn_funding_status || 'Pending') === status ? ' selected' : '') + '>' + status + '</option>'; });
+  h += '</select></label>';
+  h += '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">BNPL Decision<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'bnpl_status\',this.value)" style="margin-top:6px;">';
+  ['Pending','Approved','Denied','Not Reviewed'].forEach(function(status) { h += '<option value="' + status + '"' + ((c.bnpl_status || 'Pending') === status ? ' selected' : '') + '>' + status + '</option>'; });
+  h += '</select></label>';
+  h += '<div class="detail-row"><span class="detail-label">BNPL Approved Amount</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'bnpl_approved_amount\',this)">' + escapeHtml(c.bnpl_approved_amount || '0') + '</span></div>';
+  h += '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">Client Review / Approval<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'client_review_status\',this.value)" style="margin-top:6px;">';
+  ['Pending Client Review','Accepted','Approved','Denied','Changes Requested'].forEach(function(status) { h += '<option value="' + status + '"' + ((c.client_review_status || 'Pending Client Review') === status ? ' selected' : '') + '>' + status + '</option>'; });
+  h += '</select></label>';
+  h += '<div class="detail-row"><span class="detail-label">Report / Access Details</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'report_access_details\',this)" style="white-space:pre-wrap;">' + escapeHtml(c.report_access_details || '---') + '</span></div>';
+  h += '<div style="margin-top:10px;"><button class="btn btn-sm btn-success" onclick="openFundingFromClient(\'' + cid + '\')">Add Funding Request</button></div>';
   h += '</div>';
 
   /* ---- Vehicle Info (editable) ---- */
@@ -3946,6 +4082,62 @@ function fundingMoney(value) {
   return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 }
 
+var BNPL_LENDERS = ['Snap Finance','Sezzle','Splitit','Klarna','Affirm','Afterpay'];
+
+var FUNDING_BANK_PULL_LIST = [
+  { bank:'Upgrade', accountType:'Personal Credit Card', maxFunding:'$25,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.upgrade.com/upgrade-card/', notes:'' },
+  { bank:'Marcus by Goldman Sachs', accountType:'Personal Line of Credit', maxFunding:'$40,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.marcus.com/us/en', notes:'Likely unavailable for new applications as of early 2023. Verify availability before applying.' },
+  { bank:'Lending Club', accountType:'Personal Loan', maxFunding:'$40,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.lendingclub.com/personal-loan', notes:'' },
+  { bank:'Prosper', accountType:'Personal Loan', maxFunding:'$40,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.prosper.com/personal-loans', notes:'' },
+  { bank:'Upstart', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.upstart.com/personal-loans', notes:'' },
+  { bank:'Discover', accountType:'Personal Credit Card', maxFunding:'$20,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.discover.com/credit-cards/', notes:'' },
+  { bank:'NASA Federal Credit Union', accountType:'Personal Credit Card', maxFunding:'$30,000', bureaus:'Soft EX/EQ', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.nasafcu.com/apply/credit-card-application', notes:'' },
+  { bank:'VyStar Credit Union', accountType:'Personal Loan', maxFunding:'$30,000', bureaus:'Hard TU', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Unknown', applicationUrl:'https://vystarcu.org/personal/borrow/personal-loans', notes:'' },
+  { bank:'Connexus Credit Union', accountType:'Personal Line of Credit', maxFunding:'$25,000', bureaus:'Hard TU', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.connexuscu.org/loans/personal', notes:'' },
+  { bank:'Navy Federal Credit Union', accountType:'Personal Credit Card', maxFunding:'$80,000', bureaus:'Hard TU', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.navyfederal.org/loans-cards/credit-cards.html', notes:'' },
+  { bank:'LightStream', accountType:'Personal Loan', maxFunding:'$100,000', bureaus:'Hard TU', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'https://www.lightstream.com/', notes:'' },
+  { bank:'Regions Bank', accountType:'Personal Loan', maxFunding:'$35,000', bureaus:'Hard TU', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'https://www.regions.com/personal-banking/personal-loans', notes:'' },
+  { bank:'Happy Money (Payoff Loan)', accountType:'Personal Loan', maxFunding:'$40,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://happymoney.com/payoff-loan', notes:'Updates/replaces previous Payoff entry.' },
+  { bank:'GN Business Rewards Credit Card', accountType:'Business Credit Card', maxFunding:'Limit Varies', bureaus:'Soft TU (Pre-Qualification)', fundingType:'Business Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.gncu.org/business/business-credit-cards/', notes:'Verify intended institution.' },
+  { bank:'Elan Financial (Various Credit Unions)', accountType:'Business Credit Card', maxFunding:'Up to $30,000', bureaus:'Soft TU', fundingType:'Business Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.elanfinancialservices.com/credit-card/what-we-offer/product-suites/business-products.html', notes:'General Elan partner product page.' },
+  { bank:'Christian Community Credit Union (CCCU)', accountType:'Personal and Business Credit', maxFunding:'Up to $10,000 (pre-qual)', bureaus:'Soft TU', fundingType:'Personal and Business Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.mycccu.com/', notes:'' },
+  { bank:'Liberty Federal Credit Union', accountType:'Personal Credit Card', maxFunding:'Up to $25,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.libertyfcu.org/credit/apply', notes:'' },
+  { bank:'Wings Credit Union', accountType:'Personal Credit Card', maxFunding:'Up to $25,000', bureaus:'Soft TU', fundingType:'Personal Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.wingscu.com/loan-applications', notes:'General loan application page.' },
+  { bank:'United States Federal Credit Union (USS FCU)', accountType:'Personal and Business Credit', maxFunding:'Up to $50,000', bureaus:'Soft TU', fundingType:'Personal and Business Funding', pullType:'Soft Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.ussfcu.org/resources/forms-applications.html', notes:'' },
+  { bank:'Universe Financial', accountType:'Business Credit Card', maxFunding:'Up to $20,000', bureaus:'Hard TU', fundingType:'Business Funding', pullType:'Hard Pull', proofOfIncome:'Unknown', applicationUrl:'', notes:'No specific application link in source.' },
+  { bank:'U.S. Bank', accountType:'Business Credit Card', maxFunding:'Up to $30,000', bureaus:'Hard TU', fundingType:'Business Funding', pullType:'Hard Pull', proofOfIncome:'Unknown', applicationUrl:'https://www.usbank.com/business-banking/business-credit-cards.html', notes:'' },
+  { bank:'Dover CU', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'EX', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Connexus CU', accountType:'Personal Credit Card', maxFunding:'$25,000', bureaus:'TU', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'USAA CU', accountType:'Personal Loan', maxFunding:'$100,000', bureaus:'EX', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'First Tech CU', accountType:'Personal Line of Credit', maxFunding:'$35,000', bureaus:'EX', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Spectra CU', accountType:'Personal Line of Credit', maxFunding:'$50,000', bureaus:'EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Kinecta CU', accountType:'Personal Credit Card', maxFunding:'$100,000', bureaus:'EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Patelco CU', accountType:'Personal Line of Credit', maxFunding:'$50,000', bureaus:'EX', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'PNC', accountType:'Personal Loan', maxFunding:'$35,000', bureaus:'EX', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Wells Fargo', accountType:'Personal Loan', maxFunding:'$100,000', bureaus:'EX', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'TD Bank', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'EX', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'VyStar CU', accountType:'Personal Loan', maxFunding:'$30,000', bureaus:'TU', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Navy FCU', accountType:'Personal Credit Card', maxFunding:'$80,000', bureaus:'TU', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Justice FCU', accountType:'Personal Credit Card', maxFunding:'$40,000', bureaus:'EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Langley CU', accountType:'Personal Line of Credit', maxFunding:'$40,000', bureaus:'EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Penfed', accountType:'Personal Loan', maxFunding:'$25,000', bureaus:'EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'DCU', accountType:'Personal Loan', maxFunding:'$25,000', bureaus:'EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Penfed Cash Out Refinance', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'No Docs', applicationUrl:'', notes:'' },
+  { bank:'NASA FCU', accountType:'Personal Loan', maxFunding:'$30,000', bureaus:'EX/EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Avant', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'EX/TU/EQ', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Real Docs', applicationUrl:'', notes:'' },
+  { bank:'Eloan', accountType:'Personal Loan', maxFunding:'$35,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Varies', applicationUrl:'', notes:'' },
+  { bank:'Axos', accountType:'Personal Loan', maxFunding:'$35,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Light', applicationUrl:'', notes:'' },
+  { bank:'HSBC', accountType:'Personal Loan', maxFunding:'$30,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Real Docs', applicationUrl:'', notes:'' },
+  { bank:'Huntington', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Santander', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Citizens Bank', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Keybank', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Real Docs', applicationUrl:'', notes:'' },
+  { bank:'Fulton', accountType:'Personal Loan', maxFunding:'$35,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Real Docs', applicationUrl:'', notes:'' },
+  { bank:'Zions Bank', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Security Service CU', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' },
+  { bank:'Commerce Bank', accountType:'Personal Loan', maxFunding:'$50,000', bureaus:'HARD N/A', fundingType:'Personal Funding', pullType:'Hard Pull', proofOfIncome:'Fake Docs', applicationUrl:'', notes:'' }
+];
+
 function getFundingPifrRows() {
   try { return (Array.isArray(pifrEnrollments) ? pifrEnrollments : []).filter(function(e) { return !e.archived_at; }); }
   catch (e) { return []; }
@@ -3981,6 +4173,120 @@ function fundingSelectedRecord() {
   return c ? { source: source, client: c } : null;
 }
 
+function fundingBankMatchesText(bank, needle) {
+  if (!needle) return true;
+  var hay = [bank.bank, bank.accountType, bank.maxFunding, bank.bureaus, bank.fundingType, bank.pullType, bank.proofOfIncome, bank.notes].join(' ').toLowerCase();
+  return hay.indexOf(needle.toLowerCase()) !== -1;
+}
+
+function populateFundingBankOptions(selectedBank) {
+  var select = document.getElementById('funding-bank-select');
+  if (!select) return;
+  var search = (document.getElementById('funding-bank-filter-input') && document.getElementById('funding-bank-filter-input').value || '').trim();
+  var current = selectedBank || select.value || '';
+  var banks = FUNDING_BANK_PULL_LIST.filter(function(b) { return fundingBankMatchesText(b, search); });
+  var html = '<option value="">-- Select Bank Match --</option>';
+  banks.forEach(function(b) {
+    html += '<option value="' + escapeHtml(b.bank) + '"' + (current === b.bank ? ' selected' : '') + '>' + escapeHtml(b.bank + ' - ' + b.accountType + ' - ' + b.maxFunding) + '</option>';
+  });
+  select.innerHTML = html;
+  if (current && !select.value) select.value = current;
+  populateFundingBankPrefill();
+}
+
+function selectedFundingBank() {
+  var name = document.getElementById('funding-bank-select') ? document.getElementById('funding-bank-select').value : '';
+  return FUNDING_BANK_PULL_LIST.find(function(b) { return b.bank === name; }) || null;
+}
+
+function populateFundingBankPrefill() {
+  var details = document.getElementById('funding-bank-prefill-details');
+  var bank = selectedFundingBank();
+  if (!details) return;
+  if (!bank) {
+    details.textContent = 'Select a bank to prefill pull type, bureau, max funding, and document requirements.';
+    return;
+  }
+  details.innerHTML = '<strong style="color:var(--ink)">Bank Match:</strong> '
+    + escapeHtml(bank.bank)
+    + ' | ' + escapeHtml(bank.accountType || '---')
+    + ' | Max: <code>' + escapeHtml(bank.maxFunding || '---') + '</code>'
+    + ' | Bureau: <code>' + escapeHtml(bank.bureaus || '---') + '</code>'
+    + ' | Pull: ' + escapeHtml(bank.pullType || '---')
+    + ' | POI: ' + escapeHtml(bank.proofOfIncome || '---');
+}
+
+function populateFundingTableBankFilter() {
+  var select = document.getElementById('funding-table-bank-filter');
+  if (!select) return;
+  var current = select.value || '';
+  var names = FUNDING_BANK_PULL_LIST.map(function(b) { return b.bank; }).sort();
+  var html = '<option value="">All Banks</option>';
+  names.forEach(function(name) {
+    html += '<option value="' + escapeHtml(name) + '"' + (current === name ? ' selected' : '') + '>' + escapeHtml(name) + '</option>';
+  });
+  select.innerHTML = html;
+  if (current) select.value = current;
+}
+
+function defaultBnplOffers(existing) {
+  var out = {};
+  BNPL_LENDERS.forEach(function(name) {
+    var saved = existing && existing[name] ? existing[name] : {};
+    out[name] = {
+      status: saved.status || 'Not Reviewed',
+      preapproval: saved.preapproval || '',
+      payment: saved.payment || '',
+      rate: saved.rate || '',
+      notes: saved.notes || ''
+    };
+  });
+  return out;
+}
+
+function renderFundingBnplGrid(existing) {
+  var grid = document.getElementById('funding-bnpl-lender-grid');
+  if (!grid) return;
+  var offers = defaultBnplOffers(existing);
+  var html = '';
+  BNPL_LENDERS.forEach(function(name) {
+    var id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    var offer = offers[name];
+    html += '<div style="border:1px solid var(--line);border-radius:8px;padding:10px;background:rgba(255,255,255,.025);">';
+    html += '<div style="font-weight:700;color:var(--ink);margin-bottom:8px;">' + escapeHtml(name) + '</div>';
+    html += '<div class="form-row" style="grid-template-columns:1fr 1fr;gap:8px;">';
+    html += '<div class="form-group"><label>Preapproval</label><select class="form-select bnpl-offer-status" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-status">';
+    ['Not Reviewed','Pending','Preapproved','Approved','Denied'].forEach(function(status) {
+      html += '<option value="' + status + '"' + (offer.status === status ? ' selected' : '') + '>' + status + '</option>';
+    });
+    html += '</select></div>';
+    html += '<div class="form-group"><label>Payment</label><input class="form-input bnpl-offer-payment" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-payment" value="' + escapeHtml(offer.payment || '') + '" placeholder="$ / mo"></div>';
+    html += '</div>';
+    html += '<div class="form-row" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">';
+    html += '<div class="form-group"><label>Rate Offered</label><input class="form-input bnpl-offer-rate" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-rate" value="' + escapeHtml(offer.rate || '') + '" placeholder="APR / terms"></div>';
+    html += '<div class="form-group"><label>Amount</label><input class="form-input bnpl-offer-preapproval" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-preapproval" value="' + escapeHtml(offer.preapproval || '') + '" placeholder="Approved amount"></div>';
+    html += '</div>';
+    html += '<div class="form-group" style="margin-top:8px;"><label>Details</label><textarea class="form-textarea bnpl-offer-notes" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-notes" placeholder="Conditions, payment plan, next step...">' + escapeHtml(offer.notes || '') + '</textarea></div>';
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function readFundingBnplOffers() {
+  var offers = {};
+  BNPL_LENDERS.forEach(function(name) {
+    var id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    offers[name] = {
+      status: (document.getElementById('bnpl-' + id + '-status') || {}).value || 'Not Reviewed',
+      payment: (document.getElementById('bnpl-' + id + '-payment') || {}).value || '',
+      rate: (document.getElementById('bnpl-' + id + '-rate') || {}).value || '',
+      preapproval: (document.getElementById('bnpl-' + id + '-preapproval') || {}).value || '',
+      notes: (document.getElementById('bnpl-' + id + '-notes') || {}).value || ''
+    };
+  });
+  return offers;
+}
+
 function populateFundingPrefill() {
   var selected = fundingSelectedRecord();
   var scoreEl = document.getElementById('funding-prefill-score');
@@ -3988,9 +4294,18 @@ function populateFundingPrefill() {
   if (!selected) {
     if (scoreEl) scoreEl.value = '';
     if (detailsEl) detailsEl.textContent = 'Select a client or PIFR enrollment to prefill details.';
-    ['funding-request-amount','funding-request-purpose','funding-membership-balance','funding-engagement-balance','funding-tracking-notes'].forEach(function(id) {
+    ['funding-request-amount','funding-request-purpose','funding-membership-balance','funding-engagement-balance','funding-client-email','funding-report-access-details','funding-tracking-notes','funding-bnpl-approved-amount','funding-bank-filter-input','funding-bank-result-notes'].forEach(function(id) {
       var el = document.getElementById(id); if (el) el.value = '';
     });
+    ['funding-report-access-status','funding-ssn-status','funding-bnpl-status'].forEach(function(id) {
+      var el = document.getElementById(id); if (el) el.value = 'Pending';
+    });
+    var reviewEl = document.getElementById('funding-client-review-status');
+    if (reviewEl) reviewEl.value = 'Pending Client Review';
+    var bankStatus = document.getElementById('funding-bank-result-status');
+    if (bankStatus) bankStatus.value = 'Not Started';
+    populateFundingBankOptions();
+    renderFundingBnplGrid();
     return;
   }
 
@@ -4003,12 +4318,24 @@ function populateFundingPrefill() {
   var caseNumber = (c && (c.caseNumber || c.pifrMemberId)) || (e && e.mid) || '';
   var membershipDue = (c && c.membership_balance_due) || (e && e.planPrice) || '';
   var engagementDue = (c && c.engagement_fee_balance_due) || '';
+  var fundingEmail = (c && c.funding_email_username) || (e && e.email) || email || '';
 
   if (scoreEl) scoreEl.value = avg || '';
   document.getElementById('funding-request-purpose').value = plan ? ('Prefunding review - ' + plan) : 'Prefunding review';
   document.getElementById('funding-membership-balance').value = membershipDue || '';
   document.getElementById('funding-engagement-balance').value = engagementDue || '';
+  document.getElementById('funding-client-email').value = fundingEmail || '';
+  document.getElementById('funding-report-access-status').value = c && c.report_access_status ? c.report_access_status : 'Pending';
+  document.getElementById('funding-ssn-status').value = c && c.ssn_funding_status ? c.ssn_funding_status : 'Pending';
+  document.getElementById('funding-bnpl-status').value = c && c.bnpl_status ? c.bnpl_status : 'Pending';
+  document.getElementById('funding-bnpl-approved-amount').value = c && c.bnpl_approved_amount ? c.bnpl_approved_amount : '';
+  document.getElementById('funding-client-review-status').value = c && c.client_review_status ? c.client_review_status : 'Pending Client Review';
+  document.getElementById('funding-report-access-details').value = c && c.report_access_details ? c.report_access_details : (e ? ('PIFR member ' + (e.mid || '') + '. Plan: ' + (e.plan || '')) : '');
   document.getElementById('funding-tracking-notes').value = e ? ('Imported from PIFR enrollment ' + (e.mid || '') + '.') : '';
+  document.getElementById('funding-bank-result-status').value = c && c.bank_result_status ? c.bank_result_status : 'Not Started';
+  document.getElementById('funding-bank-result-notes').value = c && c.bank_result_notes ? c.bank_result_notes : '';
+  populateFundingBankOptions(c && c.bank_name ? c.bank_name : '');
+  renderFundingBnplGrid(c && c.bnpl_offers ? c.bnpl_offers : null);
   if (detailsEl) {
     detailsEl.innerHTML = '<strong style="color:var(--ink)">Prefill:</strong> '
       + escapeHtml((c && c.name) || ((e.fname || '') + ' ' + (e.lname || '')).trim() || 'Selected client')
@@ -4073,9 +4400,29 @@ function createFundingRequestFromImport() {
 
   var membershipDue = parseFloat(document.getElementById('funding-membership-balance').value || '0') || 0;
   var engagementDue = parseFloat(document.getElementById('funding-engagement-balance').value || '0') || 0;
+  var bnplApprovedAmount = parseFloat(document.getElementById('funding-bnpl-approved-amount').value || '0') || 0;
   c.membership_balance_due = membershipDue;
   c.engagement_fee_balance_due = engagementDue;
   c.balance_due = membershipDue + engagementDue;
+  c.report_access_status = document.getElementById('funding-report-access-status').value || 'Pending';
+  c.report_access_details = document.getElementById('funding-report-access-details').value.trim();
+  c.ssn_funding_status = document.getElementById('funding-ssn-status').value || 'Pending';
+  c.funding_email_username = document.getElementById('funding-client-email').value.trim();
+  c.bnpl_status = document.getElementById('funding-bnpl-status').value || 'Pending';
+  c.bnpl_approved_amount = bnplApprovedAmount;
+  c.client_review_status = document.getElementById('funding-client-review-status').value || 'Pending Client Review';
+  var bank = selectedFundingBank();
+  c.bank_name = bank ? bank.bank : '';
+  c.bank_account_type = bank ? bank.accountType : '';
+  c.bank_max_funding = bank ? bank.maxFunding : '';
+  c.bank_bureaus = bank ? bank.bureaus : '';
+  c.bank_funding_type = bank ? bank.fundingType : '';
+  c.bank_pull_type = bank ? bank.pullType : '';
+  c.bank_proof_of_income = bank ? bank.proofOfIncome : '';
+  c.bank_application_url = bank ? bank.applicationUrl : '';
+  c.bank_result_status = document.getElementById('funding-bank-result-status').value || 'Not Started';
+  c.bank_result_notes = document.getElementById('funding-bank-result-notes').value.trim();
+  c.bnpl_offers = readFundingBnplOffers();
 
   var request = {
     id: generateId(),
@@ -4084,6 +4431,24 @@ function createFundingRequestFromImport() {
     submittedAt: new Date().toISOString(),
     status: document.getElementById('funding-request-status').value || 'Prefunding',
     applicationStage: document.getElementById('funding-application-stage').value || 'Intake',
+    reportAccessStatus: c.report_access_status,
+    reportAccessDetails: c.report_access_details,
+    ssnFundingStatus: c.ssn_funding_status,
+    clientFundingEmail: c.funding_email_username,
+    bnplStatus: c.bnpl_status,
+    bnplApprovedAmount: bnplApprovedAmount,
+    bnplOffers: c.bnpl_offers,
+    clientReviewStatus: c.client_review_status,
+    bankName: c.bank_name,
+    bankAccountType: c.bank_account_type,
+    bankMaxFunding: c.bank_max_funding,
+    bankBureaus: c.bank_bureaus,
+    bankFundingType: c.bank_funding_type,
+    bankPullType: c.bank_pull_type,
+    bankProofOfIncome: c.bank_proof_of_income,
+    bankApplicationUrl: c.bank_application_url,
+    bankResultStatus: c.bank_result_status,
+    bankResultNotes: c.bank_result_notes,
     membershipBalanceDue: membershipDue,
     engagementFeeBalanceDue: engagementDue,
     balanceDue: c.balance_due,
@@ -4103,6 +4468,24 @@ function createFundingRequestFromImport() {
     membership_balance_due: c.membership_balance_due,
     engagement_fee_balance_due: c.engagement_fee_balance_due,
     balance_due: c.balance_due,
+    report_access_status: c.report_access_status,
+    report_access_details: c.report_access_details,
+    ssn_funding_status: c.ssn_funding_status,
+    funding_email_username: c.funding_email_username,
+    bnpl_status: c.bnpl_status,
+    bnpl_approved_amount: c.bnpl_approved_amount,
+    bnpl_offers: c.bnpl_offers,
+    client_review_status: c.client_review_status,
+    bank_name: c.bank_name,
+    bank_account_type: c.bank_account_type,
+    bank_max_funding: c.bank_max_funding,
+    bank_bureaus: c.bank_bureaus,
+    bank_funding_type: c.bank_funding_type,
+    bank_pull_type: c.bank_pull_type,
+    bank_proof_of_income: c.bank_proof_of_income,
+    bank_application_url: c.bank_application_url,
+    bank_result_status: c.bank_result_status,
+    bank_result_notes: c.bank_result_notes,
     stage: c.stage,
     lastActive: c.lastActive
   };
@@ -4127,7 +4510,31 @@ function renderFunding() {
       });
     }
   });
-  populateFundingImportOptions();
+  var importSelect = document.getElementById('funding-import-select');
+  if (importSelect && !importSelect.options.length) populateFundingImportOptions();
+  populateFundingBankOptions();
+  populateFundingTableBankFilter();
+
+  var search = ((document.getElementById('funding-table-search') || {}).value || '').toLowerCase();
+  var bankFilter = ((document.getElementById('funding-table-bank-filter') || {}).value || '');
+  var bnplFilter = ((document.getElementById('funding-table-bnpl-filter') || {}).value || '');
+  if (search || bankFilter || bnplFilter) {
+    allRequests = allRequests.filter(function(item) {
+      var f = item.request;
+      var bankName = f.bankName || item.client.bank_name || '';
+      var bnplStatus = f.bnplStatus || item.client.bnpl_status || 'Pending';
+      var hay = [
+        item.clientName, item.client.email, item.client.caseNumber, f.purpose, f.status,
+        f.applicationStage, bankName, f.bankBureaus || item.client.bank_bureaus,
+        f.bankAccountType || item.client.bank_account_type, f.bankResultStatus || item.client.bank_result_status,
+        f.bankResultNotes || item.client.bank_result_notes, f.notes
+      ].join(' ').toLowerCase();
+      if (search && hay.indexOf(search) === -1) return false;
+      if (bankFilter && bankName !== bankFilter) return false;
+      if (bnplFilter && bnplStatus !== bnplFilter) return false;
+      return true;
+    });
+  }
 
   var total = allRequests.length;
   var pending = allRequests.filter(function(r) { return r.request.status === 'Under Review' || r.request.status === 'Prefunding' || r.request.status === 'Docs Needed'; }).length;
@@ -4139,7 +4546,7 @@ function renderFunding() {
 
   var tbody = document.getElementById('funding-tbody');
   if (allRequests.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">No funding requests yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:24px;">No funding requests yet</td></tr>';
     return;
   }
 
@@ -4147,14 +4554,27 @@ function renderFunding() {
   allRequests.forEach(function(item) {
     var f = item.request;
     var statusClass = f.status === 'Approved' ? 'badge-green' : f.status === 'Denied' ? 'badge-red' : 'badge-amber';
+    var bankName = f.bankName || item.client.bank_name || '';
+    var bankResultStatus = f.bankResultStatus || item.client.bank_result_status || 'Not Started';
     html += '<tr>';
     html += '<td><strong>' + escapeHtml(item.clientName) + '</strong></td>';
+    html += '<td style="font-size:12px;"><strong>' + escapeHtml(bankName || '---') + '</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.bankBureaus || item.client.bank_bureaus || '---') + ' · ' + escapeHtml(f.bankPullType || item.client.bank_pull_type || '---') + '</div></td>';
     html += '<td style="font-weight:600;color:var(--success);">$' + escapeHtml(String(f.amount || 0)) + '</td>';
     html += '<td>' + escapeHtml(f.purpose || '---') + '</td>';
     html += '<td style="font-size:12px;color:' + ((f.balanceDue || item.client.balance_due) ? 'var(--amber)' : 'var(--muted)') + ';">' + fundingMoney(f.balanceDue || item.client.balance_due || 0) + '</td>';
     html += '<td><select class="form-select" onchange="updateFundingApplicationStage(\'' + item.clientId + '\',\'' + f.id + '\',this.value)" style="min-width:150px;font-size:11px;padding:5px 8px;">';
     ['Intake','Prefunding Review','Documents Requested','Submitted to Lender','Conditional Approval','Final Approval','Closed/Funded'].forEach(function(stage) {
       html += '<option value="' + stage + '"' + ((f.applicationStage || 'Intake') === stage ? ' selected' : '') + '>' + stage + '</option>';
+    });
+    html += '</select></td>';
+    html += '<td><select class="form-select" onchange="updateFundingRequestField(\'' + item.clientId + '\',\'' + f.id + '\',\'bnplStatus\',this.value)" style="min-width:110px;font-size:11px;padding:5px 8px;">';
+    ['Pending','Approved','Denied','Not Reviewed'].forEach(function(status) {
+      html += '<option value="' + status + '"' + ((f.bnplStatus || item.client.bnpl_status || 'Pending') === status ? ' selected' : '') + '>' + status + '</option>';
+    });
+    html += '</select><input type="number" class="form-input" value="' + escapeHtml(String(f.bnplApprovedAmount || item.client.bnpl_approved_amount || '')) + '" onchange="updateFundingRequestField(\'' + item.clientId + '\',\'' + f.id + '\',\'bnplApprovedAmount\',this.value)" placeholder="Approved $" style="margin-top:5px;font-size:11px;padding:5px 8px;min-width:110px;"></td>';
+    html += '<td><select class="form-select" onchange="updateFundingRequestField(\'' + item.clientId + '\',\'' + f.id + '\',\'clientReviewStatus\',this.value)" style="min-width:150px;font-size:11px;padding:5px 8px;">';
+    ['Pending Client Review','Accepted','Approved','Denied','Changes Requested'].forEach(function(status) {
+      html += '<option value="' + status + '"' + ((f.clientReviewStatus || item.client.client_review_status || 'Pending Client Review') === status ? ' selected' : '') + '>' + status + '</option>';
     });
     html += '</select></td>';
     html += '<td style="font-size:12px;color:var(--muted);">' + formatDate(f.submittedAt) + '</td>';
@@ -4169,6 +4589,44 @@ function renderFunding() {
       html += '<button class="btn btn-sm btn-success" onclick="updateFundingStatus(\'' + item.clientId + '\',\'' + f.id + '\',\'Approved\')">Approve</button> ';
       html += '<button class="btn btn-sm btn-danger" onclick="updateFundingStatus(\'' + item.clientId + '\',\'' + f.id + '\',\'Denied\')">Deny</button>';
     }
+    html += '</td></tr>';
+    html += '<tr><td colspan="12" style="padding:0 12px 12px;background:rgba(0,0,0,.08);">';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:10px 0;font-size:12px;">';
+    html += '<div><strong style="color:var(--cyan)">Report Access</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.reportAccessStatus || item.client.report_access_status || 'Pending') + '</div></div>';
+    html += '<div><strong style="color:var(--cyan)">SSN Funding</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.ssnFundingStatus || item.client.ssn_funding_status || 'Pending') + '</div></div>';
+    html += '<div><strong style="color:var(--cyan)">Funding Email</strong><div style="color:var(--muted);margin-top:3px;word-break:break-all">' + escapeHtml(f.clientFundingEmail || item.client.funding_email_username || '---') + '</div></div>';
+    html += '<div><strong style="color:var(--cyan)">Case / Source</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.caseNumber || item.client.caseNumber || '---') + ' · ' + escapeHtml(f.importedFrom || 'clients') + '</div></div>';
+    html += '<div><strong style="color:var(--cyan)">Bank Max / Type</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.bankMaxFunding || item.client.bank_max_funding || '---') + ' · ' + escapeHtml(f.bankAccountType || item.client.bank_account_type || '---') + '</div></div>';
+    html += '<div><strong style="color:var(--cyan)">Proof of Income</strong><div style="color:var(--muted);margin-top:3px">' + escapeHtml(f.bankProofOfIncome || item.client.bank_proof_of_income || '---') + '</div></div>';
+    html += '</div>';
+    html += '<div style="display:grid;grid-template-columns:220px 1fr;gap:10px;align-items:start;margin:8px 0;">';
+    html += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Bank Result<select class="form-select" onchange="updateFundingRequestField(\'' + item.clientId + '\',\'' + f.id + '\',\'bankResultStatus\',this.value)" style="margin-top:6px;">';
+    ['Not Started','Matched','Applied','Approved','Denied','Needs Docs','Funded'].forEach(function(status) {
+      html += '<option value="' + status + '"' + (bankResultStatus === status ? ' selected' : '') + '>' + status + '</option>';
+    });
+    html += '</select></label>';
+    html += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Bank Result Notes<textarea class="form-textarea" onchange="updateFundingRequestField(\'' + item.clientId + '\',\'' + f.id + '\',\'bankResultNotes\',this.value)" style="margin-top:6px;min-height:56px;">' + escapeHtml(f.bankResultNotes || item.client.bank_result_notes || '') + '</textarea></label>';
+    html += '</div>';
+    var offers = defaultBnplOffers(f.bnplOffers || item.client.bnpl_offers);
+    html += '<div style="margin-top:10px;"><strong style="color:var(--cyan);font-size:12px;">BNPL Lender Offers</strong></div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:8px;">';
+    BNPL_LENDERS.forEach(function(lender) {
+      var offer = offers[lender] || {};
+      html += '<div style="border:1px solid var(--line);border-radius:8px;padding:8px;background:rgba(255,255,255,.025);font-size:11px;">';
+      html += '<div style="font-weight:700;color:var(--ink);margin-bottom:4px;">' + escapeHtml(lender) + '</div>';
+      html += '<select class="form-select" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'status\',this.value)" style="font-size:11px;padding:5px 8px;">';
+      ['Not Reviewed','Pending','Preapproved','Approved','Denied'].forEach(function(status) {
+        html += '<option value="' + status + '"' + ((offer.status || 'Not Reviewed') === status ? ' selected' : '') + '>' + status + '</option>';
+      });
+      html += '</select>';
+      html += '<input class="form-input" value="' + escapeHtml(offer.preapproval || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'preapproval\',this.value)" placeholder="Approved amount" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
+      html += '<input class="form-input" value="' + escapeHtml(offer.payment || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'payment\',this.value)" placeholder="Payment" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
+      html += '<input class="form-input" value="' + escapeHtml(offer.rate || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'rate\',this.value)" placeholder="Rate offered" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
+      html += '<textarea class="form-textarea" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'notes\',this.value)" placeholder="Details" style="margin-top:5px;font-size:11px;min-height:46px;">' + escapeHtml(offer.notes || '') + '</textarea>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<div style="font-size:12px;color:var(--muted);line-height:1.5;white-space:pre-wrap;margin-top:8px">' + escapeHtml(f.reportAccessDetails || item.client.report_access_details || f.notes || 'No access details entered.') + '</div>';
     html += '</td></tr>';
   });
   tbody.innerHTML = html;
@@ -4213,6 +4671,71 @@ function updateFundingApplicationStage(clientId, fundingId, stage) {
   addActivity('Funding stage updated for ' + (c.name || c.email) + ': ' + stage, 'blue');
   showToast('Funding stage updated', 'success');
   renderFunding();
+}
+
+function updateFundingRequestField(clientId, fundingId, field, value) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  var f = c && c.fundingRequests ? c.fundingRequests.find(function(x) { return x.id === fundingId; }) : null;
+  if (!f) return;
+
+  var numericFields = ['bnplApprovedAmount','amount','membershipBalanceDue','engagementFeeBalanceDue','balanceDue'];
+  var finalValue = numericFields.indexOf(field) !== -1 ? ((parseFloat(value || '0') || 0)) : value;
+  f[field] = finalValue;
+  f.updatedAt = new Date().toISOString();
+
+  var clientFieldMap = {
+    bnplStatus: 'bnpl_status',
+    bnplApprovedAmount: 'bnpl_approved_amount',
+    clientReviewStatus: 'client_review_status',
+    bankResultStatus: 'bank_result_status',
+    bankResultNotes: 'bank_result_notes',
+    reportAccessStatus: 'report_access_status',
+    reportAccessDetails: 'report_access_details',
+    ssnFundingStatus: 'ssn_funding_status',
+    clientFundingEmail: 'funding_email_username'
+  };
+  if (clientFieldMap[field]) c[clientFieldMap[field]] = finalValue;
+  c.lastActive = new Date().toISOString();
+
+  saveClients(clients);
+  var patch = { fundingRequests: c.fundingRequests, lastActive: c.lastActive };
+  if (clientFieldMap[field]) patch[clientFieldMap[field]] = finalValue;
+  updateClientInCloud(c.id, patch);
+  addActivity('Funding request updated for ' + (c.name || c.email), 'blue');
+  showToast('Funding details saved', 'success');
+  renderFunding();
+}
+
+function updateFundingBnplOffer(clientId, fundingId, lender, field, value) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  var f = c && c.fundingRequests ? c.fundingRequests.find(function(x) { return x.id === fundingId; }) : null;
+  if (!f) return;
+  f.bnplOffers = defaultBnplOffers(f.bnplOffers || c.bnpl_offers);
+  if (!f.bnplOffers[lender]) f.bnplOffers[lender] = { status:'Not Reviewed', preapproval:'', payment:'', rate:'', notes:'' };
+  f.bnplOffers[lender][field] = value;
+  f.updatedAt = new Date().toISOString();
+  c.bnpl_offers = f.bnplOffers;
+  c.lastActive = new Date().toISOString();
+  saveClients(clients);
+  updateClientInCloud(c.id, { fundingRequests: c.fundingRequests, bnpl_offers: c.bnpl_offers, lastActive: c.lastActive });
+  addActivity('BNPL offer updated for ' + (c.name || c.email) + ': ' + lender, 'blue');
+  showToast('BNPL lender details saved', 'success');
+}
+
+function openFundingFromClient(clientId) {
+  showSection('funding');
+  setTimeout(function() {
+    var source = document.getElementById('funding-import-source');
+    var select = document.getElementById('funding-import-select');
+    if (source) source.value = 'clients';
+    populateFundingImportOptions();
+    if (select) select.value = clientId;
+    populateFundingPrefill();
+    var amount = document.getElementById('funding-request-amount');
+    if (amount) amount.focus();
+  }, 0);
 }
 
 /* ========== DOCUMENTS ========== */
@@ -5319,10 +5842,16 @@ window.filterMessages = filterMessages;
 window.selectMsgClient = selectMsgClient;
 window.sendAdminReply = sendAdminReply;
 window.updateFundingStatus = updateFundingStatus;
+window.renderFunding = renderFunding;
 window.populateFundingImportOptions = populateFundingImportOptions;
 window.populateFundingPrefill = populateFundingPrefill;
+window.populateFundingBankOptions = populateFundingBankOptions;
+window.populateFundingBankPrefill = populateFundingBankPrefill;
 window.createFundingRequestFromImport = createFundingRequestFromImport;
 window.updateFundingApplicationStage = updateFundingApplicationStage;
+window.updateFundingRequestField = updateFundingRequestField;
+window.updateFundingBnplOffer = updateFundingBnplOffer;
+window.openFundingFromClient = openFundingFromClient;
 window.filterDocuments = filterDocuments;
 window.updateDocStatus = updateDocStatus;
 window.changeAdminPin = changeAdminPin;
