@@ -2093,6 +2093,23 @@ var scoreModalClientId = null;
 var msgModalClientId = null;
 var fundingBankResultsDraft = null;
 
+var DEMO_CLIENT_EMAILS = {
+  'marcus.j@email.com': true,
+  'aisha.w@email.com': true,
+  'david.chen@email.com': true,
+  'keisha.b@email.com': true,
+  'rob.taylor@email.com': true,
+  'maria.g@email.com': true
+};
+var DEMO_CLIENT_CASES = {
+  'CR-260312-4821': true,
+  'CR-260215-7193': true,
+  'CR-260108-5520': true,
+  'CR-251201-8832': true,
+  'CR-260301-1199': true,
+  'CR-260112-6647': true
+};
+
 /* ========== UTILITIES ========== */
 function generateCaseNumber() {
   var d = new Date();
@@ -2341,16 +2358,47 @@ function deleteAdminRecord(table, id) {
   return apiCall('DELETE', '/api/admin/' + table + '/' + id);
 }
 
+function isDemoClientRecord(c) {
+  if (!c) return false;
+  var email = String(c.email || '').toLowerCase();
+  var caseNumber = String(c.caseNumber || '');
+  return !!(DEMO_CLIENT_EMAILS[email] || DEMO_CLIENT_CASES[caseNumber]);
+}
+
+function stripDemoClients(clients) {
+  if (!Array.isArray(clients)) return [];
+  return clients.filter(function(c) { return !isDemoClientRecord(c); });
+}
+
+function cleanupDemoClients() {
+  var raw = [];
+  try { raw = JSON.parse(localStorage.getItem(CLIENTS_KEY) || '[]'); } catch (e) { raw = []; }
+  var cleaned = stripDemoClients(raw);
+  if (cleaned.length !== raw.length) {
+    try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(cleaned)); } catch (e) {}
+    addActivity('Removed ' + (raw.length - cleaned.length) + ' demo client record' + ((raw.length - cleaned.length) === 1 ? '' : 's') + ' from Client Management', 'amber');
+  }
+  return cleaned;
+}
+
+function deleteDemoClientFromCloud(id) {
+  if (!id) return;
+  fetch(HIRECAR_API + '/api/clients/' + encodeURIComponent(id), {
+    method: 'DELETE',
+    headers: { 'x-api-key': HC_API_KEY }
+  }).catch(function() {});
+}
+
 function loadClients() {
   try {
     var raw = localStorage.getItem(CLIENTS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return stripDemoClients(JSON.parse(raw));
   } catch (e) {}
   return [];
 }
 
 function saveClients(clients) {
-  try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients)); } catch (e) {}
+  try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(stripDemoClients(clients))); } catch (e) {}
 }
 
 /* ========== CLOUD SYNC (KV API) ========== */
@@ -2373,6 +2421,10 @@ function syncFromCloud(callback) {
     var updatedCount = 0;
     data.clients.forEach(function(remote) {
       if (!remote || !remote.email) return;
+      if (isDemoClientRecord(remote)) {
+        deleteDemoClientFromCloud(remote.id);
+        return;
+      }
       var rEmail = remote.email.toLowerCase();
       // Check if already in local by id
       if (localMap[remote.id]) {
@@ -5258,6 +5310,9 @@ function toggleMaintenance() {
 
 /* ========== SEED DEMO DATA ========== */
 function seedDemoDataIfEmpty() {
+  cleanupDemoClients();
+  return;
+
   var clients = loadClients();
   if (clients.length > 0) return;
 
@@ -6178,7 +6233,7 @@ function init() {
     });
   });
 
-  seedDemoDataIfEmpty();
+  cleanupDemoClients();
 
   if (checkSession()) {
     enterApp();
