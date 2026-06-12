@@ -1122,18 +1122,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </div>
       </div>
       <div class="a-card" style="margin-bottom:16px;">
-        <h3 style="font-size:16px;margin-bottom:14px;color:var(--ink);">Start Prefunding Application</h3>
+        <h3 style="font-size:16px;margin-bottom:14px;color:var(--ink);">Add Funding Request</h3>
         <div class="form-row" style="grid-template-columns:180px 1fr 160px;">
           <div class="form-group">
             <label>Import From</label>
             <select class="form-select" id="funding-import-source" onchange="populateFundingImportOptions()">
-              <option value="clients">Client Management</option>
               <option value="funding_ready">Funding Ready Clients</option>
+              <option value="clients">Client Management (All Clients)</option>
               <option value="pifr">PIFR Enrollments</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Select Client / Enrollment</label>
+            <label>Select Client / PIFR Enrollment</label>
             <select class="form-select" id="funding-import-select" onchange="populateFundingPrefill()"></select>
           </div>
           <div class="form-group">
@@ -1275,7 +1275,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </div>
         <div id="funding-prefill-details" style="font-size:12px;color:var(--muted);margin-top:8px;">Select a client or PIFR enrollment to prefill details.</div>
         <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-          <button class="btn btn-primary" onclick="createFundingRequestFromImport()">Create Funding Request</button>
+          <button class="btn btn-primary" onclick="createFundingRequestFromImport()">Add Funding Request</button>
         </div>
       </div>
       <div class="a-card">
