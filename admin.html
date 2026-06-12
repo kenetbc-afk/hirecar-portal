@@ -1265,6 +1265,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <h4 style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px;">BNPL Preapproval Staging</h4>
           <div id="funding-bnpl-lender-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;"></div>
         </div>
+        <div class="a-card" style="margin-top:10px;margin-bottom:0;padding:12px;background:rgba(255,255,255,.025);">
+          <h4 style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px;">Other Bank Pull Results</h4>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Track each bank, where it pulls from, the result, offer amount, and notes for client review and approval.</div>
+          <div id="funding-bank-results-grid" style="max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:8px;"></div>
+        </div>
         <div class="form-group" style="margin-top:8px;">
           <label>Client Report / Access Details</label>
           <textarea class="form-textarea" id="funding-report-access-details" placeholder="Credit report portal, report date, login/access notes, SSN/funding identifiers, lender package notes..."></textarea>
@@ -4251,10 +4256,43 @@ function defaultBnplOffers(existing) {
       preapproval: saved.preapproval || '',
       payment: saved.payment || '',
       rate: saved.rate || '',
+      username: saved.username || '',
+      password: saved.password || '',
       notes: saved.notes || ''
     };
   });
   return out;
+}
+
+function bnplOfferBucket(offer) {
+  var status = String((offer && offer.status) || 'Not Reviewed').toLowerCase();
+  if (status === 'approved' || status === 'preapproved') return 'Approved';
+  if (status === 'denied') return 'Not Approved';
+  return 'Pending';
+}
+
+function renderBnplStatusRows(offers) {
+  var grouped = { 'Approved': [], 'Not Approved': [], 'Pending': [] };
+  BNPL_LENDERS.forEach(function(lender) {
+    var offer = offers[lender] || {};
+    grouped[bnplOfferBucket(offer)].push({ lender: lender, offer: offer });
+  });
+  var html = '<div style="margin-top:10px;"><strong style="color:var(--cyan);font-size:12px;">BNPL Approval Summary</strong></div>';
+  html += '<div style="overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px;">';
+  html += '<table class="a-table" style="margin:0;min-width:760px;"><thead><tr><th>Status</th><th>Lenders</th><th>Approved Amounts</th><th>Payments</th><th>Logins</th></tr></thead><tbody>';
+  ['Approved','Not Approved','Pending'].forEach(function(bucket) {
+    var rows = grouped[bucket];
+    var statusColor = bucket === 'Approved' ? 'var(--success)' : (bucket === 'Not Approved' ? 'var(--error)' : 'var(--amber)');
+    html += '<tr>';
+    html += '<td style="font-weight:700;color:' + statusColor + ';">' + bucket + '</td>';
+    html += '<td>' + (rows.length ? rows.map(function(row) { return '<span class="badge badge-blue" style="margin:2px;">' + escapeHtml(row.lender) + '</span>'; }).join('') : '<span style="color:var(--muted)">None</span>') + '</td>';
+    html += '<td style="font-size:12px;color:var(--muted);">' + (rows.length ? rows.map(function(row) { return escapeHtml(row.lender + ': ' + (row.offer.preapproval || '---')); }).join('<br>') : '---') + '</td>';
+    html += '<td style="font-size:12px;color:var(--muted);">' + (rows.length ? rows.map(function(row) { return escapeHtml(row.lender + ': ' + (row.offer.payment || '---') + (row.offer.rate ? ' / ' + row.offer.rate : '')); }).join('<br>') : '---') + '</td>';
+    html += '<td style="font-size:12px;color:var(--muted);">' + (rows.length ? rows.map(function(row) { return escapeHtml(row.lender + ': ' + (row.offer.username || '---') + (row.offer.password ? ' / ' + row.offer.password : '')); }).join('<br>') : '---') + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
 }
 
 function renderFundingBnplGrid(existing) {
@@ -4279,6 +4317,10 @@ function renderFundingBnplGrid(existing) {
     html += '<div class="form-group"><label>Rate Offered</label><input class="form-input bnpl-offer-rate" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-rate" value="' + escapeHtml(offer.rate || '') + '" placeholder="APR / terms"></div>';
     html += '<div class="form-group"><label>Amount</label><input class="form-input bnpl-offer-preapproval" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-preapproval" value="' + escapeHtml(offer.preapproval || '') + '" placeholder="Approved amount"></div>';
     html += '</div>';
+    html += '<div class="form-row" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">';
+    html += '<div class="form-group"><label>User Name</label><input class="form-input bnpl-offer-username" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-username" value="' + escapeHtml(offer.username || '') + '" placeholder="BNPL login username"></div>';
+    html += '<div class="form-group"><label>Password</label><input class="form-input bnpl-offer-password" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-password" value="' + escapeHtml(offer.password || '') + '" placeholder="BNPL login password"></div>';
+    html += '</div>';
     html += '<div class="form-group" style="margin-top:8px;"><label>Details</label><textarea class="form-textarea bnpl-offer-notes" data-lender="' + escapeHtml(name) + '" id="bnpl-' + id + '-notes" placeholder="Conditions, payment plan, next step...">' + escapeHtml(offer.notes || '') + '</textarea></div>';
     html += '</div>';
   });
@@ -4294,10 +4336,112 @@ function readFundingBnplOffers() {
       payment: (document.getElementById('bnpl-' + id + '-payment') || {}).value || '',
       rate: (document.getElementById('bnpl-' + id + '-rate') || {}).value || '',
       preapproval: (document.getElementById('bnpl-' + id + '-preapproval') || {}).value || '',
+      username: (document.getElementById('bnpl-' + id + '-username') || {}).value || '',
+      password: (document.getElementById('bnpl-' + id + '-password') || {}).value || '',
       notes: (document.getElementById('bnpl-' + id + '-notes') || {}).value || ''
     };
   });
   return offers;
+}
+
+function defaultBankResults(existing) {
+  var byBank = {};
+  if (Array.isArray(existing)) {
+    existing.forEach(function(row) { if (row && row.bank) byBank[row.bank] = row; });
+  } else if (existing && typeof existing === 'object') {
+    Object.keys(existing).forEach(function(bank) { if (existing[bank]) byBank[bank] = existing[bank]; });
+  }
+  return FUNDING_BANK_PULL_LIST.map(function(bank) {
+    var saved = byBank[bank.bank] || {};
+    return {
+      bank: bank.bank,
+      accountType: saved.accountType || bank.accountType || '',
+      maxFunding: saved.maxFunding || bank.maxFunding || '',
+      bureaus: saved.bureaus || bank.bureaus || '',
+      fundingType: saved.fundingType || bank.fundingType || '',
+      pullType: saved.pullType || bank.pullType || '',
+      proofOfIncome: saved.proofOfIncome || bank.proofOfIncome || '',
+      applicationUrl: saved.applicationUrl || bank.applicationUrl || '',
+      resultStatus: saved.resultStatus || 'Pending',
+      resultAmount: saved.resultAmount || '',
+      resultNotes: saved.resultNotes || ''
+    };
+  });
+}
+
+function renderFundingBankResultsGrid(existing) {
+  var grid = document.getElementById('funding-bank-results-grid');
+  if (!grid) return;
+  var rows = defaultBankResults(existing);
+  var html = '<table class="a-table" style="margin:0;min-width:980px;"><thead><tr>'
+    + '<th>Bank</th><th>Pulls From</th><th>Type</th><th>Max</th><th>Result</th><th>Offer / Limit</th><th>Notes</th>'
+    + '</tr></thead><tbody>';
+  rows.forEach(function(row, idx) {
+    html += '<tr>';
+    html += '<td><strong>' + escapeHtml(row.bank) + '</strong><div style="font-size:10px;color:var(--muted);margin-top:2px;">' + escapeHtml(row.proofOfIncome || '---') + '</div></td>';
+    html += '<td style="font-weight:700;color:var(--cyan);">' + escapeHtml(row.bureaus || '---') + '<div style="font-size:10px;color:var(--muted);margin-top:2px;">' + escapeHtml(row.pullType || '---') + '</div></td>';
+    html += '<td style="font-size:12px;color:var(--muted);">' + escapeHtml(row.accountType || '---') + '</td>';
+    html += '<td style="font-size:12px;color:var(--success);font-weight:700;">' + escapeHtml(row.maxFunding || '---') + '</td>';
+    html += '<td><select class="form-select bank-result-status" id="bank-result-' + idx + '-status" style="font-size:11px;padding:5px 8px;min-width:120px;">';
+    ['Pending','Approved','Not Approved','Denied','Applied','Needs Docs','Funded','Skipped'].forEach(function(status) {
+      html += '<option value="' + status + '"' + (row.resultStatus === status ? ' selected' : '') + '>' + status + '</option>';
+    });
+    html += '</select></td>';
+    html += '<td><input class="form-input bank-result-amount" id="bank-result-' + idx + '-amount" value="' + escapeHtml(row.resultAmount || '') + '" placeholder="$ / limit" style="font-size:11px;padding:5px 8px;min-width:110px;"></td>';
+    html += '<td><textarea class="form-textarea bank-result-notes" id="bank-result-' + idx + '-notes" placeholder="Result notes for client review" style="font-size:11px;min-height:42px;min-width:220px;">' + escapeHtml(row.resultNotes || '') + '</textarea></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  grid.innerHTML = html;
+}
+
+function readFundingBankResults() {
+  return defaultBankResults().map(function(row, idx) {
+    row.resultStatus = (document.getElementById('bank-result-' + idx + '-status') || {}).value || 'Pending';
+    row.resultAmount = (document.getElementById('bank-result-' + idx + '-amount') || {}).value || '';
+    row.resultNotes = (document.getElementById('bank-result-' + idx + '-notes') || {}).value || '';
+    return row;
+  });
+}
+
+function renderBankResultsRows(results, clientId, fundingId) {
+  var rows = defaultBankResults(results);
+  var grouped = { 'Approved': [], 'Not Approved': [], 'Pending': [] };
+  rows.forEach(function(row) {
+    var status = String(row.resultStatus || 'Pending').toLowerCase();
+    if (status === 'approved' || status === 'funded') grouped.Approved.push(row);
+    else if (status === 'denied' || status === 'not approved') grouped['Not Approved'].push(row);
+    else grouped.Pending.push(row);
+  });
+  var html = '<div style="margin-top:12px;"><strong style="color:var(--cyan);font-size:12px;">Other Bank Pull Results</strong></div>';
+  html += '<div style="overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px;">';
+  html += '<table class="a-table" style="margin:0;min-width:920px;"><thead><tr><th>Status</th><th>Bank</th><th>Pulls From</th><th>Max</th><th>Offer / Limit</th><th>Notes</th></tr></thead><tbody>';
+  ['Approved','Not Approved','Pending'].forEach(function(bucket) {
+    var bucketRows = grouped[bucket];
+    var color = bucket === 'Approved' ? 'var(--success)' : (bucket === 'Not Approved' ? 'var(--error)' : 'var(--amber)');
+    if (!bucketRows.length) {
+      html += '<tr><td style="font-weight:700;color:' + color + ';">' + bucket + '</td><td colspan="5" style="color:var(--muted);">None</td></tr>';
+      return;
+    }
+    bucketRows.forEach(function(row, idx) {
+      var bankArg = String(row.bank || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      html += '<tr>';
+      html += idx === 0 ? '<td rowspan="' + bucketRows.length + '" style="font-weight:700;color:' + color + ';">' + bucket + '</td>' : '';
+      html += '<td><strong>' + escapeHtml(row.bank) + '</strong><div style="font-size:10px;color:var(--muted);">' + escapeHtml(row.accountType || '---') + '</div>';
+      html += '<select class="form-select" onchange="updateFundingBankResult(\'' + clientId + '\',\'' + fundingId + '\',\'' + bankArg + '\',\'resultStatus\',this.value)" style="margin-top:5px;font-size:11px;padding:5px 8px;min-width:120px;">';
+      ['Pending','Approved','Not Approved','Denied','Applied','Needs Docs','Funded','Skipped'].forEach(function(status) {
+        html += '<option value="' + status + '"' + ((row.resultStatus || 'Pending') === status ? ' selected' : '') + '>' + status + '</option>';
+      });
+      html += '</select></td>';
+      html += '<td style="font-weight:700;color:var(--cyan);">' + escapeHtml(row.bureaus || '---') + '<div style="font-size:10px;color:var(--muted);">' + escapeHtml(row.pullType || '---') + '</div></td>';
+      html += '<td style="color:var(--success);font-weight:700;">' + escapeHtml(row.maxFunding || '---') + '</td>';
+      html += '<td><input class="form-input" value="' + escapeHtml(row.resultAmount || '') + '" onchange="updateFundingBankResult(\'' + clientId + '\',\'' + fundingId + '\',\'' + bankArg + '\',\'resultAmount\',this.value)" placeholder="$ / limit" style="font-size:11px;padding:5px 8px;min-width:110px;"></td>';
+      html += '<td><textarea class="form-textarea" onchange="updateFundingBankResult(\'' + clientId + '\',\'' + fundingId + '\',\'' + bankArg + '\',\'resultNotes\',this.value)" placeholder="Client review notes" style="font-size:11px;min-height:42px;min-width:220px;">' + escapeHtml(row.resultNotes || '') + '</textarea></td>';
+      html += '</tr>';
+    });
+  });
+  html += '</tbody></table></div>';
+  return html;
 }
 
 function populateFundingPrefill() {
@@ -4319,6 +4463,7 @@ function populateFundingPrefill() {
     if (bankStatus) bankStatus.value = 'Not Started';
     populateFundingBankOptions();
     renderFundingBnplGrid();
+    renderFundingBankResultsGrid();
     return;
   }
 
@@ -4349,6 +4494,7 @@ function populateFundingPrefill() {
   document.getElementById('funding-bank-result-notes').value = c && c.bank_result_notes ? c.bank_result_notes : '';
   populateFundingBankOptions(c && c.bank_name ? c.bank_name : '');
   renderFundingBnplGrid(c && c.bnpl_offers ? c.bnpl_offers : null);
+  renderFundingBankResultsGrid(c && c.bank_results ? c.bank_results : null);
   if (detailsEl) {
     detailsEl.innerHTML = '<strong style="color:var(--ink)">Prefill:</strong> '
       + escapeHtml((c && c.name) || ((e.fname || '') + ' ' + (e.lname || '')).trim() || 'Selected client')
@@ -4436,6 +4582,7 @@ function createFundingRequestFromImport() {
   c.bank_result_status = document.getElementById('funding-bank-result-status').value || 'Not Started';
   c.bank_result_notes = document.getElementById('funding-bank-result-notes').value.trim();
   c.bnpl_offers = readFundingBnplOffers();
+  c.bank_results = readFundingBankResults();
 
   var request = {
     id: generateId(),
@@ -4462,6 +4609,7 @@ function createFundingRequestFromImport() {
     bankApplicationUrl: c.bank_application_url,
     bankResultStatus: c.bank_result_status,
     bankResultNotes: c.bank_result_notes,
+    bankResults: c.bank_results,
     membershipBalanceDue: membershipDue,
     engagementFeeBalanceDue: engagementDue,
     balanceDue: c.balance_due,
@@ -4499,6 +4647,7 @@ function createFundingRequestFromImport() {
     bank_application_url: c.bank_application_url,
     bank_result_status: c.bank_result_status,
     bank_result_notes: c.bank_result_notes,
+    bank_results: c.bank_results,
     stage: c.stage,
     lastActive: c.lastActive
   };
@@ -4631,15 +4780,19 @@ function renderFunding() {
       ['Not Reviewed','Pending','Preapproved','Approved','Denied'].forEach(function(status) {
         html += '<option value="' + status + '"' + ((offer.status || 'Not Reviewed') === status ? ' selected' : '') + '>' + status + '</option>';
       });
-      html += '</select>';
-      html += '<input class="form-input" value="' + escapeHtml(offer.preapproval || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'preapproval\',this.value)" placeholder="Approved amount" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
-      html += '<input class="form-input" value="' + escapeHtml(offer.payment || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'payment\',this.value)" placeholder="Payment" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
-      html += '<input class="form-input" value="' + escapeHtml(offer.rate || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'rate\',this.value)" placeholder="Rate offered" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
-      html += '<textarea class="form-textarea" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'notes\',this.value)" placeholder="Details" style="margin-top:5px;font-size:11px;min-height:46px;">' + escapeHtml(offer.notes || '') + '</textarea>';
-      html += '</div>';
-    });
+    html += '</select>';
+    html += '<input class="form-input" value="' + escapeHtml(offer.preapproval || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'preapproval\',this.value)" placeholder="Approved amount" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
+    html += '<input class="form-input" value="' + escapeHtml(offer.payment || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'payment\',this.value)" placeholder="Payment" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
+    html += '<input class="form-input" value="' + escapeHtml(offer.rate || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'rate\',this.value)" placeholder="Rate offered" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
+    html += '<input class="form-input" value="' + escapeHtml(offer.username || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'username\',this.value)" placeholder="User name" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
+    html += '<input class="form-input" value="' + escapeHtml(offer.password || '') + '" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'password\',this.value)" placeholder="Password" style="margin-top:5px;font-size:11px;padding:5px 8px;">';
+    html += '<textarea class="form-textarea" onchange="updateFundingBnplOffer(\'' + item.clientId + '\',\'' + f.id + '\',\'' + escapeHtml(lender) + '\',\'notes\',this.value)" placeholder="Details" style="margin-top:5px;font-size:11px;min-height:46px;">' + escapeHtml(offer.notes || '') + '</textarea>';
     html += '</div>';
-    html += '<div style="font-size:12px;color:var(--muted);line-height:1.5;white-space:pre-wrap;margin-top:8px">' + escapeHtml(f.reportAccessDetails || item.client.report_access_details || f.notes || 'No access details entered.') + '</div>';
+  });
+  html += '</div>';
+  html += renderBnplStatusRows(offers);
+  html += renderBankResultsRows(f.bankResults || item.client.bank_results, item.clientId, f.id);
+  html += '<div style="font-size:12px;color:var(--muted);line-height:1.5;white-space:pre-wrap;margin-top:8px">' + escapeHtml(f.reportAccessDetails || item.client.report_access_details || f.notes || 'No access details entered.') + '</div>';
     html += '</td></tr>';
   });
   tbody.innerHTML = html;
@@ -4726,7 +4879,7 @@ function updateFundingBnplOffer(clientId, fundingId, lender, field, value) {
   var f = c && c.fundingRequests ? c.fundingRequests.find(function(x) { return x.id === fundingId; }) : null;
   if (!f) return;
   f.bnplOffers = defaultBnplOffers(f.bnplOffers || c.bnpl_offers);
-  if (!f.bnplOffers[lender]) f.bnplOffers[lender] = { status:'Not Reviewed', preapproval:'', payment:'', rate:'', notes:'' };
+  if (!f.bnplOffers[lender]) f.bnplOffers[lender] = { status:'Not Reviewed', preapproval:'', payment:'', rate:'', username:'', password:'', notes:'' };
   f.bnplOffers[lender][field] = value;
   f.updatedAt = new Date().toISOString();
   c.bnpl_offers = f.bnplOffers;
@@ -4735,6 +4888,27 @@ function updateFundingBnplOffer(clientId, fundingId, lender, field, value) {
   updateClientInCloud(c.id, { fundingRequests: c.fundingRequests, bnpl_offers: c.bnpl_offers, lastActive: c.lastActive });
   addActivity('BNPL offer updated for ' + (c.name || c.email) + ': ' + lender, 'blue');
   showToast('BNPL lender details saved', 'success');
+  renderFunding();
+}
+
+function updateFundingBankResult(clientId, fundingId, bankName, field, value) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  var f = c && c.fundingRequests ? c.fundingRequests.find(function(x) { return x.id === fundingId; }) : null;
+  if (!f) return;
+  f.bankResults = defaultBankResults(f.bankResults || c.bank_results);
+  var row = f.bankResults.find(function(x) { return x.bank === bankName; });
+  if (!row) return;
+  row[field] = value;
+  row.updatedAt = new Date().toISOString();
+  f.updatedAt = new Date().toISOString();
+  c.bank_results = f.bankResults;
+  c.lastActive = new Date().toISOString();
+  saveClients(clients);
+  updateClientInCloud(c.id, { fundingRequests: c.fundingRequests, bank_results: c.bank_results, lastActive: c.lastActive });
+  addActivity('Bank result updated for ' + (c.name || c.email) + ': ' + bankName, 'blue');
+  showToast('Bank result saved', 'success');
+  renderFunding();
 }
 
 function openFundingFromClient(clientId) {
@@ -5864,6 +6038,7 @@ window.createFundingRequestFromImport = createFundingRequestFromImport;
 window.updateFundingApplicationStage = updateFundingApplicationStage;
 window.updateFundingRequestField = updateFundingRequestField;
 window.updateFundingBnplOffer = updateFundingBnplOffer;
+window.updateFundingBankResult = updateFundingBankResult;
 window.openFundingFromClient = openFundingFromClient;
 window.filterDocuments = filterDocuments;
 window.updateDocStatus = updateDocStatus;
