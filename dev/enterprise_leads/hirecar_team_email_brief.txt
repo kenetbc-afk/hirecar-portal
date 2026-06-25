@@ -1,0 +1,9 @@
+Subject: CA SOS new-entity lead batch — HireCar/HireCredit refinement request
+
+Team,
+
+Attached is the refined HireCar/HireCredit lead workbook built from California Secretary of State Business Entity bulk/weekly data request exports. The uploaded source batches cover filings processed from 2026-04-13 through 2026-06-08; the 2026-05-04 to 2026-05-11 weekly window was not included in the uploaded files. The source data includes business entity filings, registered agents, and principals for LLCs, corporations, and limited partnerships. It does not include phone numbers, emails, or websites, so those fields must be enriched and source-verified before campaign deployment.
+
+The full dataset was deduped to 33,672 unique entities. Of those, 29,760 are active/campaign-ready records and 1,903 were prioritized into the enhanced Deploy_Ready sheet based on HireCar service fit, data accuracy, contact linkage, and filing-behavior indicators. The new indicators look at how the company filed: whether the same person is CEO/manager and registered agent, whether principal and agent addresses match, whether a registered-agent service is used, whether the filing appears owner-operated, and whether the business name/description matches vehicle, rental, auto-service, logistics, IT, web, funding, or new-business service lanes.
+
+Please narrow the A1/A2 leads first by service lane: vehicle/rental/fleet, delivery/logistics mobility, automotive referral partners, funding/credit-readiness, web/digital setup, and IT asset management. For each record, verify website/email and source confidence before deployment, then assign campaign owner, status, and next step.
