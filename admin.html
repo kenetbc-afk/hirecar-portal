@@ -420,6 +420,56 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   color: var(--muted);
   margin-top: 2px;
 }
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.kpi-tile {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 14px;
+}
+.kpi-tile-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+.kpi-tile-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 6px;
+}
+.kpi-tile-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.day-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 10px;
+}
+.day-progress-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 12px;
+}
+.day-progress-date {
+  font-size: 10px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 1.3px;
+}
+.day-progress-stat {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
 
 /* BADGES */
 .badge {
@@ -1606,6 +1656,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <div class="stat-card"><div class="s-num s-green" id="dash-enterprise-done">0</div><div class="s-label">Advanced / Done</div></div>
         </div>
         <div id="dash-enterprise-alerts" class="enterprise-alert-list"></div>
+      </div>
+      <div class="a-card" style="margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <h3 style="font-size:16px;color:var(--cyan);">Daily KPI Pulse</h3>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Yesterday’s verified leads, admin updates, pending quotes, and day-by-day work progress.</div>
+          </div>
+        </div>
+        <div id="dash-daily-kpis" class="kpi-strip" style="margin-bottom:12px;"></div>
+        <div id="dash-daily-progress" class="day-progress-grid"></div>
       </div>
     </div>
 
@@ -3150,6 +3210,19 @@ function timeAgo(d) {
   if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
   if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
   return formatDate(d);
+}
+
+function dayKey(d) {
+  var dt = d instanceof Date ? d : new Date(d);
+  if (isNaN(dt.getTime())) return '';
+  return dt.toISOString().slice(0, 10);
+}
+
+function daysAgoDate(n) {
+  var dt = new Date();
+  dt.setHours(0, 0, 0, 0);
+  dt.setDate(dt.getDate() - n);
+  return dt;
 }
 
 function escapeHtml(str) {
@@ -4903,6 +4976,37 @@ function enterpriseScoreLabel(score) {
   return 'Low';
 }
 
+function enterprisePlatformPriorityScore(account) {
+  account = account || {};
+  var text = [
+    account.company,
+    account.type,
+    account.serviceLane,
+    account.serviceNeedTags,
+    account.secondaryServices,
+    account.recommendedOffer,
+    account.keyIndicators,
+    account.campaignAngle
+  ].join(' ').toLowerCase();
+  var score = 0;
+  if (/auto|automotive|dealer|dealership|fleet|rental|truck|trucking|mobility|driver-ready|vehicle/.test(text)) score += 18;
+  if (/supplier|vendor|broker|partner/.test(text)) score += 10;
+  if (/transport|delivery|logistics|courier/.test(text)) score += 8;
+  if (String(account.deploymentTier || '').toUpperCase() === 'A1') score += 8;
+  if (String(account.dataReliabilityGrade || '').toUpperCase() === 'A') score += 6;
+  score += Math.min(20, Number(account.enhancedFitScore || 0) * 0.12);
+  score += Math.min(16, Number(account.enhancedDeploymentScore || 0) * 0.10);
+  return Math.round(score);
+}
+
+function enterprisePriorityLabel(account) {
+  var score = enterprisePlatformPriorityScore(account);
+  if (score >= 42) return 'HireCar Core';
+  if (score >= 28) return 'Platform Fit';
+  if (score >= 16) return 'Secondary Fit';
+  return 'General';
+}
+
 function computeEnterpriseFocusSlot(account) {
   account = account || {};
   var rank = Number(account.enhancedRank || 0);
@@ -5982,6 +6086,83 @@ function renderEnterpriseAlertCard(title, rows, detailFn) {
   return html;
 }
 
+function getDailyKpiMetrics() {
+  var accounts = loadEnterpriseAccounts();
+  var clients = loadClients();
+  var workItems = loadWorkItems();
+  var activity = loadActivity();
+  var yesterdayKey = dayKey(daysAgoDate(1));
+  var verifiedYesterday = accounts.filter(function(a) {
+    var stamp = a.updatedAt || a.lastContactAt || a.createdAt;
+    return a.status === 'Verified' && dayKey(stamp) === yesterdayKey;
+  }).length;
+  var updatesYesterday = activity.filter(function(a) {
+    return dayKey(a.time) === yesterdayKey;
+  }).length;
+  var pendingQuotes = 0;
+  clients.forEach(function(c) {
+    (c.quotes || []).forEach(function(q) {
+      if (q.status === 'Pending' || q.status === 'Sent') pendingQuotes++;
+    });
+  });
+  pendingQuotes += accounts.filter(function(a) {
+    return ['Proposal Sent', 'Negotiation', 'Payment Pending'].indexOf(a.stage) !== -1;
+  }).length;
+  var workCompletedYesterday = workItems.filter(function(w) {
+    return w.completedAt && dayKey(w.completedAt) === yesterdayKey;
+  }).length;
+
+  var progressDays = [];
+  for (var i = 6; i >= 0; i--) {
+    var dt = daysAgoDate(i);
+    var key = dayKey(dt);
+    progressDays.push({
+      label: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      leadUpdates: activity.filter(function(a) {
+        return dayKey(a.time) === key && /enterprise lead/i.test(a.text);
+      }).length,
+      verifiedLeads: accounts.filter(function(a) {
+        var stamp = a.updatedAt || a.lastContactAt || a.createdAt;
+        return a.status === 'Verified' && dayKey(stamp) === key;
+      }).length,
+      completedWork: workItems.filter(function(w) {
+        return w.completedAt && dayKey(w.completedAt) === key;
+      }).length
+    });
+  }
+
+  return {
+    verifiedYesterday: verifiedYesterday,
+    updatesYesterday: updatesYesterday,
+    pendingQuotes: pendingQuotes,
+    workCompletedYesterday: workCompletedYesterday,
+    progressDays: progressDays
+  };
+}
+
+function renderDailyKpiSummary() {
+  var metrics = getDailyKpiMetrics();
+  var wrap = document.getElementById('dash-daily-kpis');
+  if (wrap) {
+    wrap.innerHTML =
+      '<div class="kpi-tile"><div class="kpi-tile-label">Verified Leads Yesterday</div><div class="kpi-tile-value">' + metrics.verifiedYesterday + '</div><div class="kpi-tile-note">Moved to verified on the previous day</div></div>' +
+      '<div class="kpi-tile"><div class="kpi-tile-label">Updates Yesterday</div><div class="kpi-tile-value">' + metrics.updatesYesterday + '</div><div class="kpi-tile-note">Admin activity entries recorded yesterday</div></div>' +
+      '<div class="kpi-tile"><div class="kpi-tile-label">Pending Quotes</div><div class="kpi-tile-value">' + metrics.pendingQuotes + '</div><div class="kpi-tile-note">Client quotes plus enterprise proposal-stage leads</div></div>' +
+      '<div class="kpi-tile"><div class="kpi-tile-label">Work Completed Yesterday</div><div class="kpi-tile-value">' + metrics.workCompletedYesterday + '</div><div class="kpi-tile-note">Tasks or projects checked off yesterday</div></div>';
+  }
+  var progress = document.getElementById('dash-daily-progress');
+  if (progress) {
+    progress.innerHTML = metrics.progressDays.map(function(day) {
+      return '<div class="day-progress-card">' +
+        '<div class="day-progress-date">' + escapeHtml(day.label) + '</div>' +
+        '<div class="day-progress-stat">Lead updates: <strong style="color:var(--ink);">' + day.leadUpdates + '</strong></div>' +
+        '<div class="day-progress-stat">Verified: <strong style="color:var(--ink);">' + day.verifiedLeads + '</strong></div>' +
+        '<div class="day-progress-stat">Work done: <strong style="color:var(--ink);">' + day.completedWork + '</strong></div>' +
+      '</div>';
+    }).join('');
+  }
+}
+
 function renderWorkDashboard() {
   populateWorkControls();
   refreshWorkItemsFromD1(false).then(function(result) {
@@ -6174,6 +6355,7 @@ function renderDashboard() {
   document.getElementById('badge-clients').textContent = clients.length;
   renderWorkSnapshot();
   renderEnterpriseDashboardSummary();
+  renderDailyKpiSummary();
   var badgeMsg = document.getElementById('badge-messages');
   if (msgAwaiting > 0) { badgeMsg.style.display = ''; badgeMsg.textContent = msgAwaiting; }
   else { badgeMsg.style.display = 'none'; }
@@ -7230,7 +7412,10 @@ function renderEnterpriseAccounts() {
     if (filterStage && a.stage !== filterStage) return false;
     return true;
   }).sort(function(a, b) {
-    return (b.dealScore || 0) - (a.dealScore || 0) || (new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+    return (enterprisePlatformPriorityScore(b) - enterprisePlatformPriorityScore(a)) ||
+      ((b.dealScore || 0) - (a.dealScore || 0)) ||
+      ((Number(b.enhancedFitScore || 0) + Number(b.enhancedDeploymentScore || 0)) - (Number(a.enhancedFitScore || 0) + Number(a.enhancedDeploymentScore || 0))) ||
+      (new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
   });
 
   var verifiedCount = accounts.filter(function(a) { return a.status === 'Verified'; }).length;
@@ -7253,13 +7438,14 @@ function renderEnterpriseAccounts() {
   var html = '';
   filtered.forEach(function(a) {
     var isExpanded = expandedEnterpriseId === a.id;
+    var fitScore = enterprisePlatformPriorityScore(a);
     html += '<tr class="' + (isExpanded ? 'expanded' : '') + '" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">';
-    html += '<td><div class="enterprise-company-row"><span class="badge ' + enterpriseScoreClass(a.dealScore || 0) + ' enterprise-score-chip">' + escapeHtml(String(a.dealScore || 0)) + '</span><div class="enterprise-company-main"><div class="enterprise-company-name">' + escapeHtml(a.company) + '</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">' + escapeHtml(a.primaryContact || a.owner || 'No contact yet') + ' · ' + escapeHtml(a.territory || '—') + '</div><div style="font-size:10px;color:var(--cyan);margin-top:6px;">' + escapeHtml(enterpriseScoreLabel(a.dealScore || 0)) + ' · ' + escapeHtml(a.focusSlot || computeEnterpriseFocusSlot(a)) + ' · ' + escapeHtml(a.deploymentTier || a.type || 'Lead') + (a.dataReliabilityGrade ? ' · Grade ' + escapeHtml(a.dataReliabilityGrade) : '') + '</div></div></div></td>';
+    html += '<td><div class="enterprise-company-row"><span class="badge ' + enterpriseScoreClass(a.dealScore || 0) + ' enterprise-score-chip">' + escapeHtml(String(a.dealScore || 0)) + '</span><div class="enterprise-company-main"><div class="enterprise-company-name">' + escapeHtml(a.company) + '</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">' + escapeHtml(a.primaryContact || 'No contact yet') + ' · ' + escapeHtml(a.territory || '—') + '</div><div style="font-size:10px;color:var(--cyan);margin-top:6px;">' + escapeHtml(enterprisePriorityLabel(a)) + ' · Fit ' + escapeHtml(String(fitScore)) + (a.dataReliabilityGrade ? ' · Grade ' + escapeHtml(a.dataReliabilityGrade) : '') + '</div></div></div></td>';
     html += '<td><span class="badge ' + enterpriseTypeBadgeClass(a.type) + '">' + escapeHtml(a.serviceLane || a.type || '—') + '</span></td>';
     html += '<td><span class="badge ' + enterpriseScoreClass(a.dealScore || 0) + '">' + escapeHtml(String(a.dealScore || 0)) + '</span><div style="font-size:10px;color:var(--muted);margin-top:4px;">' + escapeHtml(enterpriseScoreLabel(a.dealScore || 0)) + '</div><div style="font-size:10px;color:var(--muted);margin-top:4px;">' + (a.estimatedDealValue ? formatCurrency(a.estimatedDealValue) : 'No value set') + '</div></td>';
     html += '<td><span class="badge ' + statusBadgeClass(a.status) + '">' + escapeHtml(a.status || '—') + '</span></td>';
     html += '<td><span class="stage-badge ' + enterpriseStageBadgeClass(a.stage) + '">' + escapeHtml(a.stage || '—') + '</span></td>';
-    html += '<td style="font-size:12px;max-width:260px;"><strong style="color:var(--ink);display:block;">' + escapeHtml(a.recommendedOffer || 'No offer defined') + '</strong><div style="color:var(--muted);margin-top:4px;">' + escapeHtml(a.nextAction || a.refinementNextStep || 'Set next action') + '</div></td>';
+    html += '<td style="font-size:12px;max-width:260px;"><strong style="color:var(--ink);display:block;">' + escapeHtml(a.recommendedOffer || 'No offer defined') + '</strong><div style="color:var(--muted);margin-top:4px;">' + escapeHtml((a.nextAction || a.refinementNextStep || 'Set next action').slice(0, 84)) + '</div></td>';
     html += '<td style="font-size:12px;">' + escapeHtml(a.owner || '—') + '<div style="font-size:10px;color:var(--muted);margin-top:4px;">' + escapeHtml(a.relationshipStrength || 'Unworked') + '</div></td>';
     html += '<td style="font-size:12px;color:var(--muted);">' + (a.lastContactAt ? timeAgo(a.lastContactAt) : '—') + '</td>';
     html += '<td onclick="event.stopPropagation();">';
