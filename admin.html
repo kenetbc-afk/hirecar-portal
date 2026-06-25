@@ -1651,60 +1651,76 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       <div class="sec-head" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; align-items:center; gap:14px;">
           <div class="accent-bar"></div>
-          <h2>Enterprise Management</h2>
+          <h2>Enterprise Lead Pipeline</h2>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="file" id="enterprise-import-input" accept=".csv,text/csv" style="display:none" onchange="importEnterpriseLeadCsv(event)">
+          <button class="btn btn-ghost" onclick="document.getElementById('enterprise-import-input').click()">Import Deploy-Ready CSV</button>
           <button class="btn btn-ghost" onclick="refreshEnterpriseManagementList()">Refresh List</button>
-          <button class="btn btn-primary" onclick="openAddEnterpriseModal()">+ Add Enterprise Account</button>
+          <button class="btn btn-primary" onclick="openAddEnterpriseModal()">+ Add Internal Lead</button>
         </div>
       </div>
       <div class="a-card" style="margin-bottom:16px;padding:14px 16px;border:1px solid rgba(34,211,238,.18);background:linear-gradient(180deg,rgba(8,15,28,.92),rgba(11,18,32,.86));">
         <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Internal Only</div>
         <div style="font-size:13px;color:var(--muted);line-height:1.6;">
-          This enterprise CRM is for internal supplier, broker, and partner operations only. Nothing in this section is exposed in the client-facing portal.
+          This workspace is internal only. Use it to stage California filing leads, verify real businesses, score opportunity, and move only qualified records into active outreach. Nothing here is client-facing.
         </div>
       </div>
       <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
         <div class="stat-card">
           <div class="s-num s-cyan" id="enterprise-stat-total">0</div>
-          <div class="s-label">Enterprise Accounts</div>
+          <div class="s-label">Staged Leads</div>
         </div>
         <div class="stat-card">
           <div class="s-num s-green" id="enterprise-stat-active">0</div>
-          <div class="s-label">Active Relationships</div>
+          <div class="s-label">Verified Leads</div>
         </div>
         <div class="stat-card">
           <div class="s-num s-amber" id="enterprise-stat-volume">$0</div>
-          <div class="s-label">Monthly Volume</div>
+          <div class="s-label">Pipeline Value</div>
         </div>
         <div class="stat-card">
           <div class="s-num s-red" id="enterprise-stat-risk">0</div>
           <div class="s-label">Needs Review</div>
         </div>
       </div>
+      <div class="a-card" style="margin-bottom:16px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;">Lead Flow</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:4px;">Verification first, then outreach, then quote/payment. Raw filings do not go into client management.</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);max-width:460px;text-align:right;">Deal score combines import rank, fit/confidence, verification state, and internal trigger phrases from updates like <strong style="color:var(--ink);">interested</strong>, <strong style="color:var(--ink);">quote</strong>, <strong style="color:var(--ink);">meeting</strong>, <strong style="color:var(--ink);">paid</strong>, or negative terms like <strong style="color:var(--ink);">wrong number</strong> and <strong style="color:var(--ink);">not interested</strong>.</div>
+        </div>
+        <div id="enterprise-pipeline-board" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;"></div>
+        <div id="enterprise-focus-board" style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:10px;"></div>
+      </div>
       <div class="search-bar">
-        <input type="text" id="enterprise-search" placeholder="Search company, contact, email, territory..." oninput="filterEnterpriseAccounts()">
+        <input type="text" id="enterprise-search" placeholder="Search company, contact, lane, trigger words, notes..." oninput="filterEnterpriseAccounts()">
         <select id="enterprise-filter-type" onchange="filterEnterpriseAccounts()">
           <option value="">All Types</option>
+          <option value="Business Filing Lead">Business Filing Leads</option>
           <option value="Supplier">Suppliers</option>
           <option value="Broker">Brokers</option>
           <option value="Partner">Partners</option>
         </select>
         <select id="enterprise-filter-status" onchange="filterEnterpriseAccounts()">
-          <option value="">All Statuses</option>
-          <option value="Active">Active</option>
-          <option value="Prospect">Prospect</option>
-          <option value="Dormant">Dormant</option>
-          <option value="On Hold">On Hold</option>
-          <option value="Terminated">Terminated</option>
+          <option value="">All Verification</option>
+          <option value="Needs Enrichment">Needs Enrichment</option>
+          <option value="Partially Verified">Partially Verified</option>
+          <option value="Verified">Verified</option>
+          <option value="Do Not Work">Do Not Work</option>
         </select>
         <select id="enterprise-filter-stage" onchange="filterEnterpriseAccounts()">
-          <option value="">All Stages</option>
-          <option value="Sourcing">Sourcing</option>
-          <option value="Onboarding">Onboarding</option>
-          <option value="Contracted">Contracted</option>
-          <option value="Scaling">Scaling</option>
-          <option value="Review">Review</option>
+          <option value="">All Pipeline Stages</option>
+          <option value="Verification Queue">Verification Queue</option>
+          <option value="Ready for Outreach">Ready for Outreach</option>
+          <option value="Contacted">Contacted</option>
+          <option value="Qualified">Qualified</option>
+          <option value="Quoted">Quoted</option>
+          <option value="Won">Won</option>
+          <option value="Lost">Lost</option>
+          <option value="Hold">Hold</option>
         </select>
       </div>
       <div class="a-card" style="padding:0; overflow:visible;">
@@ -1713,14 +1729,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
             <thead>
               <tr>
                 <th>Company</th>
-                <th>Type</th>
-                <th>Primary Contact</th>
-                <th>Territory</th>
-                <th>Stage</th>
-                <th>Status</th>
-                <th>Terms</th>
-                <th>Volume</th>
-                <th>Last Contact</th>
+                <th>Lane</th>
+                <th>Deal Score</th>
+                <th>Verification</th>
+                <th>Pipeline</th>
+                <th>Offer / Next Step</th>
+                <th>Owner</th>
+                <th>Last Touch</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -2704,7 +2719,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 <div class="modal-overlay" id="modal-add-enterprise">
   <div class="modal-box">
     <div class="modal-header">
-      <h3>Add Enterprise Account</h3>
+      <h3>Add Internal Lead</h3>
       <button class="modal-close" onclick="closeModal('modal-add-enterprise')">&times;</button>
     </div>
     <div class="form-group">
@@ -2713,8 +2728,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Account Type</label>
+        <label>Record Type</label>
         <select class="form-select" id="new-enterprise-type">
+          <option value="Business Filing Lead">Business Filing Lead</option>
           <option value="Supplier">Supplier</option>
           <option value="Broker">Broker</option>
           <option value="Partner">Partner</option>
@@ -2752,32 +2768,35 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Stage</label>
+        <label>Pipeline Stage</label>
         <select class="form-select" id="new-enterprise-stage">
-          <option value="Sourcing">Sourcing</option>
-          <option value="Onboarding">Onboarding</option>
-          <option value="Contracted">Contracted</option>
-          <option value="Scaling">Scaling</option>
-          <option value="Review">Review</option>
+          <option value="Verification Queue">Verification Queue</option>
+          <option value="Ready for Outreach">Ready for Outreach</option>
+          <option value="Contacted">Contacted</option>
+          <option value="Qualified">Qualified</option>
+          <option value="Quoted">Quoted</option>
+          <option value="Won">Won</option>
+          <option value="Lost">Lost</option>
+          <option value="Hold">Hold</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Status</label>
+        <label>Verification Status</label>
         <select class="form-select" id="new-enterprise-status">
-          <option value="Prospect">Prospect</option>
-          <option value="Active">Active</option>
-          <option value="Dormant">Dormant</option>
-          <option value="On Hold">On Hold</option>
+          <option value="Needs Enrichment">Needs Enrichment</option>
+          <option value="Partially Verified">Partially Verified</option>
+          <option value="Verified">Verified</option>
+          <option value="Do Not Work">Do Not Work</option>
         </select>
       </div>
     </div>
     <div class="form-group">
-      <label>Notes</label>
-      <textarea class="form-textarea" id="new-enterprise-notes" rows="3" placeholder="Relationship context, fleet fit, broker terms, or sourcing notes..."></textarea>
+      <label>Internal Notes / Trigger Updates</label>
+      <textarea class="form-textarea" id="new-enterprise-notes" rows="3" placeholder="Verified website, owner answered, interested in quote, wrong number, needs follow-up..."></textarea>
     </div>
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-add-enterprise')">Cancel</button>
-      <button class="btn btn-primary" onclick="addEnterpriseAccount()">Create Account</button>
+      <button class="btn btn-primary" onclick="addEnterpriseAccount()">Create Lead</button>
     </div>
   </div>
 </div>
@@ -2923,6 +2942,7 @@ var HIRECAR_API = 'https://hirecar-api.hirecar.workers.dev';
 var SESSION_KEY = 'hc_admin_session';
 var CLIENTS_KEY = 'hc_admin_clients';
 var ENTERPRISE_KEY = 'hc_admin_enterprise_accounts';
+var ENTERPRISE_SEED_URL = './data/enterprise_leads_deploy_ready.json';
 var ACTIVITY_KEY = 'hc_admin_activity';
 var SETTINGS_KEY = 'hc_admin_settings';
 var WORK_ITEMS_KEY = 'hc_admin_work_items';
@@ -3023,12 +3043,17 @@ function statusBadgeClass(status) {
     case 'Paused': return 'badge-amber';
     case 'Completed': return 'badge-blue';
     case 'Archived': return 'badge-muted';
+    case 'Verified': return 'badge-green';
+    case 'Partially Verified': return 'badge-blue';
+    case 'Needs Enrichment': return 'badge-amber';
+    case 'Do Not Work': return 'badge-red';
     default: return 'badge-muted';
   }
 }
 
 function enterpriseTypeBadgeClass(type) {
   switch (type) {
+    case 'Business Filing Lead': return 'badge-blue';
     case 'Supplier': return 'badge-blue';
     case 'Broker': return 'badge-amber';
     case 'Partner': return 'badge-green';
@@ -3038,14 +3063,57 @@ function enterpriseTypeBadgeClass(type) {
 
 function enterpriseStageBadgeClass(stage) {
   switch (stage) {
-    case 'Sourcing': return 'stage-intake';
-    case 'Onboarding': return 'stage-onboarding';
-    case 'Contracted': return 'stage-disputes';
-    case 'Scaling': return 'stage-funding';
-    case 'Review': return 'stage-monitoring';
+    case 'Verification Queue': return 'stage-intake';
+    case 'Ready for Outreach': return 'stage-onboarding';
+    case 'Contacted': return 'stage-monitoring';
+    case 'Qualified': return 'stage-disputes';
+    case 'Quoted': return 'stage-funding';
+    case 'Won': return 'stage-resolution';
+    case 'Lost': return 'badge-red';
+    case 'Hold': return 'badge-muted';
     default: return 'stage-default';
   }
 }
+
+var ENTERPRISE_PIPELINE_STAGES = [
+  'Verification Queue',
+  'Ready for Outreach',
+  'Contacted',
+  'Qualified',
+  'Quoted',
+  'Won',
+  'Lost',
+  'Hold'
+];
+
+var ENTERPRISE_FOCUS_SLOTS = [
+  'Focus Now',
+  'Mobility Priority',
+  'Verify Next',
+  'Outbound Batch',
+  'Partner Build',
+  'Nurture'
+];
+
+var ENTERPRISE_TRIGGER_RULES = [
+  { label: 'owner verified', score: 12, terms: ['owner verified', 'decision maker verified', 'founder verified', 'verified owner'] },
+  { label: 'website found', score: 6, terms: ['website found', 'website verified', 'domain verified'] },
+  { label: 'email found', score: 6, terms: ['email found', 'email verified', 'valid email'] },
+  { label: 'phone found', score: 6, terms: ['phone found', 'phone verified', 'valid phone'] },
+  { label: 'answered', score: 10, terms: ['answered', 'picked up', 'spoke with', 'connected call'] },
+  { label: 'interested', score: 18, terms: ['interested', 'wants info', 'requested follow up', 'asked for details'] },
+  { label: 'meeting', score: 14, terms: ['meeting', 'scheduled', 'calendar', 'appointment'] },
+  { label: 'quote', score: 18, terms: ['quote', 'proposal', 'pricing sent', 'estimate sent'] },
+  { label: 'deposit / paid', score: 25, terms: ['deposit', 'paid', 'invoice paid', 'payment received'] },
+  { label: 'vehicle / fleet need', score: 8, terms: ['fleet', 'rental need', 'vehicle access', 'driver ready'] },
+  { label: 'funding need', score: 8, terms: ['funding', 'capital', 'credit ready', 'business credit'] },
+  { label: 'wrong number', score: -20, terms: ['wrong number', 'bad phone', 'invalid phone'] },
+  { label: 'bad email', score: -16, terms: ['bad email', 'bounce', 'invalid email'] },
+  { label: 'no answer', score: -4, terms: ['no answer', 'left voicemail', 'voicemail'] },
+  { label: 'not interested', score: -18, terms: ['not interested', 'no interest', 'declined'] },
+  { label: 'do not call', score: -30, terms: ['do not call', 'dnc', 'stop contacting'] },
+  { label: 'junk / duplicate', score: -25, terms: ['junk', 'duplicate', 'suppress'] }
+];
 
 /* Workflow stage constants matching the main portal's hirecar_stage values */
 var WORKFLOW_STAGES = [
@@ -4402,29 +4470,71 @@ function normalizeEnterpriseAccount(account) {
   if (!account) return null;
   account.id = account.id || generateId();
   account.company = account.company || '';
-  account.type = account.type || 'Supplier';
+  account.type = account.type || 'Business Filing Lead';
   account.primaryContact = account.primaryContact || '';
   account.email = account.email || '';
   account.phone = account.phone || '';
   account.website = account.website || '';
   account.territory = account.territory || '';
-  account.segment = account.segment || 'Core';
-  account.stage = account.stage || 'Sourcing';
-  account.status = account.status || 'Prospect';
+  account.segment = account.segment || 'Lead Staging';
+  if (account.stage === 'Sourcing') account.stage = 'Verification Queue';
+  if (account.stage === 'Onboarding') account.stage = 'Ready for Outreach';
+  if (account.stage === 'Contracted') account.stage = 'Qualified';
+  if (account.stage === 'Scaling') account.stage = 'Quoted';
+  if (account.stage === 'Review') account.stage = 'Hold';
+  if (account.status === 'Prospect') account.status = 'Needs Enrichment';
+  if (account.status === 'Active') account.status = 'Verified';
+  if (account.status === 'Dormant') account.status = 'Partially Verified';
+  if (account.status === 'On Hold') account.status = 'Do Not Work';
+  if (account.status === 'Terminated') account.status = 'Do Not Work';
+  account.stage = account.stage || 'Verification Queue';
+  account.status = account.status || 'Needs Enrichment';
   account.owner = account.owner || 'Ken';
-  account.paymentTerms = account.paymentTerms || 'Net 15';
-  account.monthlyVolume = Number(account.monthlyVolume || 0);
+  account.paymentTerms = account.paymentTerms || '';
+  account.monthlyVolume = Number(account.monthlyVolume || account.estimatedDealValue || 0);
+  account.estimatedDealValue = Number(account.estimatedDealValue || account.monthlyVolume || 0);
   account.commissionRate = account.commissionRate || '';
-  account.relationshipStrength = account.relationshipStrength || 'Warm';
-  account.kycStatus = account.kycStatus || 'Pending';
-  account.agreementStatus = account.agreementStatus || 'Draft';
-  account.insuranceStatus = account.insuranceStatus || 'Pending';
+  account.relationshipStrength = account.relationshipStrength || 'Unworked';
+  account.kycStatus = account.kycStatus || '';
+  account.agreementStatus = account.agreementStatus || '';
+  account.insuranceStatus = account.insuranceStatus || '';
   account.riskLevel = account.riskLevel || 'Standard';
   account.nextReviewAt = account.nextReviewAt || '';
   account.lastContactAt = account.lastContactAt || account.updatedAt || account.createdAt || '';
   account.notes = account.notes || '';
+  account.internalUpdates = account.internalUpdates || '';
+  account.nextAction = account.nextAction || '';
+  account.recommendedOffer = account.recommendedOffer || '';
+  account.serviceLane = account.serviceLane || account.primaryHireCarService || '';
+  account.secondaryServices = account.secondaryServices || '';
+  account.serviceNeedTags = account.serviceNeedTags || '';
+  account.verificationMatch = account.verificationMatch || '';
+  account.campaignAngle = account.campaignAngle || '';
+  account.refinementNextStep = account.refinementNextStep || '';
+  account.dataReliabilityGrade = account.dataReliabilityGrade || '';
+  account.deploymentTier = account.deploymentTier || '';
+  account.leadId = account.leadId || '';
+  account.entityNumber = account.entityNumber || '';
+  account.filingDate = account.filingDate || '';
+  account.entityType = account.entityType || '';
+  account.entityStatus = account.entityStatus || '';
+  account.addressUsed = account.addressUsed || '';
+  account.keyIndicators = account.keyIndicators || '';
+  account.roleAgentSignal = account.roleAgentSignal || '';
+  account.addressBehaviorSignal = account.addressBehaviorSignal || '';
+  account.filingPersona = account.filingPersona || '';
+  account.lastOutcome = account.lastOutcome || '';
+  account.triggerSignals = Array.isArray(account.triggerSignals) ? account.triggerSignals : [];
+  account.enhancedDeploymentScore = Number(account.enhancedDeploymentScore || 0);
+  account.enhancedFitScore = Number(account.enhancedFitScore || 0);
+  account.refinementConfidenceScore = Number(account.refinementConfidenceScore || 0);
+  account.originalLeadRank = Number(account.originalLeadRank || 0);
+  account.enhancedRank = Number(account.enhancedRank || 0);
+  account.focusSlot = account.focusSlot || computeEnterpriseFocusSlot(account);
   account.createdAt = account.createdAt || new Date().toISOString();
   account.updatedAt = account.updatedAt || account.createdAt;
+  account.dealScore = computeEnterpriseDealScore(account);
+  account.triggerSignals = computeEnterpriseTriggerSignals(account);
   return account;
 }
 
@@ -4440,6 +4550,63 @@ function saveEnterpriseAccounts(accounts) {
   var normalized = (accounts || []).map(normalizeEnterpriseAccount).filter(Boolean);
   try { localStorage.setItem(ENTERPRISE_KEY, JSON.stringify(normalized)); } catch (e) {}
   updateEnterpriseBadge();
+}
+
+function computeEnterpriseTriggerSignals(account) {
+  var text = [
+    account.notes,
+    account.internalUpdates,
+    account.nextAction,
+    account.lastOutcome,
+    account.recommendedOffer,
+    account.refinementNextStep
+  ].join(' ').toLowerCase();
+  var matches = [];
+  ENTERPRISE_TRIGGER_RULES.forEach(function(rule) {
+    var hit = rule.terms.some(function(term) { return text.indexOf(term) !== -1; });
+    if (hit) matches.push({ label: rule.label, score: rule.score });
+  });
+  return matches;
+}
+
+function computeEnterpriseDealScore(account) {
+  account = account || {};
+  var base = 0;
+  base += Math.min(40, Number(account.enhancedDeploymentScore || 0) * 0.25);
+  base += Math.min(30, Number(account.enhancedFitScore || 0) * 0.20);
+  base += Math.min(20, Number(account.refinementConfidenceScore || 0) * 0.15);
+  if (account.dataReliabilityGrade === 'A') base += 10;
+  else if (account.dataReliabilityGrade === 'B') base += 7;
+  else if (account.dataReliabilityGrade === 'C') base += 4;
+  if (account.status === 'Verified') base += 10;
+  else if (account.status === 'Partially Verified') base += 5;
+  else if (account.status === 'Do Not Work') base -= 30;
+  if (account.stage === 'Ready for Outreach') base += 6;
+  else if (account.stage === 'Qualified') base += 12;
+  else if (account.stage === 'Quoted') base += 18;
+  else if (account.stage === 'Won') base += 24;
+  else if (account.stage === 'Lost' || account.stage === 'Hold') base -= 12;
+  computeEnterpriseTriggerSignals(account).forEach(function(hit) { base += hit.score; });
+  return Math.max(0, Math.min(100, Math.round(base)));
+}
+
+function enterpriseScoreClass(score) {
+  if (score >= 80) return 'badge-green';
+  if (score >= 60) return 'badge-blue';
+  if (score >= 40) return 'badge-amber';
+  return 'badge-muted';
+}
+
+function computeEnterpriseFocusSlot(account) {
+  account = account || {};
+  var rank = Number(account.enhancedRank || 0);
+  var lane = String(account.serviceLane || '').toLowerCase();
+  if (rank && rank <= 100) return 'Focus Now';
+  if (lane.indexOf('auto/rental/fleet') !== -1 || lane.indexOf('auto') !== -1 || lane.indexOf('fleet') !== -1) return 'Mobility Priority';
+  if (rank && rank <= 500) return 'Verify Next';
+  if (lane.indexOf('delivery') !== -1 || lane.indexOf('logistics') !== -1) return 'Outbound Batch';
+  if (lane.indexOf('partner') !== -1 || lane.indexOf('automotive services') !== -1) return 'Partner Build';
+  return 'Nurture';
 }
 
 /* ========== CLOUD SYNC (KV API) ========== */
@@ -5019,9 +5186,11 @@ function enterApp() {
 
   importFromPortal();
   updateEnterpriseBadge();
-  showSection('dashboard');
-  startClock();
-  startCloudSync();
+  seedEnterpriseLeadsIfEmpty().finally(function() {
+    showSection('dashboard');
+    startClock();
+    startCloudSync();
+  });
 }
 
 /* ========== CLOCK ========== */
@@ -6476,6 +6645,187 @@ function refreshEnterpriseManagementList() {
   showToast('Enterprise list refreshed', 'info');
 }
 
+function parseCsvText(text) {
+  var rows = [];
+  var row = [];
+  var field = '';
+  var inQuotes = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        row.push(field);
+        field = '';
+      } else if (ch === '\n') {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+      } else if (ch !== '\r') {
+        field += ch;
+      }
+    }
+  }
+  if (field.length || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter(function(r) { return r.some(function(cell) { return String(cell || '').trim(); }); });
+}
+
+function estimateEnterpriseLeadValue(account) {
+  var lane = String(account.serviceLane || '').toLowerCase();
+  if (lane.indexOf('auto') !== -1 || lane.indexOf('fleet') !== -1 || lane.indexOf('funding') !== -1) return 4000;
+  if (lane.indexOf('web') !== -1 || lane.indexOf('digital') !== -1 || lane.indexOf('it') !== -1) return 2500;
+  return 1500;
+}
+
+function importEnterpriseLeadCsv(evt) {
+  var file = evt && evt.target && evt.target.files ? evt.target.files[0] : null;
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var text = String((e && e.target && e.target.result) || '');
+      var rows = parseCsvText(text);
+      if (rows.length < 2) {
+        showToast('CSV has no lead rows', 'error');
+        return;
+      }
+      var headers = rows[0];
+      var dataRows = rows.slice(1);
+      var accounts = loadEnterpriseAccounts();
+      var seen = {};
+      accounts.forEach(function(a) {
+        seen[(a.leadId || '') + '|' + (a.entityNumber || '') + '|' + (a.company || '').toLowerCase()] = true;
+      });
+      var imported = 0;
+      var skipped = 0;
+      dataRows.forEach(function(cols) {
+        var row = {};
+        headers.forEach(function(h, idx) { row[h] = cols[idx] || ''; });
+        var company = String(row['Business Name'] || '').trim();
+        var leadId = String(row['Lead ID'] || '').trim();
+        var entityNumber = String(row['Entity Number'] || '').trim();
+        if (!company) { skipped++; return; }
+        var reliability = String(row['Data Reliability Grade'] || '').trim().toUpperCase();
+        var depScore = Number(row['Enhanced Deployment Score'] || 0);
+        var fitScore = Number(row['Enhanced Fit Score'] || 0);
+        if (reliability && ['D', 'F'].indexOf(reliability) !== -1) { skipped++; return; }
+        if (depScore < 70 && fitScore < 70) { skipped++; return; }
+        var key = leadId + '|' + entityNumber + '|' + company.toLowerCase();
+        if (seen[key]) { skipped++; return; }
+        var serviceLane = String(row['Primary HireCar Service'] || '').trim();
+        var verificationStatus = String(row['Verification Status'] || '').trim() || 'Needs Enrichment';
+        var owner = String(row['Owner'] || '').trim() || 'Ken';
+        var estimatedDealValue = estimateEnterpriseLeadValue({ serviceLane: serviceLane });
+        accounts.push(normalizeEnterpriseAccount({
+          id: generateId(),
+          type: 'Business Filing Lead',
+          company: company,
+          primaryContact: String(row['Primary Contact Name'] || row['Agent Name'] || '').trim(),
+          email: String(row['Email'] || '').trim(),
+          phone: String(row['Phone'] || '').trim(),
+          website: String(row['Website'] || '').trim(),
+          territory: [row['City'], row['State']].filter(Boolean).join(', '),
+          owner: owner,
+          status: verificationStatus === 'Verified Public Data' ? 'Verified' : (verificationStatus === 'Needs Enrichment' ? 'Needs Enrichment' : verificationStatus),
+          stage: verificationStatus === 'Verified Public Data' ? 'Ready for Outreach' : 'Verification Queue',
+          serviceLane: serviceLane,
+          secondaryServices: String(row['Secondary Services'] || '').trim(),
+          serviceNeedTags: String(row['Service Need Tags'] || '').trim(),
+          filingPersona: String(row['Filing Persona'] || '').trim(),
+          keyIndicators: String(row['Key Filing Indicators'] || '').trim(),
+          roleAgentSignal: String(row['Role/Agent Signal'] || '').trim(),
+          addressBehaviorSignal: String(row['Address Behavior Signal'] || '').trim(),
+          recommendedOffer: String(row['Recommended Offer'] || '').trim(),
+          campaignAngle: String(row['Campaign Angle - Refined'] || '').trim(),
+          refinementNextStep: String(row['Refinement Next Step'] || '').trim(),
+          nextAction: String(row['Next Step'] || '').trim() || String(row['Refinement Next Step'] || '').trim(),
+          notes: String(row['Notes'] || '').trim(),
+          relationshipStrength: String(row['Campaign Status'] || '').trim() || 'Unworked',
+          dataReliabilityGrade: reliability,
+          deploymentTier: String(row['Deployment Tier'] || '').trim(),
+          leadId: leadId,
+          entityNumber: entityNumber,
+          filingDate: String(row['Filing Date'] || '').trim(),
+          entityType: String(row['Entity Type'] || '').trim(),
+          entityStatus: String(row['Entity Status'] || '').trim(),
+          addressUsed: String(row['Address Used'] || '').trim(),
+          verificationMatch: String(row['Website/Email Search URL'] || '').trim(),
+          enhancedDeploymentScore: depScore,
+          enhancedFitScore: fitScore,
+          refinementConfidenceScore: Number(row['Refinement Confidence Score'] || 0),
+          originalLeadRank: Number(row['Original Lead Rank'] || 0),
+          enhancedRank: Number(row['Enhanced Rank'] || 0),
+          estimatedDealValue: estimatedDealValue,
+          monthlyVolume: estimatedDealValue,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          lastContactAt: row['Last Touch Date'] || ''
+        }));
+        seen[key] = true;
+        imported++;
+      });
+      saveEnterpriseAccounts(accounts);
+      if (evt && evt.target) evt.target.value = '';
+      addActivity('Enterprise leads imported: ' + imported + ' staged, ' + skipped + ' skipped', 'green');
+      showToast('Imported ' + imported + ' leads. Skipped ' + skipped + ' low-quality or duplicate rows.', imported ? 'success' : 'error');
+      renderEnterpriseAccounts();
+    } catch (err) {
+      console.error(err);
+      showToast('Enterprise lead import failed', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function seedEnterpriseLeadsIfEmpty() {
+  var existing = loadEnterpriseAccounts();
+  return fetch(ENTERPRISE_SEED_URL, { cache: 'no-store' }).then(function(r) {
+    if (!r.ok) throw new Error('Seed file unavailable');
+    return r.json();
+  }).then(function(data) {
+    if (!Array.isArray(data) || !data.length) return false;
+    var byKey = {};
+    existing.forEach(function(a) {
+      var key = (a.leadId || '') + '|' + (a.entityNumber || '') + '|' + (a.company || '').toLowerCase();
+      byKey[key] = a;
+    });
+    var added = 0;
+    data.forEach(function(raw) {
+      var normalized = normalizeEnterpriseAccount(raw);
+      var key = (normalized.leadId || '') + '|' + (normalized.entityNumber || '') + '|' + (normalized.company || '').toLowerCase();
+      if (!byKey[key]) {
+        existing.push(normalized);
+        byKey[key] = normalized;
+        added++;
+      }
+    });
+    if (!added && existing.length) return false;
+    var accounts = existing.map(normalizeEnterpriseAccount);
+    saveEnterpriseAccounts(accounts);
+    addActivity('Seeded enterprise pipeline with ' + added + ' deploy-ready leads', 'green');
+    return added > 0;
+  }).catch(function(err) {
+    console.warn('[HIRECAR Admin] Enterprise lead seed failed:', err);
+    return false;
+  });
+}
+
 function renderEnterpriseAccounts() {
   var accounts = loadEnterpriseAccounts();
   var search = (document.getElementById('enterprise-search') && document.getElementById('enterprise-search').value || '').toLowerCase();
@@ -6486,27 +6836,29 @@ function renderEnterpriseAccounts() {
   var tbody = document.getElementById('enterprise-tbody');
 
   var filtered = accounts.filter(function(a) {
-    var haystack = [a.company, a.primaryContact, a.email, a.phone, a.territory, a.owner, a.notes].join(' ').toLowerCase();
+    var haystack = [a.company, a.primaryContact, a.email, a.phone, a.territory, a.owner, a.notes, a.internalUpdates, a.serviceLane, a.recommendedOffer, a.nextAction, a.keyIndicators].join(' ').toLowerCase();
     if (search && haystack.indexOf(search) === -1) return false;
     if (filterType && a.type !== filterType) return false;
     if (filterStatus && a.status !== filterStatus) return false;
     if (filterStage && a.stage !== filterStage) return false;
     return true;
   }).sort(function(a, b) {
-    return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+    return (b.dealScore || 0) - (a.dealScore || 0) || (new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
   });
 
-  var activeCount = accounts.filter(function(a) { return a.status === 'Active'; }).length;
-  var riskCount = accounts.filter(function(a) { return a.riskLevel === 'High' || a.status === 'On Hold'; }).length;
-  var totalVolume = accounts.reduce(function(sum, a) { return sum + Number(a.monthlyVolume || 0); }, 0);
+  var verifiedCount = accounts.filter(function(a) { return a.status === 'Verified'; }).length;
+  var riskCount = accounts.filter(function(a) { return a.status === 'Needs Enrichment' || a.status === 'Do Not Work' || (a.dealScore || 0) < 45; }).length;
+  var totalVolume = accounts.filter(function(a) { return a.stage !== 'Lost' && a.stage !== 'Hold' && a.status !== 'Do Not Work'; }).reduce(function(sum, a) { return sum + Number(a.estimatedDealValue || a.monthlyVolume || 0); }, 0);
   if (document.getElementById('enterprise-stat-total')) document.getElementById('enterprise-stat-total').textContent = accounts.length;
-  if (document.getElementById('enterprise-stat-active')) document.getElementById('enterprise-stat-active').textContent = activeCount;
+  if (document.getElementById('enterprise-stat-active')) document.getElementById('enterprise-stat-active').textContent = verifiedCount;
   if (document.getElementById('enterprise-stat-volume')) document.getElementById('enterprise-stat-volume').textContent = totalVolume ? formatCurrency(totalVolume) : '$0';
   if (document.getElementById('enterprise-stat-risk')) document.getElementById('enterprise-stat-risk').textContent = riskCount;
   updateEnterpriseBadge();
+  renderEnterprisePipelineBoard(accounts);
+  renderEnterpriseFocusBoard(accounts);
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:32px;">No enterprise accounts found. Click "Add Enterprise Account" to start building the CRM.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">No internal leads staged yet. Import the deploy-ready CSV or add a lead manually.</td></tr>';
     if (detailContainer) detailContainer.innerHTML = '';
     return;
   }
@@ -6515,14 +6867,13 @@ function renderEnterpriseAccounts() {
   filtered.forEach(function(a) {
     var isExpanded = expandedEnterpriseId === a.id;
     html += '<tr class="' + (isExpanded ? 'expanded' : '') + '" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">';
-    html += '<td><strong>' + escapeHtml(a.company) + '</strong><div style="font-size:11px;color:var(--muted);margin-top:2px;">Owner: ' + escapeHtml(a.owner || '—') + '</div></td>';
-    html += '<td><span class="badge ' + enterpriseTypeBadgeClass(a.type) + '">' + escapeHtml(a.type) + '</span></td>';
-    html += '<td>' + escapeHtml(a.primaryContact || '—') + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + escapeHtml(a.email || '—') + '</div></td>';
-    html += '<td style="font-size:12px;color:var(--muted);">' + escapeHtml(a.territory || '—') + '</td>';
-    html += '<td><span class="stage-badge ' + enterpriseStageBadgeClass(a.stage) + '">' + escapeHtml(a.stage) + '</span></td>';
-    html += '<td><span class="badge ' + statusBadgeClass(a.status) + '">' + escapeHtml(a.status) + '</span></td>';
-    html += '<td style="font-size:12px;">' + escapeHtml(a.paymentTerms || '—') + '</td>';
-    html += '<td style="font-weight:600;color:var(--amber);">' + (a.monthlyVolume ? formatCurrency(a.monthlyVolume) : '---') + '</td>';
+    html += '<td><strong>' + escapeHtml(a.company) + '</strong><div style="font-size:11px;color:var(--muted);margin-top:2px;">' + escapeHtml(a.primaryContact || a.owner || 'No contact yet') + ' · ' + escapeHtml(a.territory || '—') + '</div><div style="font-size:10px;color:var(--cyan);margin-top:4px;">' + escapeHtml(a.focusSlot || computeEnterpriseFocusSlot(a)) + ' · ' + escapeHtml(a.deploymentTier || a.type || 'Lead') + (a.dataReliabilityGrade ? ' · Grade ' + escapeHtml(a.dataReliabilityGrade) : '') + '</div></td>';
+    html += '<td><span class="badge ' + enterpriseTypeBadgeClass(a.type) + '">' + escapeHtml(a.serviceLane || a.type || '—') + '</span></td>';
+    html += '<td><span class="badge ' + enterpriseScoreClass(a.dealScore || 0) + '">' + escapeHtml(String(a.dealScore || 0)) + '</span><div style="font-size:10px;color:var(--muted);margin-top:4px;">' + (a.estimatedDealValue ? formatCurrency(a.estimatedDealValue) : 'No value set') + '</div></td>';
+    html += '<td><span class="badge ' + statusBadgeClass(a.status) + '">' + escapeHtml(a.status || '—') + '</span></td>';
+    html += '<td><span class="stage-badge ' + enterpriseStageBadgeClass(a.stage) + '">' + escapeHtml(a.stage || '—') + '</span></td>';
+    html += '<td style="font-size:12px;max-width:260px;"><strong style="color:var(--ink);display:block;">' + escapeHtml(a.recommendedOffer || 'No offer defined') + '</strong><div style="color:var(--muted);margin-top:4px;">' + escapeHtml(a.nextAction || a.refinementNextStep || 'Set next action') + '</div></td>';
+    html += '<td style="font-size:12px;">' + escapeHtml(a.owner || '—') + '<div style="font-size:10px;color:var(--muted);margin-top:4px;">' + escapeHtml(a.relationshipStrength || 'Unworked') + '</div></td>';
     html += '<td style="font-size:12px;color:var(--muted);">' + (a.lastContactAt ? timeAgo(a.lastContactAt) : '—') + '</td>';
     html += '<td onclick="event.stopPropagation();">';
     html += '<button class="btn btn-sm btn-primary" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">Open</button>';
@@ -6541,6 +6892,44 @@ function renderEnterpriseAccounts() {
   }
 }
 
+function renderEnterprisePipelineBoard(accounts) {
+  var board = document.getElementById('enterprise-pipeline-board');
+  if (!board) return;
+  var tracked = ['Verification Queue', 'Ready for Outreach', 'Qualified', 'Quoted', 'Won'];
+  var html = '';
+  tracked.forEach(function(stage) {
+    var items = accounts.filter(function(a) { return a.stage === stage; });
+    var top = items.sort(function(a, b) { return (b.dealScore || 0) - (a.dealScore || 0); }).slice(0, 2);
+    html += '<div style="border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;background:rgba(255,255,255,.02);min-height:112px;">';
+    html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px;"><span class="stage-badge ' + enterpriseStageBadgeClass(stage) + '">' + escapeHtml(stage) + '</span><strong style="font-size:18px;color:var(--ink);">' + items.length + '</strong></div>';
+    if (!top.length) {
+      html += '<div style="font-size:11px;color:var(--muted);">No leads in this stage.</div>';
+    } else {
+      top.forEach(function(a) {
+        html += '<div style="font-size:11px;color:var(--muted);margin-top:6px;"><strong style="color:var(--ink);">' + escapeHtml(a.company) + '</strong> · Score ' + escapeHtml(String(a.dealScore || 0)) + '</div>';
+      });
+    }
+    html += '</div>';
+  });
+  board.innerHTML = html;
+}
+
+function renderEnterpriseFocusBoard(accounts) {
+  var board = document.getElementById('enterprise-focus-board');
+  if (!board) return;
+  var html = '';
+  ENTERPRISE_FOCUS_SLOTS.forEach(function(slot) {
+    var items = accounts.filter(function(a) { return (a.focusSlot || computeEnterpriseFocusSlot(a)) === slot; });
+    var top = items.sort(function(a, b) { return (b.dealScore || 0) - (a.dealScore || 0); }).slice(0, 1)[0];
+    html += '<div style="border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;background:rgba(255,255,255,.02);min-height:92px;">';
+    html += '<div style="font-size:10px;color:var(--cyan);text-transform:uppercase;letter-spacing:.14em;">' + escapeHtml(slot) + '</div>';
+    html += '<div style="font-size:22px;font-weight:700;color:var(--ink);margin-top:8px;">' + items.length + '</div>';
+    if (top) html += '<div style="font-size:11px;color:var(--muted);margin-top:6px;"><strong style="color:var(--ink);">' + escapeHtml(top.company) + '</strong><br>Score ' + escapeHtml(String(top.dealScore || 0)) + '</div>';
+    html += '</div>';
+  });
+  board.innerHTML = html;
+}
+
 function filterEnterpriseAccounts() { renderEnterpriseAccounts(); }
 
 function toggleEnterpriseDetail(accountId) {
@@ -6556,19 +6945,30 @@ function toggleEnterpriseDetail(accountId) {
 
 function buildEnterpriseDetailHtml(a) {
   var h = '<div class="client-detail-panel visible">';
+  h += '<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px;">';
+  h += '<div class="stat-card"><div class="s-num s-cyan">' + escapeHtml(String(a.dealScore || 0)) + '</div><div class="s-label">Deal Score</div></div>';
+  h += '<div class="stat-card"><div class="s-num s-amber">' + escapeHtml(a.deploymentTier || '—') + '</div><div class="s-label">Deploy Tier</div></div>';
+  h += '<div class="stat-card"><div class="s-num s-blue">' + escapeHtml(a.dataReliabilityGrade || '—') + '</div><div class="s-label">Reliability</div></div>';
+  h += '<div class="stat-card"><div class="s-num s-green">' + (a.estimatedDealValue ? formatCurrency(a.estimatedDealValue) : '---') + '</div><div class="s-label">Est. Deal</div></div>';
+  h += '<div class="stat-card"><div class="s-num s-red">' + escapeHtml(a.enhancedRank ? String(a.enhancedRank) : '—') + '</div><div class="s-label">Enhanced Rank</div></div>';
+  h += '</div>';
   h += '<div class="detail-grid">';
   h += '<div class="detail-section detail-section--wide">';
-  h += '<h4>Account Profile</h4>';
+  h += '<h4>Lead Profile</h4>';
   h += '<div class="detail-row"><span class="detail-label">Company</span><span class="detail-val">' + escapeHtml(a.company || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Primary Contact</span><span class="detail-val">' + escapeHtml(a.primaryContact || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val">' + escapeHtml(a.email || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val">' + escapeHtml(formatPhoneNumber(a.phone)) + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Website</span><span class="detail-val">' + escapeHtml(a.website || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Territory</span><span class="detail-val">' + escapeHtml(a.territory || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Owner</span><span class="detail-val">' + escapeHtml(a.owner || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Lead ID / Entity</span><span class="detail-val">' + escapeHtml((a.leadId || '---') + (a.entityNumber ? ' · ' + a.entityNumber : '')) + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Filing Date</span><span class="detail-val">' + escapeHtml(a.filingDate || '---') + '</span></div>';
   h += '</div>';
   h += '<div class="detail-section">';
-  h += '<h4>Relationship</h4>';
+  h += '<h4>Pipeline</h4>';
   h += '<div class="detail-row"><span class="detail-label">Type</span><span class="detail-val"><span class="badge ' + enterpriseTypeBadgeClass(a.type) + '">' + escapeHtml(a.type) + '</span></span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Primary Lane</span><span class="detail-val">' + escapeHtml(a.serviceLane || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Stage</span><span class="detail-val"><span class="stage-badge ' + enterpriseStageBadgeClass(a.stage) + '">' + escapeHtml(a.stage) + '</span></span></div>';
   h += '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-val"><span class="badge ' + statusBadgeClass(a.status) + '">' + escapeHtml(a.status) + '</span></span></div>';
   h += '<div class="detail-row"><span class="detail-label">Last Contact</span><span class="detail-val">' + (a.lastContactAt ? formatDate(a.lastContactAt) : '---') + '</span></div>';
@@ -6578,55 +6978,66 @@ function buildEnterpriseDetailHtml(a) {
 
   h += '<div class="detail-grid" style="margin-top:12px;">';
   h += '<div class="detail-section">';
-  h += '<h4>Commercial Terms</h4>';
-  h += '<div class="detail-row"><span class="detail-label">Payment Terms</span><span class="detail-val">' + escapeHtml(a.paymentTerms || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Monthly Volume</span><span class="detail-val">' + (a.monthlyVolume ? formatCurrency(a.monthlyVolume) : '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Commission Rate</span><span class="detail-val">' + escapeHtml(a.commissionRate || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Relationship Strength</span><span class="detail-val">' + escapeHtml(a.relationshipStrength || '---') + '</span></div>';
+  h += '<h4>Fit Signals</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Recommended Offer</span><span class="detail-val">' + escapeHtml(a.recommendedOffer || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Secondary Services</span><span class="detail-val">' + escapeHtml(a.secondaryServices || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Indicators</span><span class="detail-val" style="white-space:pre-wrap;">' + escapeHtml(a.keyIndicators || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Role / Agent</span><span class="detail-val">' + escapeHtml(a.roleAgentSignal || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Address Behavior</span><span class="detail-val">' + escapeHtml(a.addressBehaviorSignal || '---') + '</span></div>';
   h += '</div>';
   h += '<div class="detail-section">';
-  h += '<h4>Compliance</h4>';
-  h += '<div class="detail-row"><span class="detail-label">KYC</span><span class="detail-val">' + escapeHtml(a.kycStatus || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Agreement</span><span class="detail-val">' + escapeHtml(a.agreementStatus || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Insurance</span><span class="detail-val">' + escapeHtml(a.insuranceStatus || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Risk Level</span><span class="detail-val">' + escapeHtml(a.riskLevel || '---') + '</span></div>';
+  h += '<h4>Trigger Signals</h4>';
+  if (a.triggerSignals && a.triggerSignals.length) {
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    a.triggerSignals.forEach(function(hit) {
+      h += '<span class="badge ' + enterpriseScoreClass(hit.score > 0 ? 80 : 20) + '">' + escapeHtml(hit.label + ' ' + (hit.score > 0 ? '+' : '') + hit.score) + '</span>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="font-size:12px;color:var(--muted);">No trigger words detected yet. Internal updates will change the deal score.</div>';
+  }
+  h += '<div class="detail-row" style="margin-top:12px;"><span class="detail-label">Campaign Angle</span><span class="detail-val" style="white-space:pre-wrap;">' + escapeHtml(a.campaignAngle || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Refinement Step</span><span class="detail-val">' + escapeHtml(a.refinementNextStep || '---') + '</span></div>';
   h += '</div>';
   h += '</div>';
 
   h += '<div class="detail-section" style="margin-top:12px;">';
-  h += '<h4>Update Enterprise Account</h4>';
-  h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">';
+  h += '<h4>Internal Lead Controls</h4>';
+  h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
   h += '<div class="form-group"><label>Company</label><input class="form-input" id="enterprise-company-' + a.id + '" value="' + escapeHtml(a.company || '') + '"></div>';
   h += '<div class="form-group"><label>Primary Contact</label><input class="form-input" id="enterprise-contact-' + a.id + '" value="' + escapeHtml(a.primaryContact || '') + '"></div>';
   h += '<div class="form-group"><label>Email</label><input class="form-input" id="enterprise-email-' + a.id + '" value="' + escapeHtml(a.email || '') + '"></div>';
+  h += '<div class="form-group"><label>Website</label><input class="form-input" id="enterprise-website-' + a.id + '" value="' + escapeHtml(a.website || '') + '"></div>';
   h += '</div>';
   h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
   h += '<div class="form-group"><label>Phone</label><input class="form-input" id="enterprise-phone-' + a.id + '" value="' + escapeHtml(a.phone || '') + '"></div>';
   h += '<div class="form-group"><label>Territory</label><input class="form-input" id="enterprise-territory-' + a.id + '" value="' + escapeHtml(a.territory || '') + '"></div>';
   h += '<div class="form-group"><label>Owner</label><input class="form-input" id="enterprise-owner-' + a.id + '" value="' + escapeHtml(a.owner || '') + '"></div>';
-  h += '<div class="form-group"><label>Payment Terms</label><input class="form-input" id="enterprise-terms-' + a.id + '" value="' + escapeHtml(a.paymentTerms || '') + '"></div>';
+  h += '<div class="form-group"><label>Estimated Deal Value</label><input class="form-input" id="enterprise-value-' + a.id + '" type="number" min="0" value="' + escapeHtml(String(a.estimatedDealValue || 0)) + '"></div>';
   h += '</div>';
   h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
-  h += '<div class="form-group"><label>Type</label><select class="form-select" id="enterprise-type-' + a.id + '"><option value="Supplier"' + (a.type === 'Supplier' ? ' selected' : '') + '>Supplier</option><option value="Broker"' + (a.type === 'Broker' ? ' selected' : '') + '>Broker</option><option value="Partner"' + (a.type === 'Partner' ? ' selected' : '') + '>Partner</option></select></div>';
-  h += '<div class="form-group"><label>Stage</label><select class="form-select" id="enterprise-stage-' + a.id + '"><option value="Sourcing"' + (a.stage === 'Sourcing' ? ' selected' : '') + '>Sourcing</option><option value="Onboarding"' + (a.stage === 'Onboarding' ? ' selected' : '') + '>Onboarding</option><option value="Contracted"' + (a.stage === 'Contracted' ? ' selected' : '') + '>Contracted</option><option value="Scaling"' + (a.stage === 'Scaling' ? ' selected' : '') + '>Scaling</option><option value="Review"' + (a.stage === 'Review' ? ' selected' : '') + '>Review</option></select></div>';
-  h += '<div class="form-group"><label>Status</label><select class="form-select" id="enterprise-status-' + a.id + '"><option value="Prospect"' + (a.status === 'Prospect' ? ' selected' : '') + '>Prospect</option><option value="Active"' + (a.status === 'Active' ? ' selected' : '') + '>Active</option><option value="Dormant"' + (a.status === 'Dormant' ? ' selected' : '') + '>Dormant</option><option value="On Hold"' + (a.status === 'On Hold' ? ' selected' : '') + '>On Hold</option><option value="Terminated"' + (a.status === 'Terminated' ? ' selected' : '') + '>Terminated</option></select></div>';
-  h += '<div class="form-group"><label>Monthly Volume</label><input class="form-input" type="number" min="0" id="enterprise-volume-' + a.id + '" value="' + escapeHtml(String(a.monthlyVolume || 0)) + '"></div>';
+  h += '<div class="form-group"><label>Type</label><select class="form-select" id="enterprise-type-' + a.id + '"><option value="Business Filing Lead"' + (a.type === 'Business Filing Lead' ? ' selected' : '') + '>Business Filing Lead</option><option value="Supplier"' + (a.type === 'Supplier' ? ' selected' : '') + '>Supplier</option><option value="Broker"' + (a.type === 'Broker' ? ' selected' : '') + '>Broker</option><option value="Partner"' + (a.type === 'Partner' ? ' selected' : '') + '>Partner</option></select></div>';
+  h += '<div class="form-group"><label>Pipeline Stage</label><select class="form-select" id="enterprise-stage-' + a.id + '">';
+  ENTERPRISE_PIPELINE_STAGES.forEach(function(stage) { h += '<option value="' + stage + '"' + (a.stage === stage ? ' selected' : '') + '>' + stage + '</option>'; });
+  h += '</select></div>';
+  h += '<div class="form-group"><label>Verification Status</label><select class="form-select" id="enterprise-status-' + a.id + '"><option value="Needs Enrichment"' + (a.status === 'Needs Enrichment' ? ' selected' : '') + '>Needs Enrichment</option><option value="Partially Verified"' + (a.status === 'Partially Verified' ? ' selected' : '') + '>Partially Verified</option><option value="Verified"' + (a.status === 'Verified' ? ' selected' : '') + '>Verified</option><option value="Do Not Work"' + (a.status === 'Do Not Work' ? ' selected' : '') + '>Do Not Work</option></select></div>';
+  h += '<div class="form-group"><label>Service Lane</label><input class="form-input" id="enterprise-service-' + a.id + '" value="' + escapeHtml(a.serviceLane || '') + '"></div>';
   h += '</div>';
   h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
-  h += '<div class="form-group"><label>KYC</label><input class="form-input" id="enterprise-kyc-' + a.id + '" value="' + escapeHtml(a.kycStatus || '') + '"></div>';
-  h += '<div class="form-group"><label>Agreement</label><input class="form-input" id="enterprise-agreement-' + a.id + '" value="' + escapeHtml(a.agreementStatus || '') + '"></div>';
-  h += '<div class="form-group"><label>Insurance</label><input class="form-input" id="enterprise-insurance-' + a.id + '" value="' + escapeHtml(a.insuranceStatus || '') + '"></div>';
-  h += '<div class="form-group"><label>Risk Level</label><input class="form-input" id="enterprise-risk-' + a.id + '" value="' + escapeHtml(a.riskLevel || '') + '"></div>';
-  h += '</div>';
-  h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">';
-  h += '<div class="form-group"><label>Commission Rate</label><input class="form-input" id="enterprise-commission-' + a.id + '" value="' + escapeHtml(a.commissionRate || '') + '"></div>';
-  h += '<div class="form-group"><label>Relationship Strength</label><input class="form-input" id="enterprise-strength-' + a.id + '" value="' + escapeHtml(a.relationshipStrength || '') + '"></div>';
+  h += '<div class="form-group"><label>Recommended Offer</label><input class="form-input" id="enterprise-offer-' + a.id + '" value="' + escapeHtml(a.recommendedOffer || '') + '"></div>';
+  h += '<div class="form-group"><label>Next Action</label><input class="form-input" id="enterprise-next-' + a.id + '" value="' + escapeHtml(a.nextAction || '') + '"></div>';
+  h += '<div class="form-group"><label>Verification Match</label><input class="form-input" id="enterprise-match-' + a.id + '" value="' + escapeHtml(a.verificationMatch || '') + '"></div>';
   h += '<div class="form-group"><label>Next Review</label><input class="form-input" type="date" id="enterprise-review-' + a.id + '" value="' + escapeHtml(a.nextReviewAt ? String(a.nextReviewAt).slice(0, 10) : '') + '"></div>';
   h += '</div>';
+  h += '<div class="form-row" style="grid-template-columns:1fr 1fr;">';
+  h += '<div class="form-group"><label>Last Outcome</label><input class="form-input" id="enterprise-outcome-' + a.id + '" value="' + escapeHtml(a.lastOutcome || '') + '" placeholder="answered, no answer, interested, quote sent..."></div>';
+  h += '<div class="form-group"><label>Relationship Label</label><input class="form-input" id="enterprise-strength-' + a.id + '" value="' + escapeHtml(a.relationshipStrength || '') + '" placeholder="Unworked, Warm, Working, Hot..."></div>';
+  h += '</div>';
+  h += '<div class="form-group"><label>Internal Updates / Trigger Phrases</label><textarea class="form-textarea" id="enterprise-updates-' + a.id + '" rows="3" placeholder="owner verified, answered, interested, quote sent, meeting scheduled, wrong number...">' + escapeHtml(a.internalUpdates || '') + '</textarea></div>';
   h += '<div class="form-group"><label>Notes</label><textarea class="form-textarea" id="enterprise-notes-' + a.id + '" rows="4">' + escapeHtml(a.notes || '') + '</textarea></div>';
   h += '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">';
   h += '<button class="btn btn-ghost" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">Close</button>';
-  h += '<button class="btn btn-primary" onclick="saveEnterpriseAccountDetail(\'' + a.id + '\')">Save Enterprise Account</button>';
+  h += '<button class="btn btn-primary" onclick="saveEnterpriseAccountDetail(\'' + a.id + '\')">Save Lead</button>';
   h += '</div>';
   h += '</div>';
   h += '</div>';
@@ -6640,55 +7051,59 @@ function saveEnterpriseAccountDetail(accountId) {
   account.company = document.getElementById('enterprise-company-' + accountId).value.trim();
   account.primaryContact = document.getElementById('enterprise-contact-' + accountId).value.trim();
   account.email = document.getElementById('enterprise-email-' + accountId).value.trim();
+  account.website = document.getElementById('enterprise-website-' + accountId).value.trim();
   account.phone = document.getElementById('enterprise-phone-' + accountId).value.trim();
   account.territory = document.getElementById('enterprise-territory-' + accountId).value.trim();
   account.owner = document.getElementById('enterprise-owner-' + accountId).value.trim();
-  account.paymentTerms = document.getElementById('enterprise-terms-' + accountId).value.trim();
+  account.estimatedDealValue = Number(document.getElementById('enterprise-value-' + accountId).value || 0);
+  account.monthlyVolume = account.estimatedDealValue;
   account.type = document.getElementById('enterprise-type-' + accountId).value;
   account.stage = document.getElementById('enterprise-stage-' + accountId).value;
   account.status = document.getElementById('enterprise-status-' + accountId).value;
-  account.monthlyVolume = Number(document.getElementById('enterprise-volume-' + accountId).value || 0);
-  account.kycStatus = document.getElementById('enterprise-kyc-' + accountId).value.trim();
-  account.agreementStatus = document.getElementById('enterprise-agreement-' + accountId).value.trim();
-  account.insuranceStatus = document.getElementById('enterprise-insurance-' + accountId).value.trim();
-  account.riskLevel = document.getElementById('enterprise-risk-' + accountId).value.trim();
-  account.commissionRate = document.getElementById('enterprise-commission-' + accountId).value.trim();
+  account.serviceLane = document.getElementById('enterprise-service-' + accountId).value.trim();
+  account.recommendedOffer = document.getElementById('enterprise-offer-' + accountId).value.trim();
+  account.nextAction = document.getElementById('enterprise-next-' + accountId).value.trim();
+  account.verificationMatch = document.getElementById('enterprise-match-' + accountId).value.trim();
+  account.lastOutcome = document.getElementById('enterprise-outcome-' + accountId).value.trim();
   account.relationshipStrength = document.getElementById('enterprise-strength-' + accountId).value.trim();
   account.nextReviewAt = document.getElementById('enterprise-review-' + accountId).value;
+  account.internalUpdates = document.getElementById('enterprise-updates-' + accountId).value.trim();
   account.notes = document.getElementById('enterprise-notes-' + accountId).value.trim();
   account.lastContactAt = new Date().toISOString();
   account.updatedAt = account.lastContactAt;
+  account.dealScore = computeEnterpriseDealScore(account);
+  account.triggerSignals = computeEnterpriseTriggerSignals(account);
   saveEnterpriseAccounts(accounts);
-  addActivity('Enterprise account updated: ' + account.company, 'blue');
-  showToast('Enterprise account saved', 'success');
+  addActivity('Enterprise lead updated: ' + account.company + ' (score ' + account.dealScore + ')', 'blue');
+  showToast('Lead saved', 'success');
   renderEnterpriseAccounts();
 }
 
 function deleteEnterpriseAccount(accountId) {
   if (!currentAdmin || currentAdmin.access !== 'full') {
-    showToast('Only owners can delete enterprise accounts', 'error');
+    showToast('Only owners can delete internal leads', 'error');
     return;
   }
-  if (!confirm('Delete this enterprise account? This cannot be undone.')) return;
+  if (!confirm('Delete this internal lead? This cannot be undone.')) return;
   var accounts = loadEnterpriseAccounts();
   var account = accounts.find(function(x) { return x.id === accountId; });
   saveEnterpriseAccounts(accounts.filter(function(x) { return x.id !== accountId; }));
   expandedEnterpriseId = null;
-  addActivity('Enterprise account deleted: ' + (account ? account.company : 'Unknown'), 'red');
-  showToast('Enterprise account deleted', 'info');
+  addActivity('Internal lead deleted: ' + (account ? account.company : 'Unknown'), 'red');
+  showToast('Internal lead deleted', 'info');
   renderEnterpriseAccounts();
 }
 
 function openAddEnterpriseModal() {
   document.getElementById('new-enterprise-company').value = '';
-  document.getElementById('new-enterprise-type').value = 'Supplier';
+  document.getElementById('new-enterprise-type').value = 'Business Filing Lead';
   document.getElementById('new-enterprise-contact').value = '';
   document.getElementById('new-enterprise-email').value = '';
   document.getElementById('new-enterprise-phone').value = '';
   document.getElementById('new-enterprise-territory').value = '';
   document.getElementById('new-enterprise-owner').value = 'Ken';
-  document.getElementById('new-enterprise-stage').value = 'Sourcing';
-  document.getElementById('new-enterprise-status').value = 'Prospect';
+  document.getElementById('new-enterprise-stage').value = 'Verification Queue';
+  document.getElementById('new-enterprise-status').value = 'Needs Enrichment';
   document.getElementById('new-enterprise-notes').value = '';
   openModal('modal-add-enterprise');
 }
@@ -6720,14 +7135,17 @@ function addEnterpriseAccount() {
     stage: document.getElementById('new-enterprise-stage').value,
     status: document.getElementById('new-enterprise-status').value,
     notes: document.getElementById('new-enterprise-notes').value.trim(),
+    internalUpdates: document.getElementById('new-enterprise-notes').value.trim(),
+    estimatedDealValue: 1500,
+    monthlyVolume: 1500,
     lastContactAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }));
   saveEnterpriseAccounts(accounts);
   closeModal('modal-add-enterprise');
-  addActivity('Enterprise account created: ' + company, 'green');
-  showToast('Enterprise account created', 'success');
+  addActivity('Enterprise lead created: ' + company, 'green');
+  showToast('Internal lead created', 'success');
   renderEnterpriseAccounts();
 }
 
