@@ -2942,6 +2942,7 @@ var HIRECAR_API = 'https://hirecar-api.hirecar.workers.dev';
 var SESSION_KEY = 'hc_admin_session';
 var CLIENTS_KEY = 'hc_admin_clients';
 var ENTERPRISE_KEY = 'hc_admin_enterprise_accounts';
+var ENTERPRISE_UPDATES_KEY = 'hc_admin_enterprise_lead_updates';
 var ENTERPRISE_SEED_URL = './data/enterprise_leads_deploy_ready.json';
 var ACTIVITY_KEY = 'hc_admin_activity';
 var SETTINGS_KEY = 'hc_admin_settings';
@@ -2958,6 +2959,8 @@ var msgModalClientId = null;
 var fundingBankResultsDraft = null;
 var workItemsSyncing = false;
 var workItemsLastSync = 0;
+var enterpriseSeedCache = [];
+var enterpriseSeedLoaded = false;
 var WORK_OWNERS = [
   { id: 'ken', name: 'Ken', alias: 'ken-tasks@hirecar.la' },
   { id: 'myra', name: 'Myra', alias: 'myra-tasks@hirecar.la' },
@@ -4540,6 +4543,33 @@ function normalizeEnterpriseAccount(account) {
 
 function loadEnterpriseAccounts() {
   try {
+    var updates = loadEnterpriseLeadUpdates();
+    var manual = Array.isArray(updates.manual) ? updates.manual.map(normalizeEnterpriseAccount).filter(Boolean) : [];
+    var patches = updates.patches || {};
+    var deleted = updates.deleted || {};
+    var merged = [];
+    var seen = {};
+    if (enterpriseSeedLoaded && Array.isArray(enterpriseSeedCache) && enterpriseSeedCache.length) {
+      enterpriseSeedCache.forEach(function(seed) {
+        var normalizedSeed = normalizeEnterpriseAccount(seed);
+        var key = enterpriseRecordKey(normalizedSeed);
+        if (!key || deleted[key]) return;
+        var patch = patches[key] || null;
+        merged.push(normalizeEnterpriseAccount(patch ? Object.assign({}, normalizedSeed, patch) : normalizedSeed));
+        seen[key] = true;
+      });
+    }
+    manual.forEach(function(account) {
+      var key = enterpriseRecordKey(account);
+      if (key && deleted[key]) return;
+      if (key && patches[key]) account = normalizeEnterpriseAccount(Object.assign({}, account, patches[key]));
+      if (key && seen[key]) return;
+      merged.push(account);
+      if (key) seen[key] = true;
+    });
+    if (merged.length) return merged;
+  } catch (e) {}
+  try {
     var raw = localStorage.getItem(ENTERPRISE_KEY);
     if (raw) return JSON.parse(raw).map(normalizeEnterpriseAccount).filter(Boolean);
   } catch (e) {}
@@ -4548,8 +4578,124 @@ function loadEnterpriseAccounts() {
 
 function saveEnterpriseAccounts(accounts) {
   var normalized = (accounts || []).map(normalizeEnterpriseAccount).filter(Boolean);
-  try { localStorage.setItem(ENTERPRISE_KEY, JSON.stringify(normalized)); } catch (e) {}
+  try {
+    var seedMap = {};
+    (enterpriseSeedCache || []).forEach(function(seed) {
+      var normalizedSeed = normalizeEnterpriseAccount(seed);
+      seedMap[enterpriseRecordKey(normalizedSeed)] = normalizedSeed;
+    });
+    var mergedKeys = {};
+    var manual = [];
+    var patches = {};
+    normalized.forEach(function(account) {
+      var key = enterpriseRecordKey(account);
+      if (!key) return;
+      mergedKeys[key] = true;
+      if (seedMap[key]) {
+        var patch = buildEnterprisePatch(seedMap[key], account);
+        if (patch) patches[key] = patch;
+      } else {
+        manual.push(account);
+      }
+    });
+    var deleted = {};
+    Object.keys(seedMap).forEach(function(key) {
+      if (!mergedKeys[key]) deleted[key] = true;
+    });
+    saveEnterpriseLeadUpdates({ manual: manual, patches: patches, deleted: deleted });
+    try { localStorage.removeItem(ENTERPRISE_KEY); } catch (legacyErr) {}
+  } catch (e) {
+    console.warn('[HIRECAR Admin] Enterprise lead updates failed to save:', e);
+    showToast('Enterprise lead changes could not be saved locally', 'error');
+  }
   updateEnterpriseBadge();
+}
+
+function enterpriseRecordKey(account) {
+  account = account || {};
+  if (account.leadId) return 'lead:' + String(account.leadId).trim().toLowerCase();
+  if (account.entityNumber) return 'entity:' + String(account.entityNumber).trim().toLowerCase();
+  if (account.id) return 'id:' + String(account.id).trim().toLowerCase();
+  if (account.company) return 'company:' + String(account.company).trim().toLowerCase();
+  return '';
+}
+
+function loadEnterpriseLeadUpdates() {
+  try {
+    var raw = localStorage.getItem(ENTERPRISE_UPDATES_KEY);
+    if (!raw) return { manual: [], patches: {}, deleted: {} };
+    var parsed = JSON.parse(raw);
+    return {
+      manual: Array.isArray(parsed.manual) ? parsed.manual : [],
+      patches: parsed && parsed.patches && typeof parsed.patches === 'object' ? parsed.patches : {},
+      deleted: parsed && parsed.deleted && typeof parsed.deleted === 'object' ? parsed.deleted : {}
+    };
+  } catch (e) {
+    return { manual: [], patches: {}, deleted: {} };
+  }
+}
+
+function saveEnterpriseLeadUpdates(payload) {
+  var safePayload = {
+    manual: Array.isArray(payload && payload.manual) ? payload.manual : [],
+    patches: payload && payload.patches && typeof payload.patches === 'object' ? payload.patches : {},
+    deleted: payload && payload.deleted && typeof payload.deleted === 'object' ? payload.deleted : {}
+  };
+  localStorage.setItem(ENTERPRISE_UPDATES_KEY, JSON.stringify(safePayload));
+}
+
+function buildEnterprisePatch(seed, current) {
+  var patch = {};
+  var hasDiff = false;
+  Object.keys(current || {}).forEach(function(key) {
+    if (key === 'triggerSignals' || key === 'dealScore') return;
+    var currentValue = current[key];
+    var seedValue = seed ? seed[key] : undefined;
+    if (JSON.stringify(currentValue) !== JSON.stringify(seedValue)) {
+      patch[key] = currentValue;
+      hasDiff = true;
+    }
+  });
+  return hasDiff ? patch : null;
+}
+
+function migrateLegacyEnterpriseStorage() {
+  var raw = '';
+  try { raw = localStorage.getItem(ENTERPRISE_KEY) || ''; } catch (e) { raw = ''; }
+  if (!raw) return false;
+  try {
+    var legacy = JSON.parse(raw);
+    if (!Array.isArray(legacy) || !legacy.length) {
+      localStorage.removeItem(ENTERPRISE_KEY);
+      return false;
+    }
+    var seedMap = {};
+    (enterpriseSeedCache || []).forEach(function(seed) {
+      var normalizedSeed = normalizeEnterpriseAccount(seed);
+      seedMap[enterpriseRecordKey(normalizedSeed)] = normalizedSeed;
+    });
+    var manual = [];
+    var patches = {};
+    var seenKeys = {};
+    legacy.map(normalizeEnterpriseAccount).filter(Boolean).forEach(function(account) {
+      var key = enterpriseRecordKey(account);
+      if (!key || seenKeys[key]) return;
+      seenKeys[key] = true;
+      if (seedMap[key]) {
+        var patch = buildEnterprisePatch(seedMap[key], account);
+        if (patch) patches[key] = patch;
+      } else {
+        manual.push(account);
+      }
+    });
+    var deleted = {};
+    saveEnterpriseLeadUpdates({ manual: manual, patches: patches, deleted: deleted });
+    localStorage.removeItem(ENTERPRISE_KEY);
+    return true;
+  } catch (e) {
+    console.warn('[HIRECAR Admin] Legacy enterprise storage migration failed:', e);
+    return false;
+  }
 }
 
 function computeEnterpriseTriggerSignals(account) {
@@ -6641,8 +6787,10 @@ function updateEnterpriseBadge() {
 }
 
 function refreshEnterpriseManagementList() {
-  renderEnterpriseAccounts();
-  showToast('Enterprise list refreshed', 'info');
+  seedEnterpriseLeadsIfEmpty().finally(function() {
+    renderEnterpriseAccounts();
+    showToast('Enterprise list refreshed', 'info');
+  });
 }
 
 function parseCsvText(text) {
@@ -6794,34 +6942,20 @@ function importEnterpriseLeadCsv(evt) {
 }
 
 function seedEnterpriseLeadsIfEmpty() {
-  var existing = loadEnterpriseAccounts();
   return fetch(ENTERPRISE_SEED_URL, { cache: 'no-store' }).then(function(r) {
     if (!r.ok) throw new Error('Seed file unavailable');
     return r.json();
   }).then(function(data) {
     if (!Array.isArray(data) || !data.length) return false;
-    var byKey = {};
-    existing.forEach(function(a) {
-      var key = (a.leadId || '') + '|' + (a.entityNumber || '') + '|' + (a.company || '').toLowerCase();
-      byKey[key] = a;
-    });
-    var added = 0;
-    data.forEach(function(raw) {
-      var normalized = normalizeEnterpriseAccount(raw);
-      var key = (normalized.leadId || '') + '|' + (normalized.entityNumber || '') + '|' + (normalized.company || '').toLowerCase();
-      if (!byKey[key]) {
-        existing.push(normalized);
-        byKey[key] = normalized;
-        added++;
-      }
-    });
-    if (!added && existing.length) return false;
-    var accounts = existing.map(normalizeEnterpriseAccount);
-    saveEnterpriseAccounts(accounts);
-    addActivity('Seeded enterprise pipeline with ' + added + ' deploy-ready leads', 'green');
-    return added > 0;
+    enterpriseSeedCache = data.map(normalizeEnterpriseAccount).filter(Boolean);
+    enterpriseSeedLoaded = true;
+    migrateLegacyEnterpriseStorage();
+    updateEnterpriseBadge();
+    if (currentSection === 'enterprise') renderEnterpriseAccounts();
+    return enterpriseSeedCache.length > 0;
   }).catch(function(err) {
     console.warn('[HIRECAR Admin] Enterprise lead seed failed:', err);
+    enterpriseSeedLoaded = false;
     return false;
   });
 }
