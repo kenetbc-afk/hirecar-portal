@@ -387,6 +387,39 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   background: rgba(12, 18, 32, .92);
   border-top: 1px solid rgba(255,255,255,.06);
 }
+.enterprise-alert-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.enterprise-alert-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 14px;
+}
+.enterprise-alert-card h4 {
+  font-size: 12px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+.enterprise-alert-card ul {
+  margin: 0;
+  padding-left: 16px;
+}
+.enterprise-alert-card li {
+  font-size: 12px;
+  color: var(--ink);
+  margin: 6px 0;
+}
+.enterprise-alert-card li span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
 
 /* BADGES */
 .badge {
@@ -1557,6 +1590,22 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <div class="stat-card"><div class="s-num s-success" id="dash-work-value">$0</div><div class="s-label">Open Value</div></div>
         </div>
         <div id="dash-work-gaps" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+      </div>
+      <div class="a-card" style="margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <div>
+            <h3 style="font-size:16px;color:var(--cyan);">Enterprise CRM Alerts</h3>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Internal lead triage for what needs work now, what moved forward, and where revenue is concentrated.</div>
+          </div>
+          <button class="btn btn-primary" onclick="showSection('enterprise')">Open Enterprise CRM</button>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px;">
+          <div class="stat-card"><div class="s-num s-cyan" id="dash-enterprise-total">0</div><div class="s-label">Staged Leads</div></div>
+          <div class="stat-card"><div class="s-num s-red" id="dash-enterprise-needs">0</div><div class="s-label">Needs Work</div></div>
+          <div class="stat-card"><div class="s-num s-amber" id="dash-enterprise-followups">0</div><div class="s-label">Follow Ups Due</div></div>
+          <div class="stat-card"><div class="s-num s-green" id="dash-enterprise-done">0</div><div class="s-label">Advanced / Done</div></div>
+        </div>
+        <div id="dash-enterprise-alerts" class="enterprise-alert-list"></div>
       </div>
     </div>
 
@@ -4559,7 +4608,7 @@ function saveClients(clients) {
 
 function normalizeEnterpriseAccount(account) {
   if (!account) return null;
-  account.id = account.id || generateId();
+  account.id = account.id || enterpriseStableId(account);
   account.company = account.company || '';
   account.type = account.type || 'Business Filing Lead';
   account.primaryContact = account.primaryContact || '';
@@ -4709,6 +4758,12 @@ function enterpriseRecordKey(account) {
   if (account.id) return 'id:' + String(account.id).trim().toLowerCase();
   if (account.company) return 'company:' + String(account.company).trim().toLowerCase();
   return '';
+}
+
+function enterpriseStableId(account) {
+  var key = enterpriseRecordKey(account);
+  if (!key) return generateId();
+  return 'ent_' + key.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 80);
 }
 
 function loadEnterpriseLeadUpdates() {
@@ -5837,6 +5892,96 @@ function renderMiniGapList(title, rows) {
   return html + '</div>';
 }
 
+function getEnterpriseDashboardMetrics() {
+  var accounts = loadEnterpriseAccounts();
+  var now = new Date();
+  var soon = new Date(now.getTime() + (48 * 60 * 60 * 1000));
+  var needsWork = accounts.filter(function(a) {
+    return a.status === 'Needs Enrichment' ||
+      a.stage === 'Verification Queue' ||
+      a.stage === 'Research Complete' ||
+      a.stage === 'Hold' ||
+      a.dealScore < 55;
+  });
+  var followups = accounts.filter(function(a) {
+    if (!a.nextReviewAt) return false;
+    var review = new Date(a.nextReviewAt);
+    if (isNaN(review.getTime())) return false;
+    return review <= soon && a.stage !== 'Won' && a.stage !== 'Lost' && a.status !== 'Do Not Work';
+  });
+  var advanced = accounts.filter(function(a) {
+    return ['Meeting Scheduled', 'Qualified', 'Proposal Sent', 'Negotiation', 'Payment Pending', 'Won'].indexOf(a.stage) !== -1;
+  });
+  var completed = accounts.filter(function(a) {
+    return a.stage === 'Won' || (String(a.lastOutcome || '').toLowerCase().indexOf('paid') !== -1);
+  });
+  var topPriority = accounts
+    .filter(function(a) { return a.status !== 'Do Not Work' && a.stage !== 'Lost'; })
+    .sort(function(a, b) { return (b.dealScore || 0) - (a.dealScore || 0); })
+    .slice(0, 5);
+  var stale = accounts
+    .filter(function(a) {
+      if (a.stage === 'Won' || a.stage === 'Lost') return false;
+      if (!a.lastContactAt) return true;
+      var last = new Date(a.lastContactAt);
+      if (isNaN(last.getTime())) return true;
+      return (now.getTime() - last.getTime()) > (5 * 24 * 60 * 60 * 1000);
+    })
+    .sort(function(a, b) { return (b.dealScore || 0) - (a.dealScore || 0); })
+    .slice(0, 5);
+  return {
+    total: accounts.length,
+    needsWork: needsWork,
+    followups: followups,
+    advanced: advanced,
+    completed: completed,
+    topPriority: topPriority,
+    stale: stale
+  };
+}
+
+function renderEnterpriseDashboardSummary() {
+  var metrics = getEnterpriseDashboardMetrics();
+  var setText = function(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  setText('dash-enterprise-total', metrics.total);
+  setText('dash-enterprise-needs', metrics.needsWork.length);
+  setText('dash-enterprise-followups', metrics.followups.length);
+  setText('dash-enterprise-done', metrics.advanced.length + metrics.completed.length);
+
+  var wrap = document.getElementById('dash-enterprise-alerts');
+  if (!wrap) return;
+  wrap.innerHTML =
+    renderEnterpriseAlertCard('Needs Work Now', metrics.needsWork.slice(0, 5), function(a) {
+      return (a.status || 'Needs review') + ' · ' + (a.stage || 'Unstaged') + ' · Score ' + (a.dealScore || 0);
+    }) +
+    renderEnterpriseAlertCard('Follow Up Due', metrics.followups.slice(0, 5), function(a) {
+      return 'Review ' + (a.nextReviewAt ? formatDate(a.nextReviewAt) : 'now') + ' · ' + (a.nextAction || a.refinementNextStep || 'Set next step');
+    }) +
+    renderEnterpriseAlertCard('Top Priority Leads', metrics.topPriority, function(a) {
+      return (a.serviceLane || a.type || 'Lead') + ' · Score ' + (a.dealScore || 0) + ' · ' + (a.owner || 'Unassigned');
+    }) +
+    renderEnterpriseAlertCard('Recent Wins / Advanced', metrics.completed.concat(metrics.advanced).slice(0, 5), function(a) {
+      return (a.stage || 'Advanced') + ' · ' + (a.lastOutcome || a.relationshipStrength || 'Progress logged');
+    }) +
+    renderEnterpriseAlertCard('Stale Leads', metrics.stale, function(a) {
+      return (a.lastContactAt ? timeAgo(a.lastContactAt) : 'No touch logged') + ' · ' + (a.nextAction || 'Need follow up');
+    });
+}
+
+function renderEnterpriseAlertCard(title, rows, detailFn) {
+  var html = '<div class="enterprise-alert-card"><h4>' + escapeHtml(title) + '</h4>';
+  if (!rows.length) return html + '<div style="font-size:12px;color:var(--muted);">No items.</div></div>';
+  html += '<ul>';
+  rows.forEach(function(row) {
+    html += '<li>' + escapeHtml(row.company || row.name || 'Lead') + '<span>' + escapeHtml(detailFn(row)) + '</span></li>';
+  });
+  html += '</ul></div>';
+  return html;
+}
+
 function renderWorkDashboard() {
   populateWorkControls();
   refreshWorkItemsFromD1(false).then(function(result) {
@@ -6028,6 +6173,7 @@ function renderDashboard() {
 
   document.getElementById('badge-clients').textContent = clients.length;
   renderWorkSnapshot();
+  renderEnterpriseDashboardSummary();
   var badgeMsg = document.getElementById('badge-messages');
   if (msgAwaiting > 0) { badgeMsg.style.display = ''; badgeMsg.textContent = msgAwaiting; }
   else { badgeMsg.style.display = 'none'; }
@@ -7038,6 +7184,7 @@ function importEnterpriseLeadCsv(evt) {
       addActivity('Enterprise leads imported: ' + imported + ' staged, ' + skipped + ' skipped', 'green');
       showToast('Imported ' + imported + ' leads. Skipped ' + skipped + ' low-quality or duplicate rows.', imported ? 'success' : 'error');
       renderEnterpriseAccounts();
+      renderDashboard();
     } catch (err) {
       console.error(err);
       showToast('Enterprise lead import failed', 'error');
@@ -7057,6 +7204,7 @@ function seedEnterpriseLeadsIfEmpty() {
     migrateLegacyEnterpriseStorage();
     updateEnterpriseBadge();
     if (currentSection === 'enterprise') renderEnterpriseAccounts();
+    if (currentSection === 'dashboard') renderDashboard();
     return enterpriseSeedCache.length > 0;
   }).catch(function(err) {
     console.warn('[HIRECAR Admin] Enterprise lead seed failed:', err);
@@ -7313,6 +7461,7 @@ function saveEnterpriseAccountDetail(accountId) {
   addActivity('Enterprise lead updated: ' + account.company + ' (score ' + account.dealScore + ')', 'blue');
   showToast('Lead saved', 'success');
   renderEnterpriseAccounts();
+  renderDashboard();
 }
 
 function deleteEnterpriseAccount(accountId) {
@@ -7328,6 +7477,7 @@ function deleteEnterpriseAccount(accountId) {
   addActivity('Internal lead deleted: ' + (account ? account.company : 'Unknown'), 'red');
   showToast('Internal lead deleted', 'info');
   renderEnterpriseAccounts();
+  renderDashboard();
 }
 
 function openAddEnterpriseModal() {
@@ -7383,6 +7533,7 @@ function addEnterpriseAccount() {
   addActivity('Enterprise lead created: ' + company, 'green');
   showToast('Internal lead created', 'success');
   renderEnterpriseAccounts();
+  renderDashboard();
 }
 
 function importSeedXchangeCsv(evt) {
