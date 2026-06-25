@@ -324,6 +324,70 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   padding: 0;
 }
 
+#enterprise-table {
+  table-layout: auto;
+  min-width: 1680px;
+}
+#enterprise-table th,
+#enterprise-table td {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  vertical-align: top;
+  line-height: 1.35;
+}
+#enterprise-table th:nth-child(1), #enterprise-table td:nth-child(1) { width: 320px; }
+#enterprise-table th:nth-child(2), #enterprise-table td:nth-child(2) { width: 220px; }
+#enterprise-table th:nth-child(3), #enterprise-table td:nth-child(3) { width: 128px; }
+#enterprise-table th:nth-child(4), #enterprise-table td:nth-child(4) { width: 160px; }
+#enterprise-table th:nth-child(5), #enterprise-table td:nth-child(5) { width: 170px; }
+#enterprise-table th:nth-child(6), #enterprise-table td:nth-child(6) { width: 300px; }
+#enterprise-table th:nth-child(7), #enterprise-table td:nth-child(7) { width: 140px; }
+#enterprise-table th:nth-child(8), #enterprise-table td:nth-child(8) { width: 120px; }
+#enterprise-table th:nth-child(9), #enterprise-table td:nth-child(9) { width: 120px; }
+#enterprise-table .badge,
+#enterprise-table .stage-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.enterprise-score-chip {
+  min-width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  flex: 0 0 auto;
+}
+.enterprise-company-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.enterprise-company-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.enterprise-company-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.enterprise-inline-detail {
+  padding: 12px;
+  background: rgba(12, 18, 32, .92);
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
 /* BADGES */
 .badge {
   display: inline-block; padding: 3px 10px; border-radius: 16px;
@@ -1692,8 +1756,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           </div>
           <div style="font-size:12px;color:var(--muted);max-width:460px;text-align:right;">Deal score combines import rank, fit/confidence, verification state, and internal trigger phrases from updates like <strong style="color:var(--ink);">interested</strong>, <strong style="color:var(--ink);">quote</strong>, <strong style="color:var(--ink);">meeting</strong>, <strong style="color:var(--ink);">paid</strong>, or negative terms like <strong style="color:var(--ink);">wrong number</strong> and <strong style="color:var(--ink);">not interested</strong>.</div>
         </div>
-        <div id="enterprise-pipeline-board" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;"></div>
-        <div id="enterprise-focus-board" style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:10px;"></div>
+        <div id="enterprise-pipeline-board" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;"></div>
+        <div id="enterprise-focus-board" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:10px;"></div>
       </div>
       <div class="search-bar">
         <input type="text" id="enterprise-search" placeholder="Search company, contact, lane, trigger words, notes..." oninput="filterEnterpriseAccounts()">
@@ -1714,11 +1778,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         <select id="enterprise-filter-stage" onchange="filterEnterpriseAccounts()">
           <option value="">All Pipeline Stages</option>
           <option value="Verification Queue">Verification Queue</option>
+          <option value="Research Complete">Research Complete</option>
           <option value="Ready for Outreach">Ready for Outreach</option>
+          <option value="Attempting Contact">Attempting Contact</option>
           <option value="Contacted">Contacted</option>
+          <option value="Meeting Scheduled">Meeting Scheduled</option>
           <option value="Qualified">Qualified</option>
-          <option value="Quoted">Quoted</option>
+          <option value="Proposal Sent">Proposal Sent</option>
+          <option value="Negotiation">Negotiation</option>
+          <option value="Payment Pending">Payment Pending</option>
           <option value="Won">Won</option>
+          <option value="Nurture">Nurture</option>
           <option value="Lost">Lost</option>
           <option value="Hold">Hold</option>
         </select>
@@ -2771,11 +2841,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         <label>Pipeline Stage</label>
         <select class="form-select" id="new-enterprise-stage">
           <option value="Verification Queue">Verification Queue</option>
+          <option value="Research Complete">Research Complete</option>
           <option value="Ready for Outreach">Ready for Outreach</option>
+          <option value="Attempting Contact">Attempting Contact</option>
           <option value="Contacted">Contacted</option>
+          <option value="Meeting Scheduled">Meeting Scheduled</option>
           <option value="Qualified">Qualified</option>
-          <option value="Quoted">Quoted</option>
+          <option value="Proposal Sent">Proposal Sent</option>
+          <option value="Negotiation">Negotiation</option>
+          <option value="Payment Pending">Payment Pending</option>
           <option value="Won">Won</option>
+          <option value="Nurture">Nurture</option>
           <option value="Lost">Lost</option>
           <option value="Hold">Hold</option>
         </select>
@@ -3067,11 +3143,17 @@ function enterpriseTypeBadgeClass(type) {
 function enterpriseStageBadgeClass(stage) {
   switch (stage) {
     case 'Verification Queue': return 'stage-intake';
+    case 'Research Complete': return 'badge-blue';
     case 'Ready for Outreach': return 'stage-onboarding';
+    case 'Attempting Contact': return 'badge-muted';
     case 'Contacted': return 'stage-monitoring';
+    case 'Meeting Scheduled': return 'badge-blue';
     case 'Qualified': return 'stage-disputes';
-    case 'Quoted': return 'stage-funding';
+    case 'Proposal Sent': return 'stage-funding';
+    case 'Negotiation': return 'badge-amber';
+    case 'Payment Pending': return 'badge-blue';
     case 'Won': return 'stage-resolution';
+    case 'Nurture': return 'badge-muted';
     case 'Lost': return 'badge-red';
     case 'Hold': return 'badge-muted';
     default: return 'stage-default';
@@ -3080,11 +3162,17 @@ function enterpriseStageBadgeClass(stage) {
 
 var ENTERPRISE_PIPELINE_STAGES = [
   'Verification Queue',
+  'Research Complete',
   'Ready for Outreach',
+  'Attempting Contact',
   'Contacted',
+  'Meeting Scheduled',
   'Qualified',
-  'Quoted',
+  'Proposal Sent',
+  'Negotiation',
+  'Payment Pending',
   'Won',
+  'Nurture',
   'Lost',
   'Hold'
 ];
@@ -4481,9 +4569,12 @@ function normalizeEnterpriseAccount(account) {
   account.territory = account.territory || '';
   account.segment = account.segment || 'Lead Staging';
   if (account.stage === 'Sourcing') account.stage = 'Verification Queue';
+  if (account.stage === 'Verified') account.stage = 'Research Complete';
   if (account.stage === 'Onboarding') account.stage = 'Ready for Outreach';
+  if (account.stage === 'Outreach') account.stage = 'Attempting Contact';
   if (account.stage === 'Contracted') account.stage = 'Qualified';
-  if (account.stage === 'Scaling') account.stage = 'Quoted';
+  if (account.stage === 'Quoted') account.stage = 'Proposal Sent';
+  if (account.stage === 'Scaling') account.stage = 'Negotiation';
   if (account.stage === 'Review') account.stage = 'Hold';
   if (account.status === 'Prospect') account.status = 'Needs Enrichment';
   if (account.status === 'Active') account.status = 'Verified';
@@ -4727,11 +4818,17 @@ function computeEnterpriseDealScore(account) {
   if (account.status === 'Verified') base += 10;
   else if (account.status === 'Partially Verified') base += 5;
   else if (account.status === 'Do Not Work') base -= 30;
-  if (account.stage === 'Ready for Outreach') base += 6;
-  else if (account.stage === 'Qualified') base += 12;
-  else if (account.stage === 'Quoted') base += 18;
-  else if (account.stage === 'Won') base += 24;
-  else if (account.stage === 'Lost' || account.stage === 'Hold') base -= 12;
+  if (account.stage === 'Research Complete') base += 4;
+  else if (account.stage === 'Ready for Outreach') base += 8;
+  else if (account.stage === 'Attempting Contact') base += 10;
+  else if (account.stage === 'Contacted') base += 12;
+  else if (account.stage === 'Meeting Scheduled') base += 16;
+  else if (account.stage === 'Qualified') base += 20;
+  else if (account.stage === 'Proposal Sent') base += 24;
+  else if (account.stage === 'Negotiation') base += 28;
+  else if (account.stage === 'Payment Pending') base += 32;
+  else if (account.stage === 'Won') base += 38;
+  else if (account.stage === 'Lost' || account.stage === 'Hold') base -= 14;
   computeEnterpriseTriggerSignals(account).forEach(function(hit) { base += hit.score; });
   return Math.max(0, Math.min(100, Math.round(base)));
 }
@@ -4741,6 +4838,14 @@ function enterpriseScoreClass(score) {
   if (score >= 60) return 'badge-blue';
   if (score >= 40) return 'badge-amber';
   return 'badge-muted';
+}
+
+function enterpriseScoreLabel(score) {
+  if (score >= 85) return 'Priority';
+  if (score >= 70) return 'Hot';
+  if (score >= 55) return 'Warm';
+  if (score >= 40) return 'Watch';
+  return 'Low';
 }
 
 function computeEnterpriseFocusSlot(account) {
@@ -7001,9 +7106,9 @@ function renderEnterpriseAccounts() {
   filtered.forEach(function(a) {
     var isExpanded = expandedEnterpriseId === a.id;
     html += '<tr class="' + (isExpanded ? 'expanded' : '') + '" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">';
-    html += '<td><strong>' + escapeHtml(a.company) + '</strong><div style="font-size:11px;color:var(--muted);margin-top:2px;">' + escapeHtml(a.primaryContact || a.owner || 'No contact yet') + ' · ' + escapeHtml(a.territory || '—') + '</div><div style="font-size:10px;color:var(--cyan);margin-top:4px;">' + escapeHtml(a.focusSlot || computeEnterpriseFocusSlot(a)) + ' · ' + escapeHtml(a.deploymentTier || a.type || 'Lead') + (a.dataReliabilityGrade ? ' · Grade ' + escapeHtml(a.dataReliabilityGrade) : '') + '</div></td>';
+    html += '<td><div class="enterprise-company-row"><span class="badge ' + enterpriseScoreClass(a.dealScore || 0) + ' enterprise-score-chip">' + escapeHtml(String(a.dealScore || 0)) + '</span><div class="enterprise-company-main"><div class="enterprise-company-name">' + escapeHtml(a.company) + '</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">' + escapeHtml(a.primaryContact || a.owner || 'No contact yet') + ' · ' + escapeHtml(a.territory || '—') + '</div><div style="font-size:10px;color:var(--cyan);margin-top:6px;">' + escapeHtml(enterpriseScoreLabel(a.dealScore || 0)) + ' · ' + escapeHtml(a.focusSlot || computeEnterpriseFocusSlot(a)) + ' · ' + escapeHtml(a.deploymentTier || a.type || 'Lead') + (a.dataReliabilityGrade ? ' · Grade ' + escapeHtml(a.dataReliabilityGrade) : '') + '</div></div></div></td>';
     html += '<td><span class="badge ' + enterpriseTypeBadgeClass(a.type) + '">' + escapeHtml(a.serviceLane || a.type || '—') + '</span></td>';
-    html += '<td><span class="badge ' + enterpriseScoreClass(a.dealScore || 0) + '">' + escapeHtml(String(a.dealScore || 0)) + '</span><div style="font-size:10px;color:var(--muted);margin-top:4px;">' + (a.estimatedDealValue ? formatCurrency(a.estimatedDealValue) : 'No value set') + '</div></td>';
+    html += '<td><span class="badge ' + enterpriseScoreClass(a.dealScore || 0) + '">' + escapeHtml(String(a.dealScore || 0)) + '</span><div style="font-size:10px;color:var(--muted);margin-top:4px;">' + escapeHtml(enterpriseScoreLabel(a.dealScore || 0)) + '</div><div style="font-size:10px;color:var(--muted);margin-top:4px;">' + (a.estimatedDealValue ? formatCurrency(a.estimatedDealValue) : 'No value set') + '</div></td>';
     html += '<td><span class="badge ' + statusBadgeClass(a.status) + '">' + escapeHtml(a.status || '—') + '</span></td>';
     html += '<td><span class="stage-badge ' + enterpriseStageBadgeClass(a.stage) + '">' + escapeHtml(a.stage || '—') + '</span></td>';
     html += '<td style="font-size:12px;max-width:260px;"><strong style="color:var(--ink);display:block;">' + escapeHtml(a.recommendedOffer || 'No offer defined') + '</strong><div style="color:var(--muted);margin-top:4px;">' + escapeHtml(a.nextAction || a.refinementNextStep || 'Set next action') + '</div></td>';
@@ -7013,23 +7118,19 @@ function renderEnterpriseAccounts() {
     html += '<button class="btn btn-sm btn-primary" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">Open</button>';
     if (currentAdmin && currentAdmin.access === 'full') html += ' <button class="btn btn-sm btn-danger" onclick="deleteEnterpriseAccount(\'' + a.id + '\')">Del</button>';
     html += '</td></tr>';
+    if (isExpanded) {
+      html += '<tr class="expanded-detail-row"><td colspan="9" class="expanded-detail-cell"><div class="enterprise-inline-detail">' + buildEnterpriseDetailHtml(a) + '</div></td></tr>';
+    }
   });
   tbody.innerHTML = html;
 
-  if (detailContainer) {
-    if (expandedEnterpriseId) {
-      var expanded = filtered.find(function(a) { return a.id === expandedEnterpriseId; });
-      detailContainer.innerHTML = expanded ? buildEnterpriseDetailHtml(expanded) : '';
-    } else {
-      detailContainer.innerHTML = '';
-    }
-  }
+  if (detailContainer) detailContainer.innerHTML = '';
 }
 
 function renderEnterprisePipelineBoard(accounts) {
   var board = document.getElementById('enterprise-pipeline-board');
   if (!board) return;
-  var tracked = ['Verification Queue', 'Ready for Outreach', 'Qualified', 'Quoted', 'Won'];
+  var tracked = ['Verification Queue', 'Research Complete', 'Ready for Outreach', 'Attempting Contact', 'Meeting Scheduled', 'Proposal Sent', 'Payment Pending', 'Won'];
   var html = '';
   tracked.forEach(function(stage) {
     var items = accounts.filter(function(a) { return a.stage === stage; });
@@ -7071,8 +7172,8 @@ function toggleEnterpriseDetail(accountId) {
   renderEnterpriseAccounts();
   if (expandedEnterpriseId) {
     setTimeout(function() {
-      var detailEl = document.getElementById('enterprise-detail-container');
-      if (detailEl) detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var rowEl = document.querySelector('#enterprise-tbody tr.expanded');
+      if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 50);
   }
 }
@@ -7121,6 +7222,7 @@ function buildEnterpriseDetailHtml(a) {
   h += '</div>';
   h += '<div class="detail-section">';
   h += '<h4>Trigger Signals</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Scoring Inputs</span><span class="detail-val">Deploy ' + escapeHtml(String(a.enhancedDeploymentScore || 0)) + ' · Fit ' + escapeHtml(String(a.enhancedFitScore || 0)) + ' · Confidence ' + escapeHtml(String(a.refinementConfidenceScore || 0)) + ' · Stage ' + escapeHtml(a.stage || '---') + ' · Verification ' + escapeHtml(a.status || '---') + '</span></div>';
   if (a.triggerSignals && a.triggerSignals.length) {
     h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
     a.triggerSignals.forEach(function(hit) {
