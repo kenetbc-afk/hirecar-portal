@@ -220,7 +220,7 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 .admin-main {
   margin-left: var(--sidebar-width);
   padding: calc(var(--topbar-height) + 20px) 28px 80px;
-  max-width: 1400px;
+  max-width: none;
   min-height: 100vh;
 }
 
@@ -289,7 +289,7 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 /* TABLE */
 .a-table-wrap { overflow-x: auto; }
 .a-table {
-  width: 100%; border-collapse: collapse;
+  width: 100%; border-collapse: collapse; table-layout: fixed;
 }
 .a-table th {
   text-align: left; font-size: 11px; text-transform: uppercase;
@@ -318,6 +318,11 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 .a-table tbody tr { cursor: pointer; transition: background .2s; }
 .a-table tbody tr:hover { background: rgba(42,107,184,.06); }
 .a-table tbody tr.expanded { background: rgba(42,107,184,.1); }
+.a-table td.expanded-detail-cell {
+  white-space: normal;
+  overflow: visible;
+  padding: 0;
+}
 
 /* BADGES */
 .badge {
@@ -539,25 +544,47 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   background: linear-gradient(145deg, #131a2e, #101828);
   border: 1px solid rgba(42,107,184,.15); border-radius: 0 0 12px 12px;
   animation: fadeUp .3s ease;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .client-detail-panel.visible { display: block; }
-.detail-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+.client-detail-container {
+  margin-top: 16px;
+  width: 100%;
+  min-width: 0;
 }
-.detail-section { margin-bottom: 16px; }
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.detail-section--wide {
+  grid-column: 1 / -1;
+}
+.detail-section { margin-bottom: 16px; min-width: 0; }
 .detail-section h4 {
   font-size: 13px; color: var(--cyan); text-transform: uppercase;
   letter-spacing: 2px; margin-bottom: 10px;
   padding-bottom: 6px; border-bottom: 1px solid rgba(34,211,238,.1);
 }
 .detail-row {
-  display: flex; gap: 8px; font-size: 13px; padding: 4px 0;
+  display: grid; grid-template-columns: minmax(108px, 128px) minmax(0, 1fr);
+  gap: 10px; align-items: start;
+  font-size: 13px; padding: 4px 0;
 }
-.detail-label { color: var(--muted); min-width: 80px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-.detail-val { color: var(--ink); }
+.detail-label {
+  color: var(--muted); min-width: 0; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 1px; line-height: 1.35;
+}
+.detail-val {
+  color: var(--ink); min-width: 0; overflow-wrap: anywhere; word-break: break-word;
+}
 .detail-val.editable {
   cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all .2s;
-  border: 1px solid transparent; min-width: 60px; display: inline-block;
+  border: 1px solid transparent; min-width: 0; display: block; width: 100%;
 }
 .detail-val.editable:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); }
 .detail-val.editable.editing { background: rgba(255,255,255,.06); border-color: var(--gold); }
@@ -565,6 +592,52 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   background: rgba(255,255,255,.04); border: 1px solid var(--gold); border-radius: 4px;
   color: var(--ink); padding: 2px 6px; font-size: 13px; font-family: inherit; width: 100%;
   outline: none;
+}
+.detail-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em;
+  overflow-wrap: anywhere; word-break: break-word;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  border: 1px solid rgba(255,255,255,.05);
+  box-sizing: border-box;
+}
+.detail-section label .form-input,
+.detail-section label .form-select,
+.detail-section label .form-textarea {
+  width: 100%; min-width: 0;
+}
+.detail-section label .form-input,
+.detail-section label .form-select {
+  margin-top: 0 !important;
+}
+.detail-section label .form-input:disabled,
+.detail-section label .form-select:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+.detail-stack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.detail-stack-grid--wide {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.detail-stack-grid label {
+  min-width: 0;
+  align-items: stretch;
+}
+.detail-stack-grid label .form-input,
+.detail-stack-grid label .form-select {
+  min-width: 0;
+  width: 100%;
 }
 
 /* STAGE BADGES */
@@ -591,13 +664,23 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 
 /* SCORES DISPLAY */
 .scores-row {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
   margin: 10px 0;
+}
+.scores-row--compact {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 .score-box {
   background: linear-gradient(160deg, #162040, #131d3a);
   border: 1px solid rgba(255,255,255,.06); border-radius: 10px;
-  padding: 12px; text-align: center;
+  padding: 14px 12px;
+  text-align: center;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .score-box .sb-bureau {
   font-size: 10px; color: var(--muted); text-transform: uppercase;
@@ -606,6 +689,334 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 .score-box .sb-val {
   font-family: 'DM Sans', sans-serif; font-size: 24px; font-weight: 700;
   color: var(--amber);
+}
+.upload-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+.upload-preview-card {
+  min-height: 96px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+.upload-preview-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34,211,238,.12);
+  color: var(--cyan);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.upload-preview-card strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.upload-preview-card .up-meta {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.client-simulator-shell {
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.012));
+  padding: 14px;
+}
+.client-simulator-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.client-simulator-header h5 {
+  font-size: 13px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+.client-simulator-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+.client-simulator-toolbar .tool-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.client-simulator-toolbar label,
+.client-simulator-toolbar .tool-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--muted);
+}
+.client-simulator-toolbar .tool-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sim-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.05fr) minmax(320px, .95fr);
+  gap: 12px;
+}
+.sim-panel {
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  background: rgba(7,12,24,.42);
+  padding: 12px;
+  min-width: 0;
+}
+.sim-panel h6 {
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.sim-report-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.sim-report-chip {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.03);
+}
+.sim-report-chip .label {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.sim-report-chip .value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.sim-step-create {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(110px, .6fr) minmax(90px, .45fr) auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+.sim-step-create .form-group {
+  margin-bottom: 0;
+}
+.sim-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sim-step-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.025);
+}
+.sim-step-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.sim-step-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+.sim-step-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+.sim-step-controls .mini-row {
+  display: flex;
+  gap: 6px;
+}
+.sim-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+.sim-result-card {
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.07);
+  background: linear-gradient(160deg, #14213d, #101829);
+  min-height: 120px;
+}
+.sim-result-card .name {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--muted);
+}
+.sim-result-card .score {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.05;
+  margin-top: 8px;
+}
+.sim-result-card .meta {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.sim-bullet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sim-bullet {
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  font-size: 12px;
+  color: var(--ink);
+}
+.sim-bullet strong {
+  color: var(--cyan);
+}
+@media (max-width: 1100px) {
+  .client-simulator-toolbar,
+  .sim-layout,
+  .sim-step-create {
+    grid-template-columns: 1fr;
+  }
+}
+
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.source-pill.source-connected {
+  background: rgba(52,211,153,.12);
+  color: #6ee7b7;
+  border: 1px solid rgba(52,211,153,.25);
+}
+.source-pill.source-pending {
+  background: rgba(184,146,42,.12);
+  color: var(--amber);
+  border: 1px solid rgba(184,146,42,.2);
+}
+.source-pill.source-mismatch {
+  background: rgba(248,113,113,.12);
+  color: #f87171;
+  border: 1px solid rgba(248,113,113,.2);
+}
+.source-lock-banner {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(184,146,42,.08);
+  border: 1px solid rgba(184,146,42,.18);
+  color: #fbbf24;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.smartcredit-sync-card {
+  margin: 10px 0 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(24,36,64,.9), rgba(14,22,40,.92));
+  border: 1px solid rgba(34,211,238,.16);
+}
+.smartcredit-sync-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.smartcredit-sync-title {
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  font-weight: 700;
+}
+.smartcredit-sync-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.smartcredit-sync-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.smartcredit-sync-item {
+  min-height: 78px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  border: 1px solid rgba(255,255,255,.06);
+}
+.smartcredit-sync-item-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.smartcredit-sync-item-value {
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.45;
+  word-break: break-word;
+}
+.smartcredit-sync-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+@media (max-width: 1100px) {
+  .smartcredit-sync-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ACTIVITY FEED */
@@ -786,7 +1197,12 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   .sidebar-backdrop.visible { display: block; z-index: 1099; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .detail-grid { grid-template-columns: 1fr; }
+  .detail-section--wide { grid-column: auto; }
   .scores-row { grid-template-columns: repeat(2, 1fr); }
+  .detail-stack-grid,
+  .detail-stack-grid--wide {
+    grid-template-columns: 1fr;
+  }
   .msg-container { grid-template-columns: 1fr; height: auto; }
   .msg-list { max-height: 200px; border-right: none; border-bottom: 1px solid var(--rule); }
   .doc-grid { grid-template-columns: 1fr; }
@@ -803,6 +1219,10 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
   .scores-row { grid-template-columns: 1fr 1fr; }
+  .detail-stack-grid,
+  .detail-stack-grid--wide {
+    grid-template-columns: 1fr;
+  }
   .meet-week-header { align-items: flex-start; flex-direction: column; }
   .meet-days-grid { grid-template-columns: 1fr; }
   .meet-list-row { grid-template-columns: 1fr; }
@@ -891,6 +1311,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       <button class="nav-item" data-section="work" onclick="showSection('work')">
         <span class="ni-icon">&#9745;</span> Tasks &amp; Projects
         <span class="ni-badge ni-badge-red" id="badge-work" style="display:none;">0</span>
+      </button>
+      <button class="nav-item" data-section="enterprise" onclick="showSection('enterprise')">
+        <span class="ni-icon">&#9873;</span> Enterprise CRM
+        <span class="ni-badge ni-badge-blue" id="badge-enterprise">0</span>
       </button>
       <button class="nav-item" data-section="clients" onclick="showSection('clients')">
         <span class="ni-icon">&#9824;</span> Client Management
@@ -1166,6 +1590,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input type="file" id="seedx-csv-input" accept=".csv,text/csv" style="display:none" onchange="importSeedXchangeCsv(event)">
           <button class="btn btn-ghost" onclick="document.getElementById('seedx-csv-input').click()">Import Old SeedXchange CSV</button>
+          <button class="btn btn-ghost" onclick="auditClientSmartCreditReports()">Audit SmartCredit Reports</button>
           <button class="btn btn-ghost" onclick="refreshClientManagementList()">Refresh List</button>
           <button class="btn btn-primary" onclick="openAddClientModal()">+ Add New Client</button>
         </div>
@@ -1219,6 +1644,91 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </div>
       </div>
       <div id="client-detail-container"></div>
+    </div>
+
+    <!-- ====== ENTERPRISE CRM ====== -->
+    <div class="admin-section" id="sec-enterprise">
+      <div class="sec-head" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="accent-bar"></div>
+          <h2>Enterprise Management</h2>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="refreshEnterpriseManagementList()">Refresh List</button>
+          <button class="btn btn-primary" onclick="openAddEnterpriseModal()">+ Add Enterprise Account</button>
+        </div>
+      </div>
+      <div class="a-card" style="margin-bottom:16px;padding:14px 16px;border:1px solid rgba(34,211,238,.18);background:linear-gradient(180deg,rgba(8,15,28,.92),rgba(11,18,32,.86));">
+        <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Internal Only</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;">
+          This enterprise CRM is for internal supplier, broker, and partner operations only. Nothing in this section is exposed in the client-facing portal.
+        </div>
+      </div>
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="s-num s-cyan" id="enterprise-stat-total">0</div>
+          <div class="s-label">Enterprise Accounts</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-green" id="enterprise-stat-active">0</div>
+          <div class="s-label">Active Relationships</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-amber" id="enterprise-stat-volume">$0</div>
+          <div class="s-label">Monthly Volume</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-num s-red" id="enterprise-stat-risk">0</div>
+          <div class="s-label">Needs Review</div>
+        </div>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="enterprise-search" placeholder="Search company, contact, email, territory..." oninput="filterEnterpriseAccounts()">
+        <select id="enterprise-filter-type" onchange="filterEnterpriseAccounts()">
+          <option value="">All Types</option>
+          <option value="Supplier">Suppliers</option>
+          <option value="Broker">Brokers</option>
+          <option value="Partner">Partners</option>
+        </select>
+        <select id="enterprise-filter-status" onchange="filterEnterpriseAccounts()">
+          <option value="">All Statuses</option>
+          <option value="Active">Active</option>
+          <option value="Prospect">Prospect</option>
+          <option value="Dormant">Dormant</option>
+          <option value="On Hold">On Hold</option>
+          <option value="Terminated">Terminated</option>
+        </select>
+        <select id="enterprise-filter-stage" onchange="filterEnterpriseAccounts()">
+          <option value="">All Stages</option>
+          <option value="Sourcing">Sourcing</option>
+          <option value="Onboarding">Onboarding</option>
+          <option value="Contracted">Contracted</option>
+          <option value="Scaling">Scaling</option>
+          <option value="Review">Review</option>
+        </select>
+      </div>
+      <div class="a-card" style="padding:0; overflow:visible;">
+        <div class="a-table-wrap">
+          <table class="a-table" id="enterprise-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Type</th>
+                <th>Primary Contact</th>
+                <th>Territory</th>
+                <th>Stage</th>
+                <th>Status</th>
+                <th>Terms</th>
+                <th>Volume</th>
+                <th>Last Contact</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="enterprise-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="enterprise-detail-container"></div>
     </div>
 
     <!-- ====== CREDIT REPORTS ====== -->
@@ -1731,11 +2241,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         <div class="accent-bar"></div>
         <h2>Documents</h2>
       </div>
-      <div class="search-bar">
-        <input type="text" id="doc-search" placeholder="Search documents..." oninput="filterDocuments()">
-        <select id="doc-filter-client" onchange="filterDocuments()">
-          <option value="">All Clients</option>
-        </select>
+    <div class="search-bar">
+      <input type="text" id="doc-search" placeholder="Search documents..." oninput="filterDocuments()">
+      <select id="doc-filter-client" onchange="filterDocuments()">
+        <option value="">All Clients</option>
+      </select>
         <select id="doc-filter-type" onchange="filterDocuments()">
           <option value="">All Types</option>
           <option value="ID">ID</option>
@@ -1750,6 +2260,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <option value="Approved">Approved</option>
           <option value="Rejected">Rejected</option>
         </select>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:14px 0 18px;padding:14px 16px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(10,16,32,.55);">
+        <div>
+          <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:4px;">Downloads</div>
+          <div style="font-size:13px;color:var(--muted);">Admin-only simulator logic bundle for the credit report scoring UI.</div>
+        </div>
+        <a href="/downloads/fico-simulator-logic.json" download="fico-simulator-logic.json" class="btn btn-primary" style="text-decoration:none;white-space:nowrap;">Download JSON Logic</a>
       </div>
       <div class="doc-grid" id="doc-grid"></div>
     </div>
@@ -2183,6 +2700,88 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   </div>
 </div>
 
+<!-- ADD ENTERPRISE ACCOUNT MODAL -->
+<div class="modal-overlay" id="modal-add-enterprise">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Add Enterprise Account</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-enterprise')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Company Name</label>
+      <input type="text" class="form-input" id="new-enterprise-company" placeholder="Atlas Fleet Supply">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Account Type</label>
+        <select class="form-select" id="new-enterprise-type">
+          <option value="Supplier">Supplier</option>
+          <option value="Broker">Broker</option>
+          <option value="Partner">Partner</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Primary Contact</label>
+        <input type="text" class="form-input" id="new-enterprise-contact" placeholder="Jordan Miles">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" class="form-input" id="new-enterprise-email" placeholder="ops@atlasfleet.com">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" class="form-input" id="new-enterprise-phone" placeholder="(555) 555-5555">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Territory</label>
+        <input type="text" class="form-input" id="new-enterprise-territory" placeholder="Los Angeles / SoCal">
+      </div>
+      <div class="form-group">
+        <label>Owner</label>
+        <select class="form-select" id="new-enterprise-owner">
+          <option value="Ken">Ken</option>
+          <option value="Myra">Myra</option>
+          <option value="Omar">Omar</option>
+          <option value="Virtual Admin">Virtual Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Stage</label>
+        <select class="form-select" id="new-enterprise-stage">
+          <option value="Sourcing">Sourcing</option>
+          <option value="Onboarding">Onboarding</option>
+          <option value="Contracted">Contracted</option>
+          <option value="Scaling">Scaling</option>
+          <option value="Review">Review</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select class="form-select" id="new-enterprise-status">
+          <option value="Prospect">Prospect</option>
+          <option value="Active">Active</option>
+          <option value="Dormant">Dormant</option>
+          <option value="On Hold">On Hold</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea class="form-textarea" id="new-enterprise-notes" rows="3" placeholder="Relationship context, fleet fit, broker terms, or sourcing notes..."></textarea>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-enterprise')">Cancel</button>
+      <button class="btn btn-primary" onclick="addEnterpriseAccount()">Create Account</button>
+    </div>
+  </div>
+</div>
+
 <!-- UPDATE SCORES MODAL -->
 <div class="modal-overlay" id="modal-update-scores">
   <div class="modal-box">
@@ -2323,6 +2922,7 @@ var _serverApiKey = '';
 var HIRECAR_API = 'https://hirecar-api.hirecar.workers.dev';
 var SESSION_KEY = 'hc_admin_session';
 var CLIENTS_KEY = 'hc_admin_clients';
+var ENTERPRISE_KEY = 'hc_admin_enterprise_accounts';
 var ACTIVITY_KEY = 'hc_admin_activity';
 var SETTINGS_KEY = 'hc_admin_settings';
 var WORK_ITEMS_KEY = 'hc_admin_work_items';
@@ -2331,6 +2931,7 @@ var SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
 var currentAdmin = null;
 var currentSection = 'dashboard';
 var expandedClientId = null;
+var expandedEnterpriseId = null;
 var selectedMsgClientId = null;
 var scoreModalClientId = null;
 var msgModalClientId = null;
@@ -2426,6 +3027,26 @@ function statusBadgeClass(status) {
   }
 }
 
+function enterpriseTypeBadgeClass(type) {
+  switch (type) {
+    case 'Supplier': return 'badge-blue';
+    case 'Broker': return 'badge-amber';
+    case 'Partner': return 'badge-green';
+    default: return 'badge-muted';
+  }
+}
+
+function enterpriseStageBadgeClass(stage) {
+  switch (stage) {
+    case 'Sourcing': return 'stage-intake';
+    case 'Onboarding': return 'stage-onboarding';
+    case 'Contracted': return 'stage-disputes';
+    case 'Scaling': return 'stage-funding';
+    case 'Review': return 'stage-monitoring';
+    default: return 'stage-default';
+  }
+}
+
 /* Workflow stage constants matching the main portal's hirecar_stage values */
 var WORKFLOW_STAGES = [
   'Intake & Document Collection',
@@ -2452,6 +3073,19 @@ function formatCurrency(val) {
   var n = parseFloat(val);
   if (isNaN(n)) return val;
   return '$' + n.toLocaleString('en-US');
+}
+
+function formatPhoneNumber(value) {
+  var raw = String(value || '').trim();
+  if (!raw) return '---';
+  var digits = raw.replace(/\D/g, '');
+  if (digits.length === 11 && digits.charAt(0) === '1') {
+    digits = digits.slice(1);
+  }
+  if (digits.length === 10) {
+    return '(' + digits.slice(0, 3) + ') ' + digits.slice(3, 6) + '-' + digits.slice(6);
+  }
+  return raw;
 }
 
 /**
@@ -2525,6 +3159,9 @@ function updateClientField(clientId, field, value) {
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
+  if (isClientSourceLockedField(field) && !ensureClientSourceReady(c, 'Updating client scores and report fields')) {
+    return;
+  }
   var oldVal = c[field] || '';
   syncClientAliasFields(c, field, value);
   c.lastActive = new Date().toISOString();
@@ -2631,6 +3268,24 @@ function apiCall(method, path, body) {
   return fetch(HIRECAR_API + path, opts).then(function(r) { return r.json(); });
 }
 
+function smartCreditApiFetch(path, opts) {
+  var req = Object.assign({
+    method: 'GET',
+    headers: { 'x-api-key': HC_API_KEY }
+  }, opts || {});
+  return fetch('/api/smartcredit?path=' + encodeURIComponent(path), req).then(function(r) {
+    var contentType = r.headers.get('content-type') || '';
+    var parse = contentType.indexOf('application/json') > -1 ? r.json.bind(r) : r.text.bind(r);
+    return parse().then(function(data) {
+      if (!r.ok) {
+        var msg = data && data.error ? data.error : (typeof data === 'string' ? data : ('HTTP ' + r.status));
+        throw new Error(msg);
+      }
+      return data;
+    });
+  });
+}
+
 /* List records for a client from a D1 table */
 function loadAdminData(table, clientId) {
   var qs = clientId ? '?client_id=' + encodeURIComponent(clientId) : '';
@@ -2701,7 +3356,985 @@ function normalizeClientRecord(c) {
   c.documents = Array.isArray(c.documents) ? c.documents : [];
   c.fundingRequests = Array.isArray(c.fundingRequests) ? c.fundingRequests : [];
   c.creditReports = Array.isArray(c.creditReports) ? c.creditReports : [];
+  c.selectedCreditReportId = c.selectedCreditReportId || '';
+  c.simulatorScenarios = Array.isArray(c.simulatorScenarios) ? c.simulatorScenarios : [];
+  c.simulatorMode = c.simulatorMode || 'stacked';
+  c.simulatorLastRun = c.simulatorLastRun || '';
+  var sourceValidation = getClientSourceValidation(c);
+  c.sourceValidationStatus = sourceValidation.status;
+  c.sourceValidationMatchedBy = sourceValidation.matchedBy;
+  c.sourceValidationReason = sourceValidation.reason;
   return c;
+}
+
+function normalizeSourceValidationStatus(value) {
+  var status = String(value || '').trim().toLowerCase();
+  if (status === 'connected' || status === 'pending' || status === 'mismatch') return status;
+  return '';
+}
+
+var SIMULATION_STEP_LIBRARY = [
+  { id: 'utilization_down', label: 'Pay down utilization', unit: 'pct', defaultValue: 15, hint: 'Reduce revolving balances or raise available limits.' },
+  { id: 'utilization_up', label: 'Utilization rises', unit: 'pct', defaultValue: 15, hint: 'Stress test a balance increase or limit cut.' },
+  { id: 'negative_account_removal', label: 'Remove negative account', unit: 'count', defaultValue: 1, hint: 'Collections, charge-offs, or other derogatories.' },
+  { id: 'credit_limit_increase', label: 'Increase credit limit', unit: 'pct', defaultValue: 20, hint: 'Assumes balances stay the same.' },
+  { id: 'new_trade_line', label: 'Add positive trade line', unit: 'months', defaultValue: 6, hint: 'Adds seasoned positive history.' },
+  { id: 'age_account', label: 'Age existing accounts', unit: 'months', defaultValue: 3, hint: 'Let the file season without new activity.' },
+  { id: 'inquiry', label: 'Add hard inquiry', unit: 'count', defaultValue: 1, hint: 'Recent inquiry or new application pressure.' }
+];
+
+var SIMULATION_FAMILIES = {
+  fico8: { label: 'FICO 8', scoreFloor: 300, weights: { utilization: 1.0, negatives: 1.0, inquiries: 0.8, age: 0.75, tradeLine: 0.85 } },
+  auto: { label: 'Auto', scoreFloor: 300, weights: { utilization: 0.9, negatives: 0.95, inquiries: 1.15, age: 0.7, tradeLine: 0.7 } },
+  bankcard: { label: 'Bankcard', scoreFloor: 300, weights: { utilization: 1.15, negatives: 1.0, inquiries: 0.85, age: 0.6, tradeLine: 0.8 } },
+  personalLoan: { label: 'Personal Loan', scoreFloor: 300, weights: { utilization: 0.82, negatives: 0.95, inquiries: 0.92, age: 0.8, tradeLine: 0.88 } },
+  mortgage: { label: 'Mortgage', scoreFloor: 300, weights: { utilization: 0.72, negatives: 1.0, inquiries: 0.78, age: 0.95, tradeLine: 0.75 } },
+  vantage: { label: 'Vantage', scoreFloor: 300, weights: { utilization: 0.92, negatives: 0.92, inquiries: 0.88, age: 0.7, tradeLine: 0.76 } }
+};
+
+function getClientCreditReports(client) {
+  var reports = Array.isArray(client && client.creditReports) ? client.creditReports.slice() : [];
+  var selectedId = String(client && client.selectedCreditReportId ? client.selectedCreditReportId : '');
+  reports.sort(function(a, b) {
+    var aSel = String(a && a.id ? a.id : '') === selectedId;
+    var bSel = String(b && b.id ? b.id : '') === selectedId;
+    if (aSel !== bSel) return aSel ? -1 : 1;
+    var aTime = new Date((a && (a.uploadedAt || a.createdAt || a.updatedAt)) || 0).getTime() || 0;
+    var bTime = new Date((b && (b.uploadedAt || b.createdAt || b.updatedAt)) || 0).getTime() || 0;
+    return bTime - aTime;
+  });
+  return reports;
+}
+
+function getSelectedClientCreditReport(client) {
+  var reports = getClientCreditReports(client);
+  if (!reports.length) return null;
+  var selectedId = String(client && client.selectedCreditReportId ? client.selectedCreditReportId : '');
+  var selected = reports.find(function(r) { return String(r && r.id ? r.id : '') === selectedId; });
+  return selected || reports[0] || null;
+}
+
+function sumTripletCount(value) {
+  if (!value) return 0;
+  if (typeof value === 'number') return value;
+  var total = 0;
+  ['eq', 'ex', 'tu', 'count', 'total'].forEach(function(k) {
+    var n = parseInt(value[k], 10);
+    if (!isNaN(n)) total += n;
+  });
+  return total;
+}
+
+function clampScore(score, floor, ceiling) {
+  var n = parseInt(score, 10);
+  if (isNaN(n) || n <= 0) return 0;
+  return Math.max(floor || 300, Math.min(ceiling || 850, n));
+}
+
+function scoreBandLabel(score) {
+  var n = parseInt(score, 10) || 0;
+  if (n >= 670) return 'Good';
+  if (n >= 580) return 'Fair';
+  return 'Poor';
+}
+
+function approvalLikelihoodLabel(score, familyKey) {
+  var n = parseInt(score, 10) || 0;
+  var family = String(familyKey || '').toLowerCase();
+  var thresholds = {
+    mortgage: [720, 680, 640],
+    auto: [690, 650, 610],
+    bankcard: [680, 640, 600],
+    personalloan: [680, 640, 600],
+    vantage: [670, 620, 580],
+    fico8: [700, 660, 620]
+  };
+  var list = thresholds[family] || thresholds.fico8;
+  if (n >= list[0]) return 'Strong';
+  if (n >= list[1]) return 'Moderate';
+  if (n >= list[2]) return 'Cautious';
+  return 'Low';
+}
+
+function estimateConfidence(baseConfidence, scenarioCount, report) {
+  var confidence = baseConfidence || 72;
+  if (report && report.parsedScores && report.parsedScores.summary) confidence += 4;
+  if (report && report.parsedScores && report.parsedScores.fico_scores) confidence += 2;
+  confidence -= Math.min(12, (scenarioCount || 0) * 2);
+  return Math.max(52, Math.min(96, Math.round(confidence)));
+}
+
+function scoreRangeFromConfidence(score, confidence) {
+  var center = parseInt(score, 10) || 0;
+  var width = Math.max(6, Math.min(18, Math.round(24 - (confidence * 0.16))));
+  return {
+    low: clampScore(center - width, 300, 900),
+    high: clampScore(center + width, 300, 900)
+  };
+}
+
+function baseSimulationScores(client, report) {
+  var parsed = (report && report.parsedScores) || {};
+  var bureau = {
+    eq: clampScore(parsed.eq || (client.scores && client.scores.eq) || client.fico_score_8 || 0, 300, 850),
+    ex: clampScore(parsed.ex || (client.scores && client.scores.ex) || client.fico_score_8 || 0, 300, 850),
+    tu: clampScore(parsed.tu || (client.scores && client.scores.tu) || client.fico_score_8 || 0, 300, 850)
+  };
+  var bureauValues = [bureau.eq, bureau.ex, bureau.tu].filter(function(n) { return n > 0; });
+  var bureauAvg = bureauValues.length ? (bureauValues.reduce(function(a, b) { return a + b; }, 0) / bureauValues.length) : 0;
+  var selectedModel = String(parsed.score_model || client.score_model || '').toLowerCase();
+  var fico8 = clampScore(client.fico_score_8 || parsed.fico_score_8 || (bureauAvg ? Math.round(bureauAvg - 7) : 0), 300, 900);
+  var auto = clampScore(client.fico_auto_score_average || parsed.fico_auto_score_average || (fico8 ? Math.round(fico8 - 4) : 0), 300, 900);
+  var bankcard = clampScore(parsed.fico_bankcard_score || (fico8 ? Math.round(fico8 - 1) : 0), 300, 900);
+  var personalLoan = clampScore(parsed.fico_personal_loan_score || (fico8 ? Math.round(fico8 + 1) : 0), 300, 900);
+  var mortgage = clampScore(client.fico_real_estate_rental_score || parsed.fico_real_estate_rental_score || (fico8 ? Math.round(fico8 + 6) : 0), 300, 900);
+  var vantage = clampScore((selectedModel.indexOf('vantage') !== -1 ? bureauAvg : (bureauAvg ? Math.round(bureauAvg + 4) : 0)), 300, 900);
+  return {
+    bureau: bureau,
+    bureauAvg: bureauAvg ? Math.round(bureauAvg) : 0,
+    families: {
+      fico8: fico8,
+      auto: auto,
+      bankcard: bankcard,
+      personalLoan: personalLoan,
+      mortgage: mortgage,
+      vantage: vantage
+    }
+  };
+}
+
+function buildSimulatorState(client, report) {
+  var parsed = (report && report.parsedScores) || {};
+  var summary = parsed.summary || {};
+  var state = {
+    utilization: 48,
+    negatives: sumTripletCount(summary.derogatory || summary.delinquent || summary.public_records),
+    inquiries: sumTripletCount(summary.inquiries),
+    ageMonths: 36,
+    tradeLines: sumTripletCount(summary.total_accounts || summary.open_accounts) || 4
+  };
+  if (state.negatives === 0 && Array.isArray(client.creditReports) && client.creditReports.length > 1) {
+    state.negatives = 1;
+  }
+  return state;
+}
+
+function familyUtilizationDelta(before, after, familyKey) {
+  var family = SIMULATION_FAMILIES[familyKey] || SIMULATION_FAMILIES.fico8;
+  var change = before - after;
+  var direction = change >= 0 ? 1 : -1;
+  var severity = after <= 10 ? 1.2 : after <= 30 ? 0.95 : after <= 50 ? 0.65 : 0.4;
+  return direction * Math.round(Math.abs(change) * severity * (family.weights.utilization || 1));
+}
+
+function familyNegativeDelta(count, familyKey, beforeNegatives) {
+  var family = SIMULATION_FAMILIES[familyKey] || SIMULATION_FAMILIES.fico8;
+  if (!count) return 0;
+  var base = beforeNegatives > 2 ? 24 : beforeNegatives > 0 ? 20 : 14;
+  return Math.round(count * base * (family.weights.negatives || 1));
+}
+
+function familyInquiryDelta(count, familyKey) {
+  var family = SIMULATION_FAMILIES[familyKey] || SIMULATION_FAMILIES.fico8;
+  if (!count) return 0;
+  var base = familyKey === 'auto' ? -5 : familyKey === 'mortgage' ? -3 : familyKey === 'bankcard' ? -4 : -4;
+  return Math.round(base * count * (family.weights.inquiries || 1));
+}
+
+function familyAgeDelta(months, familyKey) {
+  var family = SIMULATION_FAMILIES[familyKey] || SIMULATION_FAMILIES.fico8;
+  if (!months) return 0;
+  var gainPerMonth = familyKey === 'mortgage' ? 0.9 : familyKey === 'bankcard' ? 0.45 : familyKey === 'auto' ? 0.55 : 0.65;
+  return Math.round(Math.min(18, months * gainPerMonth * (family.weights.age || 1)));
+}
+
+function familyTradeLineDelta(months, familyKey) {
+  var family = SIMULATION_FAMILIES[familyKey] || SIMULATION_FAMILIES.fico8;
+  if (!months) return 0;
+  var seasoning = Math.max(0, months - 3);
+  var gain = 4 + Math.min(14, seasoning * 0.85);
+  return Math.round(gain * (family.weights.tradeLine || 1));
+}
+
+function runScenarioStep(state, step) {
+  var type = String(step.type || '').toLowerCase();
+  var value = parseInt(step.value, 10);
+  if (isNaN(value)) value = parseInt(step.amount, 10);
+  if (isNaN(value)) value = 0;
+  var note = '';
+  var deltas = { eq: 0, ex: 0, tu: 0, fico8: 0, auto: 0, bankcard: 0, personalLoan: 0, mortgage: 0, vantage: 0 };
+  var before = {
+    utilization: state.utilization,
+    negatives: state.negatives,
+    inquiries: state.inquiries,
+    ageMonths: state.ageMonths,
+    tradeLines: state.tradeLines
+  };
+
+  if (type === 'utilization_down') {
+    var utilAfterDown = Math.max(0, state.utilization - value);
+    deltas.fico8 = familyUtilizationDelta(state.utilization, utilAfterDown, 'fico8');
+    deltas.auto = familyUtilizationDelta(state.utilization, utilAfterDown, 'auto');
+    deltas.bankcard = familyUtilizationDelta(state.utilization, utilAfterDown, 'bankcard');
+    deltas.personalLoan = familyUtilizationDelta(state.utilization, utilAfterDown, 'personalLoan');
+    deltas.mortgage = familyUtilizationDelta(state.utilization, utilAfterDown, 'mortgage');
+    deltas.vantage = familyUtilizationDelta(state.utilization, utilAfterDown, 'vantage');
+    state.utilization = utilAfterDown;
+    note = 'Revolving utilization improved to ' + utilAfterDown + '%';
+  } else if (type === 'utilization_up') {
+    var utilAfterUp = Math.min(100, state.utilization + value);
+    deltas.fico8 = familyUtilizationDelta(state.utilization, utilAfterUp, 'fico8');
+    deltas.auto = familyUtilizationDelta(state.utilization, utilAfterUp, 'auto');
+    deltas.bankcard = familyUtilizationDelta(state.utilization, utilAfterUp, 'bankcard');
+    deltas.personalLoan = familyUtilizationDelta(state.utilization, utilAfterUp, 'personalLoan');
+    deltas.mortgage = familyUtilizationDelta(state.utilization, utilAfterUp, 'mortgage');
+    deltas.vantage = familyUtilizationDelta(state.utilization, utilAfterUp, 'vantage');
+    state.utilization = utilAfterUp;
+    note = 'Revolving utilization climbed to ' + utilAfterUp + '%';
+  } else if (type === 'credit_limit_increase') {
+    var percent = Math.max(0, value || 0);
+    var utilAfterLimit = percent ? Math.max(0, Math.round((state.utilization * 100) / (100 + percent))) : state.utilization;
+    deltas.fico8 = familyUtilizationDelta(state.utilization, utilAfterLimit, 'fico8');
+    deltas.auto = familyUtilizationDelta(state.utilization, utilAfterLimit, 'auto');
+    deltas.bankcard = familyUtilizationDelta(state.utilization, utilAfterLimit, 'bankcard');
+    deltas.personalLoan = familyUtilizationDelta(state.utilization, utilAfterLimit, 'personalLoan');
+    deltas.mortgage = familyUtilizationDelta(state.utilization, utilAfterLimit, 'mortgage');
+    deltas.vantage = familyUtilizationDelta(state.utilization, utilAfterLimit, 'vantage');
+    state.utilization = utilAfterLimit;
+    note = 'Credit limit growth reduced effective utilization to ' + utilAfterLimit + '%';
+  } else if (type === 'negative_account_removal') {
+    var removed = Math.max(1, value || 1);
+    var actualRemoved = Math.min(state.negatives, removed);
+    deltas.fico8 = familyNegativeDelta(actualRemoved, 'fico8', state.negatives);
+    deltas.auto = familyNegativeDelta(actualRemoved, 'auto', state.negatives);
+    deltas.bankcard = familyNegativeDelta(actualRemoved, 'bankcard', state.negatives);
+    deltas.personalLoan = familyNegativeDelta(actualRemoved, 'personalLoan', state.negatives);
+    deltas.mortgage = familyNegativeDelta(actualRemoved, 'mortgage', state.negatives);
+    deltas.vantage = familyNegativeDelta(actualRemoved, 'vantage', state.negatives);
+    state.negatives = Math.max(0, state.negatives - actualRemoved);
+    note = 'Negative items reduced by ' + actualRemoved;
+  } else if (type === 'inquiry') {
+    var inq = Math.max(1, value || 1);
+    deltas.fico8 = familyInquiryDelta(inq, 'fico8');
+    deltas.auto = familyInquiryDelta(inq, 'auto');
+    deltas.bankcard = familyInquiryDelta(inq, 'bankcard');
+    deltas.personalLoan = familyInquiryDelta(inq, 'personalLoan');
+    deltas.mortgage = familyInquiryDelta(inq, 'mortgage');
+    deltas.vantage = familyInquiryDelta(inq, 'vantage');
+    state.inquiries += inq;
+    note = 'Hard inquiries increased by ' + inq;
+  } else if (type === 'age_account') {
+    var months = Math.max(1, value || 1);
+    deltas.fico8 = familyAgeDelta(months, 'fico8');
+    deltas.auto = familyAgeDelta(months, 'auto');
+    deltas.bankcard = familyAgeDelta(months, 'bankcard');
+    deltas.personalLoan = familyAgeDelta(months, 'personalLoan');
+    deltas.mortgage = familyAgeDelta(months, 'mortgage');
+    deltas.vantage = familyAgeDelta(months, 'vantage');
+    state.ageMonths += months;
+    note = 'File aged by ' + months + ' month' + (months === 1 ? '' : 's');
+  } else if (type === 'new_trade_line') {
+    var seasonedMonths = Math.max(1, value || 1);
+    deltas.fico8 = familyTradeLineDelta(seasonedMonths, 'fico8');
+    deltas.auto = familyTradeLineDelta(seasonedMonths, 'auto');
+    deltas.bankcard = familyTradeLineDelta(seasonedMonths, 'bankcard');
+    deltas.personalLoan = familyTradeLineDelta(seasonedMonths, 'personalLoan');
+    deltas.mortgage = familyTradeLineDelta(seasonedMonths, 'mortgage');
+    deltas.vantage = familyTradeLineDelta(seasonedMonths, 'vantage');
+    state.tradeLines += 1;
+    state.ageMonths += seasonedMonths;
+    note = 'Positive trade line seasoned for ' + seasonedMonths + ' month' + (seasonedMonths === 1 ? '' : 's');
+  } else {
+    note = step.label || 'Scenario step applied';
+  }
+
+  var bureauDelta = Math.round(((deltas.fico8 + deltas.auto + deltas.bankcard + deltas.personalLoan + deltas.mortgage + deltas.vantage) / 6) * 0.8);
+  deltas.eq = bureauDelta;
+  deltas.ex = Math.round(bureauDelta * 1.04);
+  deltas.tu = Math.round(bureauDelta * 0.98);
+
+  state.bureau.eq = clampScore(state.bureau.eq + deltas.eq, 300, 900);
+  state.bureau.ex = clampScore(state.bureau.ex + deltas.ex, 300, 900);
+  state.bureau.tu = clampScore(state.bureau.tu + deltas.tu, 300, 900);
+  state.families.fico8 = clampScore(state.families.fico8 + deltas.fico8, 300, 900);
+  state.families.auto = clampScore(state.families.auto + deltas.auto, 300, 900);
+  state.families.bankcard = clampScore(state.families.bankcard + deltas.bankcard, 300, 900);
+  state.families.personalLoan = clampScore(state.families.personalLoan + deltas.personalLoan, 300, 900);
+  state.families.mortgage = clampScore(state.families.mortgage + deltas.mortgage, 300, 900);
+  state.families.vantage = clampScore(state.families.vantage + deltas.vantage, 300, 900);
+
+  return {
+    before: before,
+    after: {
+      utilization: state.utilization,
+      negatives: state.negatives,
+      inquiries: state.inquiries,
+      ageMonths: state.ageMonths,
+      tradeLines: state.tradeLines
+    },
+    deltas: deltas,
+    note: note
+  };
+}
+
+function calculateClientSimulator(client) {
+  client = normalizeClientRecord(client);
+  var report = getSelectedClientCreditReport(client);
+  var base = baseSimulationScores(client, report);
+  var state = {
+    bureau: {
+      eq: base.bureau.eq,
+      ex: base.bureau.ex,
+      tu: base.bureau.tu
+    },
+    families: {
+      fico8: base.families.fico8,
+      auto: base.families.auto,
+      bankcard: base.families.bankcard,
+      personalLoan: base.families.personalLoan,
+      mortgage: base.families.mortgage,
+      vantage: base.families.vantage
+    },
+    utilization: 48,
+    negatives: 0,
+    inquiries: 0,
+    ageMonths: 36,
+    tradeLines: 4
+  };
+  var reportState = buildSimulatorState(client, report);
+  state.utilization = reportState.utilization;
+  state.negatives = reportState.negatives;
+  state.inquiries = reportState.inquiries;
+  state.ageMonths = reportState.ageMonths;
+  state.tradeLines = reportState.tradeLines;
+
+  var steps = Array.isArray(client.simulatorScenarios) ? client.simulatorScenarios.slice() : [];
+  var stepResults = [];
+  steps.forEach(function(step, idx) {
+    var result = runScenarioStep(state, step || {});
+    stepResults.push({
+      index: idx,
+      id: step && step.id ? step.id : ('step-' + idx),
+      label: step && step.label ? step.label : 'Scenario ' + (idx + 1),
+      type: step && step.type ? step.type : '',
+      value: step && step.value ? step.value : '',
+      unit: step && step.unit ? step.unit : '',
+      note: result.note,
+      deltas: result.deltas,
+      before: result.before,
+      after: result.after
+    });
+  });
+
+  var scenarioCount = steps.length;
+  var reportName = report ? (report.name || report.source || 'Selected report') : 'No report selected';
+  var reportConfidence = estimateConfidence(report ? 82 : 68, scenarioCount, report);
+  var familyCards = {};
+  Object.keys(state.families).forEach(function(key) {
+    var score = state.families[key];
+    var confidence = estimateConfidence(report ? 82 : 68, scenarioCount, report) - (key === 'mortgage' ? 2 : key === 'auto' ? 1 : 0);
+    var range = scoreRangeFromConfidence(score, confidence);
+    familyCards[key] = {
+      key: key,
+      label: SIMULATION_FAMILIES[key].label,
+      score: score,
+      low: range.low,
+      high: range.high,
+      confidence: confidence,
+      rating: scoreBandLabel(score),
+      likelihood: approvalLikelihoodLabel(score, key)
+    };
+  });
+
+  var bureauCards = {};
+  Object.keys(state.bureau).forEach(function(key) {
+    var score = state.bureau[key];
+    var confidence = estimateConfidence(report ? 78 : 64, scenarioCount, report);
+    var range = scoreRangeFromConfidence(score, confidence);
+    bureauCards[key] = {
+      key: key,
+      label: key === 'eq' ? 'Equifax' : key === 'ex' ? 'Experian' : 'TransUnion',
+      score: score,
+      low: range.low,
+      high: range.high,
+      confidence: confidence,
+      rating: scoreBandLabel(score),
+      likelihood: approvalLikelihoodLabel(score, 'fico8')
+    };
+  });
+
+  var opportunities = buildSimulatorOpportunities(state, base, report, client);
+  var breakdown = buildSimulatorBreakdown(stepResults, state, base, report);
+  var roadmap = buildSimulatorRoadmap(opportunities, stepResults, state, report);
+  return {
+    client: client,
+    report: report,
+    reportName: reportName,
+    reportConfidence: reportConfidence,
+    base: base,
+    state: state,
+    steps: stepResults,
+    families: familyCards,
+    bureaus: bureauCards,
+    opportunities: opportunities,
+    breakdown: breakdown,
+    roadmap: roadmap,
+    lastRun: new Date().toISOString()
+  };
+}
+
+function buildSimulatorBreakdown(stepResults, state, base, report) {
+  var parsed = (report && report.parsedScores) || {};
+  var summary = parsed.summary || {};
+  var items = [];
+  var bureauAvg = base.bureauAvg || 0;
+  items.push('Selected report: ' + (report ? (report.name || report.source || 'credit report') : 'No report selected'));
+  items.push('Typical bureau average: ' + (bureauAvg ? bureauAvg.toFixed(0) : 'n/a'));
+  items.push('Utilization assumption: ' + state.utilization + '%');
+  if (state.negatives) items.push('Negative accounts in play: ' + state.negatives);
+  if (state.inquiries) items.push('Inquiries counted: ' + state.inquiries);
+  if (summary && (summary.total_accounts || summary.open_accounts || summary.closed_accounts)) {
+    items.push('Report counts used from upload summary');
+  }
+  return items;
+}
+
+function buildSimulatorOpportunities(state, base, report, client) {
+  var opportunities = [];
+  var util = state.utilization;
+  if (util > 30) {
+    opportunities.push({
+      title: 'Cut utilization below 30%',
+      why: 'Revolving utilization is still the strongest lever on bankcard and FICO 8 outcomes.',
+      impact: '+8 to +22 points',
+      focus: 'First'
+    });
+  }
+  if (state.negatives > 0) {
+    opportunities.push({
+      title: 'Remove the oldest negative account',
+      why: 'Deleting a derogatory or collection item can compound across all score families.',
+      impact: '+12 to +30 points',
+      focus: 'First'
+    });
+  }
+  if (state.inquiries > 1) {
+    opportunities.push({
+      title: 'Let inquiries age out',
+      why: 'No new hard pulls for the next 3 to 6 months will reduce auto and mortgage pressure.',
+      impact: '+4 to +12 points',
+      focus: 'Next'
+    });
+  }
+  if (state.ageMonths < 24) {
+    opportunities.push({
+      title: 'Season the file',
+      why: 'Aging trade lines improves mortgage and personal-loan underwriting.',
+      impact: '+5 to +18 points',
+      focus: 'Next'
+    });
+  }
+  if (!opportunities.length) {
+    opportunities.push({
+      title: 'Maintain the current profile',
+      why: 'The file is already stable. Focus on preserving low utilization and no new negatives.',
+      impact: 'Protect current score bands',
+      focus: 'Now'
+    });
+  }
+  return opportunities.slice(0, 4);
+}
+
+function buildSimulatorRoadmap(opportunities, stepResults, state, report) {
+  var roadmap = [];
+  (opportunities || []).forEach(function(op, idx) {
+    roadmap.push({
+      title: (idx + 1) + '. ' + op.title,
+      detail: op.why + ' Estimated impact: ' + op.impact,
+      focus: op.focus || 'Next'
+    });
+  });
+  if (!roadmap.length) {
+    roadmap.push({
+      title: '1. Keep the profile clean',
+      detail: 'Continue low utilization, no new inquiries, and no new negatives.',
+      focus: 'Now'
+    });
+  }
+  return roadmap;
+}
+
+function renderClientSimulatorSection(c, sid) {
+  var sourceReady = getClientSourceValidation(c).status === 'connected';
+  var lockAttr = sourceReady ? '' : ' disabled';
+  var sim = calculateClientSimulator(c);
+  var reports = getClientCreditReports(c);
+  var activeReport = getSelectedClientCreditReport(c);
+  var selectedReportId = String(c.selectedCreditReportId || (activeReport && activeReport.id) || '');
+  var html = '<div class="detail-section detail-section--wide client-simulator-shell">';
+  html += '<div class="client-simulator-header"><h5>Funding Simulator & Report Source</h5><div style="font-size:11px;color:var(--muted);">Compounded scenario stack for client review</div></div>';
+  html += '<div class="client-simulator-toolbar">';
+  html += '<div class="tool-group">';
+  html += '<label for="sim-report-' + sid + '">Selected credit report</label>';
+  html += '<select id="sim-report-' + sid + '" class="form-select"' + lockAttr + ' onchange="selectClientCreditReport(\'' + c.id + '\', this.value)">';
+  html += '<option value="">Latest parsed report</option>';
+  reports.forEach(function(r) {
+    var parsed = r.parsedScores || {};
+    var text = (r.name || 'Credit Report') + ' · ' + (r.status || 'Pending Review');
+    if (parsed.report_last_updated) text += ' · ' + parsed.report_last_updated;
+    html += '<option value="' + escapeHtml(r.id) + '"' + (String(r.id || '') === selectedReportId ? ' selected' : '') + '>' + escapeHtml(text) + '</option>';
+  });
+  html += '</select></div>';
+  html += '<div class="tool-group">';
+  html += '<label for="sim-mode-' + sid + '">Simulation mode</label>';
+  html += '<select id="sim-mode-' + sid + '" class="form-select"' + lockAttr + ' onchange="updateClientSimulatorMode(\'' + c.id + '\', this.value)">';
+  ['stacked', 'single'].forEach(function(mode) {
+    html += '<option value="' + mode + '"' + ((c.simulatorMode || 'stacked') === mode ? ' selected' : '') + '>' + (mode === 'stacked' ? 'Stacked scenarios' : 'Single scenario') + '</option>';
+  });
+  html += '</select></div>';
+  html += '<div class="tool-actions">';
+  html += '<label class="btn btn-sm btn-success" style="' + (sourceReady ? '' : 'opacity:.5;cursor:not-allowed;') + '">';
+  html += 'Upload & use report<input type="file" accept=".pdf,.txt,.csv,.json,.html,.htm"' + lockAttr + ' style="display:none" onchange="uploadScoreReportForClient(this,\'' + c.id + '\',true)">';
+  html += '</label>';
+  html += '<button class="btn btn-sm btn-primary"' + lockAttr + ' onclick="runClientSimulation(\'' + c.id + '\')">Run / Save</button>';
+  html += '</div></div>';
+  html += '<div class="sim-report-summary">';
+  html += '<div class="sim-report-chip"><span class="label">Active source</span><span class="value">' + escapeHtml(sim.reportName || 'No report selected') + '</span></div>';
+  html += '<div class="sim-report-chip"><span class="label">Source confidence</span><span class="value">' + sim.reportConfidence + '%</span></div>';
+  html += '<div class="sim-report-chip"><span class="label">Scenario count</span><span class="value">' + (c.simulatorScenarios ? c.simulatorScenarios.length : 0) + '</span></div>';
+  html += '<div class="sim-report-chip"><span class="label">Last run</span><span class="value">' + escapeHtml(c.simulatorLastRun ? formatDate(c.simulatorLastRun) + ' ' + formatTime(c.simulatorLastRun) : 'Not run yet') + '</span></div>';
+  html += '</div>';
+  html += '<div class="sim-layout">';
+  html += '<div class="sim-panel">';
+  html += '<h6>Scenario Stack</h6>';
+  html += '<div class="sim-step-create">';
+  html += '<div class="form-group"><label>Scenario</label><select id="sim-step-type-' + sid + '" class="form-select"' + lockAttr + '>';
+  SIMULATION_STEP_LIBRARY.forEach(function(step) {
+    html += '<option value="' + step.id + '">' + escapeHtml(step.label) + '</option>';
+  });
+  html += '</select><div style="font-size:10px;color:var(--muted);margin-top:4px;">Steps compound in the order added.</div></div>';
+  html += '<div class="form-group"><label>Value</label><input id="sim-step-value-' + sid + '" class="form-input" type="number" min="0" step="1"' + lockAttr + ' value="15"></div>';
+  html += '<div class="form-group"><label>Months</label><input id="sim-step-months-' + sid + '" class="form-input" type="number" min="0" step="1"' + lockAttr + ' value="3"></div>';
+  html += '<div><button class="btn btn-sm btn-primary"' + lockAttr + ' onclick="addClientSimulatorStep(\'' + c.id + '\')">Add Step</button></div>';
+  html += '</div>';
+  html += '<div class="sim-step-list">';
+  if (c.simulatorScenarios && c.simulatorScenarios.length) {
+    c.simulatorScenarios.forEach(function(step, idx) {
+      var label = step.label || (SIMULATION_STEP_LIBRARY.find(function(lib) { return lib.id === step.type; }) || {}).label || ('Scenario ' + (idx + 1));
+      var value = step.value || step.amount || 0;
+      var unit = step.unit || ((SIMULATION_STEP_LIBRARY.find(function(lib) { return lib.id === step.type; }) || {}).unit || '');
+      var note = (step.note || step.description || '') + (unit ? ' · ' + value + (unit === 'pct' ? '%' : unit === 'count' ? 'x' : ' mo') : '');
+      html += '<div class="sim-step-card">';
+      html += '<div>';
+      html += '<div class="sim-step-title">' + escapeHtml(label) + '</div>';
+      html += '<div class="sim-step-meta">' + escapeHtml(note || 'Added to the stack') + '</div>';
+      html += '</div>';
+      html += '<div class="sim-step-controls">';
+      html += '<div class="mini-row">';
+      html += '<button class="btn btn-xs btn-ghost"' + lockAttr + ' onclick="moveClientSimulatorStep(\'' + c.id + '\',\'' + escapeHtml(step.id || ('step-' + idx)) + '\',-1)">Up</button>';
+      html += '<button class="btn btn-xs btn-ghost"' + lockAttr + ' onclick="moveClientSimulatorStep(\'' + c.id + '\',\'' + escapeHtml(step.id || ('step-' + idx)) + '\',1)">Down</button>';
+      html += '</div>';
+      html += '<button class="btn btn-xs btn-danger"' + lockAttr + ' onclick="removeClientSimulatorStep(\'' + c.id + '\',\'' + escapeHtml(step.id || ('step-' + idx)) + '\')">Remove</button>';
+      html += '</div></div>';
+    });
+  } else {
+    html += '<div class="sim-step-card"><div><div class="sim-step-title">No scenarios yet</div><div class="sim-step-meta">Add a utilization, negative account, inquiry, or age step to build a compound roadmap.</div></div></div>';
+  }
+  html += '</div></div>';
+  html += '<div class="sim-panel">';
+  html += '<h6>Simulation Output</h6>';
+  html += '<div class="sim-result-grid">';
+  ['eq','ex','tu'].forEach(function(key) {
+    var item = sim.bureaus[key];
+    html += '<div class="sim-result-card"><div class="name">Bureau ' + escapeHtml(item.label) + '</div><div class="score">' + escapeHtml(item.score) + '</div><div class="meta">Range ' + item.low + ' - ' + item.high + '<br>Confidence ' + item.confidence + '%<br>' + item.rating + ' / ' + item.likelihood + '</div></div>';
+  });
+  ['fico8','auto','bankcard','personalLoan','mortgage','vantage'].forEach(function(key) {
+    var item = sim.families[key];
+    html += '<div class="sim-result-card"><div class="name">' + escapeHtml(item.label) + '</div><div class="score">' + escapeHtml(item.score) + '</div><div class="meta">Range ' + item.low + ' - ' + item.high + '<br>Confidence ' + item.confidence + '%<br>' + item.rating + ' / ' + item.likelihood + '</div></div>';
+  });
+  html += '</div>';
+  html += '<div class="detail-row" style="margin-top:12px;"><span class="detail-label">Breakdown</span><span class="detail-val"><div class="sim-bullet-list">';
+  sim.breakdown.forEach(function(item) {
+    html += '<div class="sim-bullet">' + escapeHtml(item) + '</div>';
+  });
+  html += '</div></span></div>';
+  html += '<div class="detail-row" style="margin-top:10px;"><span class="detail-label">Missed Opportunities</span><span class="detail-val"><div class="sim-bullet-list">';
+  sim.opportunities.forEach(function(item) {
+    html += '<div class="sim-bullet"><strong>' + escapeHtml(item.title) + '</strong><br>' + escapeHtml(item.why) + '<br><span style="color:var(--muted);">' + escapeHtml(item.impact + ' · ' + item.focus) + '</span></div>';
+  });
+  html += '</div></span></div>';
+  html += '<div class="detail-row" style="margin-top:10px;"><span class="detail-label">Roadmap</span><span class="detail-val"><div class="sim-bullet-list">';
+  sim.roadmap.forEach(function(item) {
+    html += '<div class="sim-bullet"><strong>' + escapeHtml(item.title) + '</strong><br>' + escapeHtml(item.detail) + '<br><span style="color:var(--muted);">' + escapeHtml(item.focus) + '</span></div>';
+  });
+  html += '</div></span></div>';
+  html += '</div>';
+  html += '</div>';
+  if (reports.length) {
+    html += '<div class="upload-preview-grid" style="margin-top:12px;">';
+    reports.forEach(function(r) {
+      var parsed = r.parsedScores || {};
+      html += '<div class="upload-preview-card" style="border-color:' + (String(r.id || '') === selectedReportId ? 'rgba(34,211,238,.6)' : 'rgba(255,255,255,.07)') + ';">';
+      html += '<div style="display:flex;gap:10px;align-items:flex-start;">';
+      html += '<div class="upload-preview-thumb">' + escapeHtml(r.selectedForSimulation ? '★' : '📄') + '</div>';
+      html += '<div style="min-width:0;flex:1;">';
+      html += '<strong>' + escapeHtml(r.name || 'Credit Report') + '</strong>';
+      html += '<div class="up-meta">' + escapeHtml((r.status || 'Pending Review') + (parsed.source_provider ? ' · ' + parsed.source_provider : '') + (r.uploadedAt ? ' · ' + formatDate(r.uploadedAt) : '')) + '</div>';
+      html += '</div></div>';
+      html += '<div class="up-meta" style="text-transform:uppercase;letter-spacing:.12em;">' + (String(r.id || '') === selectedReportId ? 'Selected' : 'Available') + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="source-lock-banner" style="margin-top:12px;">The simulator is admin-only and compounds the selected report with each added scenario so account executives can review likely score movement before anything is finalized.</div>';
+  html += '</div>';
+  return html;
+}
+
+function saveClientSimulatorState(clientId, patch, activityLabel) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return null;
+  if (!ensureClientSourceReady(c, activityLabel || 'Updating simulator')) return null;
+  patch = patch || {};
+  Object.keys(patch).forEach(function(key) {
+    if (key === 'selectedCreditReportId' || key === 'simulatorScenarios' || key === 'simulatorMode' || key === 'simulatorLastRun') {
+      c[key] = patch[key];
+    } else {
+      c[key] = patch[key];
+    }
+  });
+  if (Array.isArray(c.creditReports)) {
+    c.creditReports.forEach(function(r) {
+      r.selectedForSimulation = String(r.id || '') === String(c.selectedCreditReportId || '');
+    });
+  }
+  c.lastActive = new Date().toISOString();
+  c.updatedAt = c.lastActive;
+  saveClients(clients);
+  updateClientInCloud(c.id, Object.assign({}, patch, { lastActive: c.lastActive, updatedAt: c.updatedAt }));
+  return c;
+}
+
+function selectClientCreditReport(clientId, reportId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  if (!ensureClientSourceReady(c, 'Selecting report for simulation')) return;
+  var reports = Array.isArray(c.creditReports) ? c.creditReports : [];
+  var selectedReport = null;
+  reports.forEach(function(r) {
+    r.selectedForSimulation = String(r.id || '') === String(reportId || '');
+    if (r.selectedForSimulation) selectedReport = r;
+  });
+  c.selectedCreditReportId = reportId || '';
+  c.creditReports = reports;
+  saveClientSimulatorState(clientId, { selectedCreditReportId: c.selectedCreditReportId, creditReports: c.creditReports }, 'Selecting report for simulation');
+  var selectedFields = extractScoreFieldsFromParsedReport(selectedReport && selectedReport.parsedScores);
+  if (selectedFields) {
+    persistClientScores(clientId, selectedFields, (selectedReport.parsedScores && selectedReport.parsedScores.source_provider) || 'Selected report');
+  }
+  addActivity('Selected report for simulation on ' + c.name, 'blue');
+  refreshClientManagementView(clientId);
+}
+
+function updateClientSimulatorMode(clientId, mode) {
+  saveClientSimulatorState(clientId, { simulatorMode: mode || 'stacked' }, 'Updating simulator mode');
+  refreshClientManagementView(clientId);
+}
+
+function runClientSimulation(clientId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  if (!ensureClientSourceReady(c, 'Running the simulator')) return;
+  saveClientSimulatorState(clientId, { simulatorLastRun: new Date().toISOString() }, 'Running the simulator');
+  addActivity('Simulator run for ' + c.name, 'green');
+  refreshClientManagementView(clientId);
+}
+
+function addClientSimulatorStep(clientId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  if (!ensureClientSourceReady(c, 'Adding simulator scenario')) return;
+  var sid = String(clientId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  var type = (document.getElementById('sim-step-type-' + sid) || {}).value || 'utilization_down';
+  var libraryStep = SIMULATION_STEP_LIBRARY.find(function(step) { return step.id === type; }) || SIMULATION_STEP_LIBRARY[0];
+  var value = parseInt((document.getElementById('sim-step-value-' + sid) || {}).value, 10);
+  if (isNaN(value)) value = libraryStep.defaultValue || 0;
+  var months = parseInt((document.getElementById('sim-step-months-' + sid) || {}).value, 10);
+  if (isNaN(months)) months = 0;
+  var step = {
+    id: generateId(),
+    type: type,
+    label: libraryStep.label,
+    unit: libraryStep.unit,
+    value: value,
+    months: months,
+    note: libraryStep.hint,
+    createdAt: new Date().toISOString()
+  };
+  c.simulatorScenarios = Array.isArray(c.simulatorScenarios) ? c.simulatorScenarios : [];
+  c.simulatorScenarios.push(step);
+  saveClientSimulatorState(clientId, { simulatorScenarios: c.simulatorScenarios }, 'Adding simulator scenario');
+  addActivity('Added simulator step for ' + c.name, 'amber');
+  refreshClientManagementView(clientId);
+}
+
+function removeClientSimulatorStep(clientId, stepId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  if (!ensureClientSourceReady(c, 'Removing simulator scenario')) return;
+  c.simulatorScenarios = (c.simulatorScenarios || []).filter(function(step) { return String(step.id || '') !== String(stepId || ''); });
+  saveClientSimulatorState(clientId, { simulatorScenarios: c.simulatorScenarios }, 'Removing simulator scenario');
+  addActivity('Removed simulator step for ' + c.name, 'amber');
+  refreshClientManagementView(clientId);
+}
+
+function moveClientSimulatorStep(clientId, stepId, direction) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c || !Array.isArray(c.simulatorScenarios)) return;
+  if (!ensureClientSourceReady(c, 'Reordering simulator scenarios')) return;
+  var idx = c.simulatorScenarios.findIndex(function(step) { return String(step.id || '') === String(stepId || ''); });
+  if (idx === -1) return;
+  var target = idx + (direction < 0 ? -1 : 1);
+  if (target < 0 || target >= c.simulatorScenarios.length) return;
+  var temp = c.simulatorScenarios[idx];
+  c.simulatorScenarios[idx] = c.simulatorScenarios[target];
+  c.simulatorScenarios[target] = temp;
+  saveClientSimulatorState(clientId, { simulatorScenarios: c.simulatorScenarios }, 'Reordering simulator scenarios');
+  refreshClientManagementView(clientId);
+}
+
+function uploadScoreReportForClient(input, clientId, selectForSimulation) {
+  var file = input && input.files && input.files[0];
+  if (!file || !clientId) return;
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) return;
+  if (!ensureClientSourceReady(c, 'Uploading score reports')) {
+    input.value = '';
+    return;
+  }
+  var uploadStatus = document.getElementById('score-upload-status');
+  if (uploadStatus) uploadStatus.textContent = 'Uploading and scanning ' + file.name + '...';
+
+  var fd = new FormData();
+  fd.append('file', file);
+  fd.append('memberId', c.caseNumber || c.id);
+  fd.append('docType', 'credit-report');
+  fd.append('metadata', JSON.stringify({ source: 'admin-simulator', clientId: c.id, uploadedBy: currentAdmin ? currentAdmin.name : 'admin' }));
+
+  fetch('/api/upload', { method: 'POST', body: fd }).catch(function(err) {
+    console.warn('Credit report upload failed:', err);
+  });
+
+  extractTextFromScoreFile(file).then(function(text) {
+    var extracted = parseScoreReportText(text);
+    var extractedScoreFields = extractScoreFieldsFromParsedReport(extracted);
+    var count = applyExtractedScoreFields(extracted);
+    c.creditReports = Array.isArray(c.creditReports) ? c.creditReports : [];
+    var reportId = generateId();
+    var report = {
+      id: reportId,
+      name: file.name,
+      type: 'Credit Report',
+      status: count ? 'Parsed' : 'Pending Review',
+      uploadedAt: new Date().toISOString(),
+      source: extracted.source_provider || 'Uploaded Credit Report',
+      selectedForSimulation: !!selectForSimulation,
+      parsedScores: extracted,
+      parsedSummary: extracted.summary || null
+    };
+    c.creditReports.unshift(report);
+    if (selectForSimulation !== false) {
+      c.selectedCreditReportId = reportId;
+      c.creditReports.forEach(function(r) {
+        r.selectedForSimulation = String(r.id || '') === reportId;
+      });
+    }
+    saveClientSimulatorState(c.id, {
+      creditReports: c.creditReports,
+      selectedCreditReportId: c.selectedCreditReportId || reportId
+    }, 'Uploading score reports');
+    if (extractedScoreFields) {
+      persistClientScores(c.id, extractedScoreFields, extracted.source_provider || 'Uploaded report');
+    }
+
+    var reportName = extracted.report_holder_name ? extracted.report_holder_name.toUpperCase() : '';
+    var clientName = String(c.name || '').toUpperCase();
+    if (reportName && clientName && reportName.indexOf(clientName) === -1 && clientName.indexOf(reportName) === -1) {
+      showToast('Report imported, but the name does not match the selected client', 'error');
+    }
+    if (count) {
+      if (uploadStatus) uploadStatus.textContent = 'Extracted ' + count + ' field' + (count === 1 ? '' : 's') + ' from ' + file.name + '. Review before saving.';
+      showToast(extractedScoreFields ? 'Scores extracted and top cards updated.' : 'Scores extracted. Review and Save / Run.', 'success');
+    } else {
+      if (uploadStatus) uploadStatus.textContent = 'Report uploaded, but no scores were detected. Enter scores manually.';
+      showToast('No scores detected in report', 'error');
+    }
+    refreshClientManagementView(c.id);
+  }).catch(function(err) {
+    if (uploadStatus) uploadStatus.textContent = 'Report uploaded, but extraction failed: ' + err.message;
+    showToast('Extraction failed. Enter scores manually.', 'error');
+  }).finally(function() {
+    input.value = '';
+  });
+}
+
+function setClientSourceValidation(client, status, matchedBy, reason) {
+  if (!client) return client;
+  client.sourceValidationStatus = status || 'pending';
+  client.sourceValidationMatchedBy = matchedBy || '';
+  client.sourceValidationReason = reason || '';
+  client.sourceValidationAt = new Date().toISOString();
+  return client;
+}
+
+function getClientSourceValidation(client) {
+  if (!client) {
+    return { status: 'pending', matchedBy: 'none', reason: 'No client record loaded' };
+  }
+
+  var savedStatus = normalizeSourceValidationStatus(client.sourceValidationStatus);
+  if (savedStatus && (savedStatus !== 'pending' || client.sourceValidationAt || client.sourceValidationReason || client.sourceValidationMatchedBy)) {
+    return {
+      status: savedStatus,
+      matchedBy: client.sourceValidationMatchedBy || 'saved',
+      reason: client.sourceValidationReason || ''
+    };
+  }
+
+  var sourceType = String(client.clientSource || client.source || '').trim().toLowerCase();
+  var email = String(client.email || '').trim().toLowerCase();
+  var caseNumber = String(client.caseNumber || '').trim();
+  var portalClientId = String(client.portalClientId || '').trim();
+  var pifrMemberId = String(client.pifrMemberId || '').trim();
+
+  if (sourceType === 'seedx_legacy' || sourceType === 'converted_seedxchange') {
+    return {
+      status: 'connected',
+      matchedBy: 'legacy_import',
+      reason: 'Imported from SeedXchange'
+    };
+  }
+
+  if (sourceType === 'pifr_enrollment') {
+    if (pifrMemberId && caseNumber && pifrMemberId === caseNumber) {
+      return {
+        status: 'connected',
+        matchedBy: 'pifr_member_id',
+        reason: 'PIFR member ID matches the client case number'
+      };
+    }
+    if (pifrMemberId && !caseNumber) {
+      return {
+        status: 'pending',
+        matchedBy: 'pifr_member_id',
+        reason: 'Waiting for the client case number to be assigned'
+      };
+    }
+    if (pifrMemberId) {
+      return {
+        status: 'pending',
+        matchedBy: 'pifr_member_id',
+        reason: 'PIFR member ID exists but is not aligned with the client record yet'
+      };
+    }
+    return {
+      status: 'pending',
+      matchedBy: 'pifr_member_id',
+      reason: 'PIFR source has not been validated yet'
+    };
+  }
+
+  if (portalClientId) {
+    return {
+      status: 'connected',
+      matchedBy: 'portal_client_id',
+      reason: 'Portal client ID matches the source record'
+    };
+  }
+
+  if (sourceType === 'member-portal' && email) {
+    return {
+      status: 'connected',
+      matchedBy: 'email',
+      reason: 'Member portal email linked to the client record'
+    };
+  }
+
+  if (email) {
+    return {
+      status: 'pending',
+      matchedBy: 'email',
+      reason: 'Email exists, but the source link is not confirmed yet'
+    };
+  }
+
+  return {
+    status: 'pending',
+    matchedBy: 'none',
+    reason: 'No source link yet'
+  };
+}
+
+function clientSourceIsConnected(client) {
+  return getClientSourceValidation(client).status === 'connected';
+}
+
+function getSmartCreditSyncState(client) {
+  var token = String(client && (client.smartcredit_customer_token || client.smartcreditCustomerToken || client.smartcredit_token) || '').trim();
+  var status = String(client && (client.smartcredit_sync_status || client.smartcreditSyncStatus) || '').trim().toLowerCase();
+  var lastSyncAt = client && (client.smartcredit_last_sync_at || client.smartcreditLastSyncAt) || '';
+  var lastError = client && (client.smartcredit_last_sync_error || client.smartcreditLastSyncError) || '';
+  var linked = !!token;
+  var label = 'Unsynced';
+  var pill = 'pending';
+  if (status === 'connected' || status === 'synced') {
+    label = 'Synced';
+    pill = 'connected';
+  } else if (status === 'error' || lastError) {
+    label = 'Sync Error';
+    pill = 'mismatch';
+  } else if (linked) {
+    label = 'Linked';
+    pill = 'pending';
+  }
+  return {
+    token: token,
+    linked: linked,
+    status: status,
+    label: label,
+    pill: pill,
+    lastSyncAt: lastSyncAt,
+    lastError: lastError
+  };
+}
+
+var CLIENT_SOURCE_LOCKED_FIELDS = [
+  'membership_balance_due','engagement_fee_balance_due',
+  'report_access_status','report_access_details','ssn_funding_status','bnpl_status',
+  'bnpl_approved_amount','client_review_status','score_model','report_last_updated',
+  'fico_scores','fico_auto_score_average','fico_score_8','fico_real_estate_rental_score',
+  'selectedCreditReportId','simulatorScenarios','simulatorMode','simulatorLastRun'
+];
+
+function isClientSourceLockedField(field) {
+  return CLIENT_SOURCE_LOCKED_FIELDS.indexOf(field) !== -1;
+}
+
+function ensureClientSourceReady(client, actionLabel) {
+  if (clientSourceIsConnected(client)) return true;
+  var validation = getClientSourceValidation(client);
+  if (typeof showToast === 'function') {
+    showToast((actionLabel || 'This action') + ' is locked until the client source is validated.', 'error');
+  }
+  console.warn('[Admin] Source validation required:', validation.reason || validation.status);
+  return false;
 }
 
 function normalizeClientList(clients) {
@@ -2765,16 +4398,67 @@ function saveClients(clients) {
   try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(normalizeClientList(clients))); } catch (e) {}
 }
 
+function normalizeEnterpriseAccount(account) {
+  if (!account) return null;
+  account.id = account.id || generateId();
+  account.company = account.company || '';
+  account.type = account.type || 'Supplier';
+  account.primaryContact = account.primaryContact || '';
+  account.email = account.email || '';
+  account.phone = account.phone || '';
+  account.website = account.website || '';
+  account.territory = account.territory || '';
+  account.segment = account.segment || 'Core';
+  account.stage = account.stage || 'Sourcing';
+  account.status = account.status || 'Prospect';
+  account.owner = account.owner || 'Ken';
+  account.paymentTerms = account.paymentTerms || 'Net 15';
+  account.monthlyVolume = Number(account.monthlyVolume || 0);
+  account.commissionRate = account.commissionRate || '';
+  account.relationshipStrength = account.relationshipStrength || 'Warm';
+  account.kycStatus = account.kycStatus || 'Pending';
+  account.agreementStatus = account.agreementStatus || 'Draft';
+  account.insuranceStatus = account.insuranceStatus || 'Pending';
+  account.riskLevel = account.riskLevel || 'Standard';
+  account.nextReviewAt = account.nextReviewAt || '';
+  account.lastContactAt = account.lastContactAt || account.updatedAt || account.createdAt || '';
+  account.notes = account.notes || '';
+  account.createdAt = account.createdAt || new Date().toISOString();
+  account.updatedAt = account.updatedAt || account.createdAt;
+  return account;
+}
+
+function loadEnterpriseAccounts() {
+  try {
+    var raw = localStorage.getItem(ENTERPRISE_KEY);
+    if (raw) return JSON.parse(raw).map(normalizeEnterpriseAccount).filter(Boolean);
+  } catch (e) {}
+  return [];
+}
+
+function saveEnterpriseAccounts(accounts) {
+  var normalized = (accounts || []).map(normalizeEnterpriseAccount).filter(Boolean);
+  try { localStorage.setItem(ENTERPRISE_KEY, JSON.stringify(normalized)); } catch (e) {}
+  updateEnterpriseBadge();
+}
+
 /* ========== CLOUD SYNC (KV API) ========== */
 var _syncInProgress = false;
 var CLIENT_SYNC_FIELDS = ['name','preferredName','legalName','email','phone','dob','address','city_state','zip',
   'employer','job_title','employment_duration','monthly_income','vehicle','vin',
   'emergency_name','emergency_phone','emergency_relationship','caseNumber','pin','memberSince',
   'program','stage','status','funding_email_username','funding_email_details',
+  'membership_balance_due','engagement_fee_balance_due',
   'report_access_status','report_access_details','ssn_funding_status','bnpl_status',
   'bnpl_approved_amount','client_review_status','score_model','report_last_updated',
   'fico_scores','fico_auto_score_average','fico_score_8','fico_real_estate_rental_score',
-  'pifrPlan','pifrPlanMembers','clientSource','clientSourceLabel','source','createdAt'];
+  'pifrPlan','pifrPlanMembers','clientSource','clientSourceLabel','source','createdAt',
+  'selectedCreditReportId','simulatorScenarios','simulatorMode','simulatorLastRun',
+  'sourceValidationStatus','sourceValidationMatchedBy','sourceValidationReason','sourceValidationAt',
+  'smartcredit_customer_token','smartcreditCustomerToken','smartcredit_token',
+  'smartcredit_sync_status','smartcreditSyncStatus','smartcredit_last_sync_at','smartcreditLastSyncAt',
+  'smartcredit_last_sync_error','smartcreditLastSyncError','smartcredit_last_sync_checked_at',
+  'smartcredit_configured','smartcredit_environment'];
 
 function mergeRemoteClientFields(localClient, remoteClient) {
   var remoteIsNewer = clientRecordTimestamp(remoteClient) > clientRecordTimestamp(localClient);
@@ -2923,7 +4607,7 @@ function saveSettings(s) {
 
 /* ========== SYNC TO CLIENT PORTAL ========== */
 function syncScoresToClientPortal(client) {
-  if (!client || !client.scores) return;
+  if (!client || !client.scores || !clientSourceIsConnected(client)) return;
   var scoresData = {
     equifax: client.scores.eq || null,
     experian: client.scores.ex || null,
@@ -2949,6 +4633,132 @@ function syncScoresToClientPortal(client) {
   } catch (e) {}
 }
 
+function testSmartCreditConnection(clientId) {
+  var clients = loadClients();
+  var client = clients.find(function(x) { return x.id === clientId; });
+  if (!client) return Promise.resolve();
+  var state = getSmartCreditSyncState(client);
+  var patch = { smartcredit_last_sync_checked_at: new Date().toISOString() };
+  return smartCreditApiFetch('/config').then(function(cfg) {
+    patch.smartcredit_configured = !!(cfg && cfg.enabled);
+    patch.smartcredit_environment = cfg && cfg.env ? cfg.env : '';
+    patch.smartcredit_sync_status = state.linked && cfg && cfg.enabled ? 'linked' : 'pending';
+    patch.smartcredit_last_sync_error = state.linked ? '' : (cfg && cfg.enabled ? 'Missing SmartCredit customer token' : 'SmartCredit proxy is not configured');
+    updateClientCloudAndLocal(clientId, patch);
+    showToast(cfg && cfg.enabled ? 'SmartCredit proxy is reachable' : 'SmartCredit proxy is not configured', cfg && cfg.enabled ? 'success' : 'error');
+    refreshClientManagementView(clientId);
+  }).catch(function(err) {
+    patch.smartcredit_sync_status = 'error';
+    patch.smartcredit_last_sync_error = err.message || 'SmartCredit test failed';
+    updateClientCloudAndLocal(clientId, patch);
+    showToast('SmartCredit connection test failed', 'error');
+    refreshClientManagementView(clientId);
+  });
+}
+
+function updateClientCloudAndLocal(clientId, patch) {
+  var clients = loadClients();
+  var client = clients.find(function(x) { return x.id === clientId; });
+  if (!client) return null;
+  Object.keys(patch || {}).forEach(function(key) {
+    client[key] = patch[key];
+  });
+  client.lastActive = new Date().toISOString();
+  client.updatedAt = client.lastActive;
+  patch.lastActive = client.lastActive;
+  patch.updatedAt = client.updatedAt;
+  saveClients(clients);
+  updateClientInCloud(clientId, patch);
+  return client;
+}
+
+function syncClientFromSmartCredit(clientId) {
+  var clients = loadClients();
+  var client = clients.find(function(x) { return x.id === clientId; });
+  if (!client) return;
+  if (!ensureClientSourceReady(client, 'Syncing SmartCredit data')) return;
+  var state = getSmartCreditSyncState(client);
+  if (!state.token) {
+    updateClientCloudAndLocal(clientId, {
+      smartcredit_sync_status: 'pending',
+      smartcredit_last_sync_error: 'Missing SmartCredit customer token'
+    });
+    showToast('Add the SmartCredit customer token before syncing', 'error');
+    refreshClientManagementView(clientId);
+    return;
+  }
+  showToast('Syncing SmartCredit data...', 'info');
+  smartCreditApiFetch('/customer/' + encodeURIComponent(state.token) + '/scores').then(function(data) {
+    var parsedScores = buildSmartCreditParsedScores(data, client);
+    if (!parsedScores) {
+      throw new Error('SmartCredit returned no bureau scores');
+    }
+    var clients = loadClients();
+    var localClient = clients.find(function(x) { return x.id === clientId; });
+    if (!localClient) throw new Error('Client record not found');
+    upsertSmartCreditReport(localClient, parsedScores);
+    saveClientSimulatorState(clientId, {
+      creditReports: localClient.creditReports,
+      selectedCreditReportId: localClient.selectedCreditReportId
+    }, 'SmartCredit sync');
+    var updated = persistClientScores(clientId, parsedScores, 'SmartCredit sync');
+    if (!updated) throw new Error('Unable to persist SmartCredit scores');
+    updateClientCloudAndLocal(clientId, {
+      smartcredit_configured: true,
+      smartcredit_sync_status: 'connected',
+      smartcredit_last_sync_at: new Date().toISOString(),
+      smartcredit_last_sync_error: '',
+      smartcredit_environment: data.environment || client.smartcredit_environment || ''
+    });
+    showToast('SmartCredit sync completed', 'success');
+    refreshClientManagementView(clientId);
+    renderDashboard();
+  }).catch(function(err) {
+    updateClientCloudAndLocal(clientId, {
+      smartcredit_sync_status: 'error',
+      smartcredit_last_sync_at: new Date().toISOString(),
+      smartcredit_last_sync_error: err.message || 'SmartCredit sync failed'
+    });
+    showToast('SmartCredit sync failed', 'error');
+    refreshClientManagementView(clientId);
+  });
+}
+
+function auditClientSmartCreditReports() {
+  var clients = loadClients();
+  var eligible = clients.filter(function(c) {
+    var token = String(c && (c.smartcredit_customer_token || c.smartcreditCustomerToken || c.smartcredit_token) || '').trim();
+    return clientSourceIsConnected(c) && token;
+  });
+  if (!eligible.length) {
+    showToast('No connected clients with SmartCredit tokens found', 'error');
+    return;
+  }
+  var missing = eligible.filter(function(c) {
+    return !Array.isArray(c.creditReports) || !c.creditReports.some(function(r) {
+      return r && (r.source === 'SmartCredit API' || (r.parsedScores && r.parsedScores.source_provider === 'SmartCredit'));
+    });
+  });
+  if (!missing.length) {
+    showToast('Every eligible client already has a SmartCredit report', 'success');
+    return;
+  }
+  showToast('Auditing SmartCredit reports for ' + missing.length + ' client' + (missing.length === 1 ? '' : 's') + '...', 'info');
+  missing.reduce(function(chain, client) {
+    return chain.then(function() {
+      return syncClientFromSmartCredit(client.id);
+    }).then(function() {
+      return new Promise(function(resolve) { setTimeout(resolve, 250); });
+    }).catch(function() {
+      return new Promise(function(resolve) { setTimeout(resolve, 250); });
+    });
+  }, Promise.resolve()).then(function() {
+    refreshClientManagementList();
+    renderReports();
+    showToast('SmartCredit audit finished', 'success');
+  });
+}
+
 /* ========== IMPORT PORTAL DATA ========== */
 function importFromPortal() {
   var clients = loadClients();
@@ -2959,7 +4769,7 @@ function importFromPortal() {
 
   if (portalName && portalEmail) {
     var exists = clients.some(function(c) {
-      return c.email === portalEmail || (portalClientId && c.portalClientId === portalClientId);
+      return (portalClientId && c.portalClientId === portalClientId) || (!portalClientId && c.email === portalEmail);
     });
     if (!exists) {
       var portalScores = { eq: 0, ex: 0, tu: 0 };
@@ -2976,6 +4786,13 @@ function importFromPortal() {
       clients.push({
         id: generateId(),
         portalClientId: portalClientId || '',
+        source: 'member-portal',
+        clientSource: 'member-portal',
+        clientSourceLabel: 'Client Portal',
+        sourceValidationStatus: 'connected',
+        sourceValidationMatchedBy: portalClientId ? 'portal_client_id' : 'email',
+        sourceValidationReason: 'Imported from the client portal',
+        sourceValidationAt: new Date().toISOString(),
         name: portalName,
         email: portalEmail,
         phone: localStorage.getItem('hirecar_phone') || '',
@@ -3009,6 +4826,22 @@ function importFromPortal() {
       });
       saveClients(clients);
       addActivity('Client "' + portalName + '" imported from portal', 'green');
+    } else {
+      var linkedClient = clients.find(function(c) {
+        return (portalClientId && c.portalClientId === portalClientId) || (!portalClientId && c.email === portalEmail);
+      });
+      if (linkedClient) {
+        linkedClient.source = 'member-portal';
+        linkedClient.clientSource = 'member-portal';
+        linkedClient.clientSourceLabel = 'Client Portal';
+        setClientSourceValidation(
+          linkedClient,
+          'connected',
+          portalClientId ? 'portal_client_id' : 'email',
+          'Matched to the client portal source'
+        );
+        saveClients(clients);
+      }
     }
   }
 }
@@ -3019,8 +4852,29 @@ function checkSession() {
     var raw = sessionStorage.getItem(SESSION_KEY);
     if (raw) {
       var sess = JSON.parse(raw);
-      if (Date.now() - sess.ts < SESSION_DURATION && ADMINS[sess.user]) {
-        currentAdmin = { username: sess.user, role: ADMINS[sess.user].role, name: ADMINS[sess.user].name, access: ADMINS[sess.user].access };
+      if (Date.now() - sess.ts < SESSION_DURATION && sess.user) {
+        if (sess.apiKey) {
+          _serverApiKey = sess.apiKey;
+          HC_API_KEY = sess.apiKey;
+        }
+        var storedAdmin = sess.admin || {};
+        var username = String(sess.user || storedAdmin.username || '').trim().toLowerCase();
+        if (!username) {
+          sessionStorage.removeItem(SESSION_KEY);
+          return false;
+        }
+        var adminRecord = ADMINS[username] || {};
+        currentAdmin = {
+          username: username,
+          role: storedAdmin.role || adminRecord.role || '',
+          name: storedAdmin.name || adminRecord.name || username,
+          access: storedAdmin.access || adminRecord.access || 'limited'
+        };
+        ADMINS[username] = {
+          role: currentAdmin.role,
+          name: currentAdmin.name,
+          access: currentAdmin.access
+        };
         return true;
       }
       sessionStorage.removeItem(SESSION_KEY);
@@ -3029,7 +4883,7 @@ function checkSession() {
   return false;
 }
 
-function doLogin() {
+async function doLogin() {
   var user = document.getElementById('login-user').value.trim().toLowerCase();
   var pin = document.getElementById('login-pin').value.trim();
   var errorEl = document.getElementById('login-error');
@@ -3042,48 +4896,104 @@ function doLogin() {
   errorEl.textContent = 'Authenticating...';
   errorEl.style.color = 'var(--cyan)';
 
-  fetch('/api/admin-auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: user, pin: pin })
-  })
-  .then(function(res) { return res.json(); })
-  .then(function(data) {
-    if (!data.success) {
+  var endpoints = [
+    '/api/admin-auth',
+    'https://hirecar-api.hirecar.workers.dev/api/admin-auth'
+  ];
+  var lastRecoverableError = null;
+
+  for (var i = 0; i < endpoints.length; i++) {
+    try {
+      var data = await postAdminAuth(endpoints[i], user, pin);
+      if (!data.success) {
+        errorEl.style.color = '';
+        errorEl.textContent = 'ACCESS DENIED — Invalid credentials';
+        document.getElementById('login-pin').value = '';
+        return;
+      }
+
+      // Populate ADMINS from server response (no hardcoded data)
+      ADMINS[data.admin.username] = {
+        role: data.admin.role,
+        name: data.admin.name,
+        access: data.admin.access
+      };
+
+      // Store API key from server (never hardcoded in source)
+      if (data.apiKey) {
+        _serverApiKey = data.apiKey;
+        HC_API_KEY = _serverApiKey;
+      }
+
+      currentAdmin = { username: data.admin.username, role: data.admin.role, name: data.admin.name, access: data.admin.access };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        user: data.admin.username,
+        ts: Date.now(),
+        token: data.token,
+        apiKey: data.apiKey || '',
+        admin: {
+          username: data.admin.username,
+          role: data.admin.role,
+          name: data.admin.name,
+          access: data.admin.access
+        }
+      }));
+
+      try {
+        var logins = JSON.parse(localStorage.getItem('hc_admin_logins') || '{}');
+        logins[user] = new Date().toISOString();
+        localStorage.setItem('hc_admin_logins', JSON.stringify(logins));
+      } catch (e) {}
+
+      addActivity(data.admin.name + ' logged in', 'green');
+      enterApp();
+      return;
+    } catch (err) {
+      if (err && err.recoverable) {
+        lastRecoverableError = err;
+        console.warn('Auth endpoint failed, trying fallback:', endpoints[i], err);
+        continue;
+      }
+
       errorEl.style.color = '';
       errorEl.textContent = 'ACCESS DENIED — Invalid credentials';
       document.getElementById('login-pin').value = '';
       return;
     }
+  }
 
-    // Populate ADMINS from server response (no hardcoded data)
-    ADMINS[data.admin.username] = {
-      role: data.admin.role,
-      name: data.admin.name,
-      access: data.admin.access
-    };
+  errorEl.style.color = '';
+  errorEl.textContent = 'Connection error — try again';
+  console.error('Auth error:', lastRecoverableError || new Error('Auth service unavailable'));
+}
 
-    // Store API key from server (never hardcoded in source)
-    _serverApiKey = data.apiKey;
-    HC_API_KEY = _serverApiKey;
-
-    currentAdmin = { username: data.admin.username, role: data.admin.role, name: data.admin.name, access: data.admin.access };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: data.admin.username, ts: Date.now(), token: data.token }));
-
-    try {
-      var logins = JSON.parse(localStorage.getItem('hc_admin_logins') || '{}');
-      logins[user] = new Date().toISOString();
-      localStorage.setItem('hc_admin_logins', JSON.stringify(logins));
-    } catch (e) {}
-
-    addActivity(data.admin.name + ' logged in', 'green');
-    enterApp();
-  })
-  .catch(function(err) {
-    errorEl.style.color = '';
-    errorEl.textContent = 'Connection error — try again';
-    console.error('Auth error:', err);
+async function postAdminAuth(endpoint, username, pin) {
+  var res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: username, pin: pin })
   });
+
+  var text = await res.text();
+  var data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      var parseErr = new Error('Invalid auth response');
+      parseErr.recoverable = true;
+      throw parseErr;
+    }
+  }
+
+  if (!res.ok || data.success === false) {
+    var err = new Error(data && data.error ? data.error : 'Auth failed');
+    err.status = res.status;
+    err.recoverable = res.status >= 500 || res.status === 404 || res.status === 502 || res.status === 503 || res.status === 504;
+    throw err;
+  }
+
+  return data;
 }
 
 function doLogout() {
@@ -3108,6 +5018,7 @@ function enterApp() {
   }
 
   importFromPortal();
+  updateEnterpriseBadge();
   showSection('dashboard');
   startClock();
   startCloudSync();
@@ -3147,6 +5058,7 @@ function showSection(name) {
     dashboard: 'Dashboard',
     work: 'Tasks & Projects',
     clients: 'Client Management',
+    enterprise: 'Enterprise CRM',
     reports: 'Credit Reports',
     messages: 'Messages',
     meetings: 'Meeting Requests',
@@ -3172,6 +5084,7 @@ function showSection(name) {
     case 'dashboard': renderDashboard(); break;
     case 'work': renderWorkDashboard(); break;
     case 'clients': renderClients(); break;
+    case 'enterprise': renderEnterpriseAccounts(); break;
     case 'reports': renderReports(); break;
     case 'messages': renderMessages(); break;
     case 'meetings': refreshMeetRequests(); break;
@@ -3769,10 +5682,16 @@ function findClientForPifr(e) {
   var clients = loadClients();
   var mid = e.mid || e.member_id || e.pifrMemberId;
   var email = (e.email || '').toLowerCase();
-  return clients.find(function(c) {
-    return (mid && (c.pifrMemberId === mid || c.caseNumber === mid || c.portalClientId === mid)) ||
-      (email && (c.email || '').toLowerCase() === email);
-  }) || null;
+  var exactMidMatch = clients.find(function(c) {
+    return mid && (c.pifrMemberId === mid || c.caseNumber === mid || c.portalClientId === mid);
+  });
+  if (exactMidMatch) return exactMidMatch;
+  if (!mid && email) {
+    return clients.find(function(c) {
+      return (c.email || '').toLowerCase() === email;
+    }) || null;
+  }
+  return null;
 }
 
 function applyPifrFieldsToClient(client, e) {
@@ -3790,9 +5709,17 @@ function applyPifrFieldsToClient(client, e) {
   client.pifrDependentCount = e.dependentCount || e.dependent_count || covered.length || 0;
   client.clientSource = 'pifr_enrollment';
   client.clientSourceLabel = 'PIFR Enrollment';
+  client.source = 'pifr-enrollment';
+  if (!client.caseNumber && e.mid) client.caseNumber = e.mid;
   client.convertedFromPifr = true;
   client.pifrConvertible = false;
   client.convertibleToFullClient = false;
+  setClientSourceValidation(
+    client,
+    'connected',
+    'pifr_member_id',
+    'PIFR enrollment ' + (e.mid || '') + ' matched to this client record'
+  );
   client.lastActive = new Date().toISOString();
 }
 
@@ -3800,6 +5727,7 @@ var PIFR_DOC_TYPES = [
   { id: 'driver-license-front', label: 'Driver License Front' },
   { id: 'driver-license-back', label: 'Driver License Back' },
   { id: 'utility-bill', label: 'Utility Bill' },
+  { id: 'ssn-card', label: 'SSN Card' },
   { id: 'second-id', label: 'Second Form of ID' },
   { id: 'client-docs', label: 'Other Client Documents' },
   { id: 'business-details', label: 'Client Business Details' }
@@ -3887,14 +5815,19 @@ function uploadPifrDocument(input, mid, docType) {
 
 function renderClientDocumentUploadSection(c, sid) {
   var memberId = c.caseNumber || c.id;
+  var validation = getClientSourceValidation(c);
+  var locked = validation.status !== 'connected';
   var html = '<div class="detail-section" style="margin-top:12px;">';
   html += '<h4>Client Document Uploads</h4>';
+  if (locked) {
+    html += '<div class="source-lock-banner">Source validation is required before document uploads or client section population are enabled.</div>';
+  }
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">';
   PIFR_DOC_TYPES.forEach(function(t) {
     html += '<div style="background:var(--cream);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;">';
     html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">';
     html += '<div><div style="font-size:12px;font-weight:700;color:var(--ink);">' + escapeHtml(t.label) + '</div><div id="client-doc-status-' + sid + '-' + t.id + '" style="font-size:10px;color:rgba(240,242,247,.45);margin-top:2px;">Checking files...</div></div>';
-    html += '<label style="background:rgba(42,107,184,.14);border:1px solid rgba(42,107,184,.35);color:#60a5fa;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;">Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" style="display:none" onchange="uploadClientDocument(this,\'' + c.id + '\',\'' + sid + '\',\'' + t.id + '\')"></label>';
+    html += '<label style="background:rgba(42,107,184,.14);border:1px solid rgba(42,107,184,.35);color:#60a5fa;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;' + (locked ? 'opacity:.5;cursor:not-allowed;' : '') + ';">' + (locked ? 'Locked' : 'Upload') + '<input ' + (locked ? 'disabled' : '') + ' type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" style="display:none" onchange="uploadClientDocument(this,\'' + c.id + '\',\'' + sid + '\',\'' + t.id + '\')"></label>';
     html += '</div><div id="client-doc-list-' + sid + '-' + t.id + '" style="margin-top:8px;display:flex;flex-direction:column;gap:5px;"></div>';
     html += '</div>';
   });
@@ -3907,7 +5840,18 @@ function loadClientDocuments(clientId, sid) {
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
+  var validation = getClientSourceValidation(c);
+  var locked = validation.status !== 'connected';
   var memberId = c.caseNumber || c.id;
+  if (locked) {
+    PIFR_DOC_TYPES.forEach(function(t) {
+      var statusEl = document.getElementById('client-doc-status-' + sid + '-' + t.id);
+      var listEl = document.getElementById('client-doc-list-' + sid + '-' + t.id);
+      if (statusEl) statusEl.textContent = 'Locked until source validation';
+      if (listEl) listEl.innerHTML = '';
+    });
+    return;
+  }
   fetch('/api/upload?memberId=' + encodeURIComponent(memberId))
     .then(function(r) { return r.json(); })
     .then(function(d) {
@@ -3918,7 +5862,7 @@ function loadClientDocuments(clientId, sid) {
         var rows = cloudRows.concat(localRows);
         var statusEl = document.getElementById('client-doc-status-' + sid + '-' + t.id);
         var listEl = document.getElementById('client-doc-list-' + sid + '-' + t.id);
-        if (statusEl) statusEl.textContent = rows.length ? rows.length + ' file' + (rows.length === 1 ? '' : 's') + ' uploaded' : 'No file uploaded';
+        if (statusEl) statusEl.textContent = locked ? 'Locked until source validation' : (rows.length ? rows.length + ' file' + (rows.length === 1 ? '' : 's') + ' uploaded' : 'No file uploaded');
         if (!listEl) return;
         listEl.innerHTML = rows.map(function(f) {
           var name = f.name || ((f.key || '').split('/').pop()) || 'Document';
@@ -3932,7 +5876,7 @@ function loadClientDocuments(clientId, sid) {
         var localRows = (c.documents || []).filter(function(doc) { return doc.docType === t.id || doc.type === pifrDocLabel(t.id); });
         var statusEl = document.getElementById('client-doc-status-' + sid + '-' + t.id);
         var listEl = document.getElementById('client-doc-list-' + sid + '-' + t.id);
-        if (statusEl) statusEl.textContent = localRows.length ? localRows.length + ' file' + (localRows.length === 1 ? '' : 's') + ' uploaded' : 'No file uploaded';
+        if (statusEl) statusEl.textContent = locked ? 'Locked until source validation' : (localRows.length ? localRows.length + ' file' + (localRows.length === 1 ? '' : 's') + ' uploaded' : 'No file uploaded');
         if (listEl) listEl.innerHTML = localRows.map(function(f) { return '<span style="font-size:11px;color:var(--cyan);word-break:break-all;">' + escapeHtml(f.name || 'Document') + '</span>'; }).join('');
       });
     });
@@ -3944,6 +5888,10 @@ function uploadClientDocument(input, clientId, sid, docType) {
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
+  if (!ensureClientSourceReady(c, 'Uploading client documents')) {
+    input.value = '';
+    return;
+  }
   var memberId = c.caseNumber || c.id;
   var label = pifrDocLabel(docType);
   var statusEl = document.getElementById('client-doc-status-' + sid + '-' + docType);
@@ -3985,6 +5933,8 @@ function refreshClientManagementView(clientId) {
     setTimeout(function() {
       loadClientDocuments(expandedClientId, sid);
       checkPendingClientChanges(expandedClientId);
+      var detailEl = document.getElementById('client-detail-container');
+      if (detailEl) detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }
   showToast('Client view refreshed', 'info');
@@ -4001,6 +5951,7 @@ function renderClients() {
   var filterStatus = document.getElementById('client-filter-status').value;
   var filterProgram = document.getElementById('client-filter-program').value;
   var filterStage = document.getElementById('client-filter-stage').value;
+  var detailContainer = document.getElementById('client-detail-container');
 
   var filtered = clients.filter(function(c) {
     var sourceText = (c.clientSourceLabel || c.clientSource || '').toLowerCase();
@@ -4022,7 +5973,7 @@ function renderClients() {
   var tbody = document.getElementById('client-tbody');
   if (filtered.length === 0) {
     tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:32px;">No clients found. Click "Add New Client" to get started.</td></tr>';
-    document.getElementById('client-detail-container').innerHTML = '';
+    if (detailContainer) detailContainer.innerHTML = '';
     return;
   }
 
@@ -4059,18 +6010,22 @@ function renderClients() {
     }
     html += '</td></tr>';
 
-    if (isExpanded) {
-      html += '<tr><td colspan="12" style="padding:0;">';
-      html += buildClientDetailHtml(c);
-      html += '</td></tr>';
-    }
   });
   tbody.innerHTML = html;
+  if (detailContainer) {
+    if (expandedClientId) {
+      var expandedClient = filtered.find(function(c) { return c.id === expandedClientId; });
+      detailContainer.innerHTML = expandedClient ? buildClientDetailHtml(expandedClient) : '';
+    } else {
+      detailContainer.innerHTML = '';
+    }
+  }
   if (expandedClientId) {
     var expanded = filtered.find(function(c) { return c.id === expandedClientId; });
     if (expanded) {
       setTimeout(function() {
         loadClientDocuments(expanded.id, String(expanded.id || '').replace(/[^a-zA-Z0-9_-]/g, '_'));
+        if (detailContainer) detailContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 50);
     }
   }
@@ -4082,7 +6037,11 @@ function toggleClientDetail(clientId) {
   expandedClientId = expandedClientId === clientId ? null : clientId;
   renderClients();
   if (expandedClientId) {
-    setTimeout(function(){ checkPendingClientChanges(expandedClientId); }, 300);
+    setTimeout(function() {
+      checkPendingClientChanges(expandedClientId);
+      var detailEl = document.getElementById('client-detail-container');
+      if (detailEl) detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
   }
 }
 
@@ -4090,12 +6049,83 @@ function buildClientDetailHtml(c) {
   var avg = calcAvgScore(c);
   var cid = c.id;
   var sid = String(cid || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  var sourceValidation = getClientSourceValidation(c);
+  var smartCreditState = getSmartCreditSyncState(c);
+  var sourceReady = sourceValidation.status === 'connected';
+  var sourceLocked = !sourceReady;
+  var inputLock = sourceLocked ? ' disabled' : '';
+  var buttonLock = sourceLocked ? ' disabled' : '';
+  var reportAccessStatus = sourceReady ? (c.report_access_status || 'Pending') : 'Pending';
+  var ssnFundingStatus = sourceReady ? (c.ssn_funding_status || 'Pending') : 'Pending';
+  var bnplStatus = sourceReady ? (c.bnpl_status || 'Pending') : 'Pending';
+  var clientReviewStatus = sourceReady ? (c.client_review_status || 'Pending Client Review') : 'Pending Client Review';
+  var displayEq = sourceReady ? (c.scores.eq || '---') : 'Pending validation';
+  var displayEx = sourceReady ? (c.scores.ex || '---') : 'Pending validation';
+  var displayTu = sourceReady ? (c.scores.tu || '---') : 'Pending validation';
+  var displayAvg = sourceReady ? (avg || '---') : 'Pending validation';
+  var reportPreviews = getClientCreditReports(c).slice(0, 4).map(function(r) {
+    var parsed = r.parsedScores || {};
+    return {
+      id: r.id,
+      title: r.name || 'Credit Report',
+      subtitle: [
+        r.source || parsed.source_provider || 'Uploaded report',
+        r.uploadedAt ? formatDate(r.uploadedAt) : '',
+        parsed.report_last_updated ? ('Updated ' + parsed.report_last_updated) : ''
+      ].filter(Boolean).join(' · '),
+      status: r.status || 'Pending Review',
+      icon: '📄',
+      selected: String(r.id || '') === String(c.selectedCreditReportId || '')
+    };
+  });
   var h = '<div class="client-detail-panel visible">';
   h += '<div class="detail-grid">';
 
   /* ---- Column 1: Client Profile ---- */
-  h += '<div class="detail-section">';
+  h += '<div class="detail-section detail-section--wide">';
   h += '<h4>Client Profile</h4>';
+  h += '<div class="scores-row scores-row--compact">';
+  h += '<div class="score-box"><div class="sb-bureau">FICO Equifax</div><div class="sb-val">' + escapeHtml(displayEq) + '</div></div>';
+  h += '<div class="score-box"><div class="sb-bureau">FICO Experian</div><div class="sb-val">' + escapeHtml(displayEx) + '</div></div>';
+  h += '<div class="score-box"><div class="sb-bureau">FICO TransUnion</div><div class="sb-val">' + escapeHtml(displayTu) + '</div></div>';
+  h += '<div class="score-box"><div class="sb-bureau">FICO Average</div><div class="sb-val" style="color:var(--cyan);">' + escapeHtml(displayAvg) + '</div></div>';
+  h += '</div>';
+  h += '<div class="upload-preview-grid">';
+  if (reportPreviews.length) {
+    reportPreviews.forEach(function(item) {
+      h += '<div class="upload-preview-card" style="border-color:' + (item.selected ? 'rgba(34,211,238,.55)' : 'rgba(255,255,255,.07)') + ';">';
+      h += '<div style="display:flex;gap:10px;align-items:flex-start;">';
+      h += '<div class="upload-preview-thumb">' + escapeHtml(item.selected ? '★' : (item.icon || '•')) + '</div>';
+      h += '<div style="min-width:0;flex:1;">';
+      h += '<strong>' + escapeHtml(item.title) + '</strong>';
+      h += '<div class="up-meta">' + escapeHtml(item.subtitle || 'Uploaded report') + '</div>';
+      h += '</div></div>';
+      h += '<div class="up-meta" style="text-transform:uppercase;letter-spacing:.12em;">' + (item.selected ? 'Selected for simulator' : item.status || 'Available') + '</div>';
+      h += '</div>';
+    });
+  } else {
+    h += '<div class="upload-preview-card" style="justify-content:center;text-align:center;">';
+    h += '<div class="up-meta" style="font-size:12px;">No credit reports yet</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+  h += '<div class="smartcredit-sync-card">';
+  h += '<div class="smartcredit-sync-head">';
+  h += '<div class="smartcredit-sync-title">SmartCredit Sync</div>';
+  h += '<div class="smartcredit-sync-actions">';
+  h += '<button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();testSmartCreditConnection(\'' + cid + '\')">Test Connection</button>';
+  h += '<button class="btn btn-sm btn-primary"' + (sourceReady ? '' : ' disabled') + ' onclick="event.stopPropagation();syncClientFromSmartCredit(\'' + cid + '\')">Sync Now</button>';
+  h += '</div></div>';
+  h += '<div class="smartcredit-sync-grid">';
+  h += '<div class="smartcredit-sync-item"><div class="smartcredit-sync-item-label">Sync Status</div><div class="smartcredit-sync-item-value"><span class="source-pill source-' + escapeHtml(smartCreditState.pill) + '">' + escapeHtml(smartCreditState.label) + '</span></div></div>';
+  h += '<div class="smartcredit-sync-item"><div class="smartcredit-sync-item-label">Customer Token</div><div class="smartcredit-sync-item-value editable" onclick="startInlineEdit(\'' + cid + '\',\'smartcredit_customer_token\',this)">' + escapeHtml(smartCreditState.token || '--- Click to set ---') + '</div></div>';
+  h += '<div class="smartcredit-sync-item"><div class="smartcredit-sync-item-label">Last Sync</div><div class="smartcredit-sync-item-value">' + escapeHtml(smartCreditState.lastSyncAt ? formatDate(smartCreditState.lastSyncAt) : 'Never synced') + (smartCreditState.lastError ? '<div style="margin-top:6px;color:#fca5a5;font-size:11px;line-height:1.4;">' + escapeHtml(smartCreditState.lastError) + '</div>' : '') + '</div></div>';
+  h += '</div>';
+  h += '<div class="smartcredit-sync-note">This sync uses the deployed SmartCredit proxy. If the token is missing or the upstream score endpoint is unavailable, the client will remain unsynced and the error will be shown here.</div>';
+  h += '</div>';
+  if (!sourceReady) {
+    h += '<div class="source-lock-banner">Credit scores and uploads stay locked until the client source is validated, so another client’s data cannot be populated here.</div>';
+  }
   h += '<div class="detail-row"><span class="detail-label">Preferred Name</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'name\',this)">' + escapeHtml(c.name || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Full Legal Name</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'legalName\',this)" style="color:#f87171;font-weight:600;">' + escapeHtml(c.legalName || '--- Click to set ---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'email\',this)">' + escapeHtml(c.email || '---') + '</span></div>';
@@ -4104,69 +6134,22 @@ function buildClientDetailHtml(c) {
   h += '<div class="detail-row"><span class="detail-label">Program</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'program\',this)">' + escapeHtml(c.program || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">PIFR Plan</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'pifrPlan\',this)">' + escapeHtml(c.pifrPlan || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Under Plan</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'pifrPlanMembers\',this)">' + escapeHtml(c.pifrPlanMembers || (c.pifrCoveredMembers && c.pifrCoveredMembers.length ? c.pifrCoveredMembers.join(', ') : '---')) + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Source Match</span><span class="detail-val"><span class="source-pill source-' + escapeHtml(sourceValidation.status) + '">' + escapeHtml((sourceValidation.status || 'pending').replace(/\b\w/g, function(ch){ return ch.toUpperCase(); })) + '</span><div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.45;">' + escapeHtml(sourceValidation.reason || 'Waiting for a verified source match.') + '</div></span></div>';
   h += '<div class="detail-row"><span class="detail-label">Created</span><span class="detail-val">' + formatDate(c.createdAt) + '</span></div>';
   h += '</div>';
 
   /* ---- Column 2: Personal Info (editable) ---- */
   h += '<div class="detail-section">';
   h += '<h4>Personal Info</h4>';
-  h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'phone\',this)">' + escapeHtml(c.phone || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'phone\',this)">' + escapeHtml(formatPhoneNumber(c.phone)) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">DOB</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'dob\',this)">' + escapeHtml(c.dob || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Address</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'address\',this)">' + escapeHtml(c.address || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">City/State</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'city_state\',this)">' + escapeHtml(c.city_state || '---') + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">ZIP</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'zip\',this)">' + escapeHtml(c.zip || '---') + '</span></div>';
   h += '</div>';
-
-  /* ---- Column 3: Credit Scores ---- */
-  h += '<div class="detail-section">';
-  h += '<h4>FICO Credit Scores</h4>';
-  h += '<div class="scores-row">';
-  h += '<div class="score-box"><div class="sb-bureau">FICO Equifax</div><div class="sb-val">' + (c.scores.eq || '---') + '</div></div>';
-  h += '<div class="score-box"><div class="sb-bureau">FICO Experian</div><div class="sb-val">' + (c.scores.ex || '---') + '</div></div>';
-  h += '<div class="score-box"><div class="sb-bureau">FICO TransUnion</div><div class="sb-val">' + (c.scores.tu || '---') + '</div></div>';
-  h += '<div class="score-box"><div class="sb-bureau">FICO Average</div><div class="sb-val" style="color:var(--cyan);">' + (avg || '---') + '</div></div>';
-  h += '</div>';
-  h += '<div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Equifax<input class="form-input" type="number" min="300" max="850" id="client-score-eq-' + sid + '" value="' + escapeHtml(c.scores.eq || '') + '" placeholder="---" style="margin-top:6px;"></label>';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Experian<input class="form-input" type="number" min="300" max="850" id="client-score-ex-' + sid + '" value="' + escapeHtml(c.scores.ex || '') + '" placeholder="---" style="margin-top:6px;"></label>';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO TransUnion<input class="form-input" type="number" min="300" max="850" id="client-score-tu-' + sid + '" value="' + escapeHtml(c.scores.tu || '') + '" placeholder="---" style="margin-top:6px;"></label>';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Date Updated<input class="form-input" type="date" id="client-report-date-' + sid + '" value="' + escapeHtml(c.report_last_updated || '') + '" style="margin-top:6px;"></label>';
-  h += '</div>';
-  h += '<div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;">';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Vantage Scores<select class="form-select" id="client-score-model-' + sid + '" style="margin-top:6px;"><option value=""' + (!c.score_model ? ' selected' : '') + '>Select model</option><option value="VantageScore 3.0"' + (c.score_model === 'VantageScore 3.0' ? ' selected' : '') + '>VantageScore 3.0</option><option value="VantageScore 4.0"' + (c.score_model === 'VantageScore 4.0' ? ' selected' : '') + '>VantageScore 4.0</option><option value="VantageScore 4plus"' + (c.score_model === 'VantageScore 4plus' ? ' selected' : '') + '>VantageScore 4plus</option></select></label>';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Scores<input class="form-input" type="text" id="client-fico-scores-' + sid + '" value="' + escapeHtml(c.fico_scores || '') + '" placeholder="e.g. 716 / 716 / 716" style="margin-top:6px;"></label>';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Auto Score Avg<input class="form-input" type="number" min="300" max="900" id="client-fico-auto-' + sid + '" value="' + escapeHtml(c.fico_auto_score_average || '') + '" placeholder="---" style="margin-top:6px;"></label>';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Score 8<input class="form-input" type="number" min="300" max="900" id="client-fico-8-' + sid + '" value="' + escapeHtml(c.fico_score_8 || '') + '" placeholder="---" style="margin-top:6px;"></label>';
-  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">FICO Real Estate/Rental<input class="form-input" type="number" min="300" max="900" id="client-fico-rental-' + sid + '" value="' + escapeHtml(c.fico_real_estate_rental_score || '') + '" placeholder="---" style="margin-top:6px;"></label>';
-  h += '</div>';
-  h += '<div style="margin-top:10px;">';
-  h += '<button class="btn btn-sm btn-success" onclick="saveClientProfileScores(\'' + cid + '\',\'' + sid + '\')">Save FICO Scores</button> ';
-  h += '<button class="btn btn-sm btn-ghost" onclick="refreshClientManagementView(\'' + cid + '\')">Save &amp; Refresh</button> ';
-  h += '<button class="btn btn-sm btn-primary" onclick="openScoreModal(\'' + cid + '\')">Update Scores</button>';
-  h += ' <button class="btn btn-sm btn-ghost" onclick="openMsgModal(\'' + cid + '\')">Send Message</button>';
-  h += ' <button class="btn btn-sm btn-success" onclick="openMeetingPromptForClient(\'' + cid + '\')">Meeting Invite</button>';
-  h += '<div id="client-score-save-status-' + sid + '" style="font-size:11px;color:var(--muted);margin-top:6px;">Enter or update FICO score inputs, then save.</div>';
-  h += '</div>';
-  var meetings = getMeetingHistory(c.caseNumber || c.id);
-  var next = meetings.filter(function(m){ return new Date(m.startIso) > new Date() && m.action !== 'cancel'; }).sort(function(a,b){return new Date(a.startIso)-new Date(b.startIso);})[0];
-  var last = meetings.filter(function(m){ return new Date(m.startIso) <= new Date(); }).sort(function(a,b){return new Date(b.startIso)-new Date(a.startIso);})[0];
-  h += '<div style="margin-top:10px;font-size:11px;color:var(--muted)">Upcoming: ' + (next ? new Date(next.startIso).toLocaleString('en-US') : '—') + ' | Last met: ' + (last ? new Date(last.startIso).toLocaleString('en-US') : '—') + '</div>';
-  h += '<div style="margin-top:10px;font-size:11px;color:var(--ink)"><strong>Meeting Requests</strong></div>';
-  if (meetings.length) {
-    h += '<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px">';
-    meetings.slice(0,5).forEach(function(m, idx){
-      h += '<div style="font-size:11px;background:var(--cream);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:8px;display:flex;justify-content:space-between;gap:8px;align-items:center">'
-        + '<span>' + (m.title||'Meeting') + ' · ' + new Date(m.startIso).toLocaleString('en-US') + ' · ' + (m.action||'create') + '</span>'
-        + '<span style="display:flex;gap:6px;align-items:center"><span style="font-size:10px;color:' + (m.confirmed ? '#34d399' : '#f59e0b') + '">' + (m.confirmed ? 'Confirmed' : 'Pending') + '</span><button class="btn btn-sm btn-ghost" onclick="toggleMeetingConfirmed(\'' + (c.caseNumber || c.id) + '\',' + idx + ')">Toggle</button><button class="btn btn-sm btn-ghost" onclick="openMeetingEdit(\'' + (c.caseNumber || c.id) + '\',' + idx + ')">Edit</button></span>'
-        + '</div>';
-    });
-    h += '</div>';
-  } else {
-    h += '<div style="font-size:11px;color:var(--muted);margin-top:6px">No meeting requests yet.</div>';
-  }
-  h += '</div>';
-
   h += '</div>'; // end first detail-grid row
+
+  h += renderClientSimulatorSection(c, sid);
 
   /* ---- Second row: Employment, Vehicle, Emergency Contact, Status ---- */
   h += '<div class="detail-grid" style="margin-top:12px;">';
@@ -4190,23 +6173,26 @@ function buildClientDetailHtml(c) {
   /* ---- Funding Access & Review (editable) ---- */
   h += '<div class="detail-section">';
   h += '<h4>Funding Access & Review</h4>';
-  h += '<div class="detail-row"><span class="detail-label">Membership Balance Due</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'membership_balance_due\',this)">' + escapeHtml(c.membership_balance_due || '0') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Engagement Fee Due</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'engagement_fee_balance_due\',this)">' + escapeHtml(c.engagement_fee_balance_due || '0') + '</span></div>';
-  h += '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">Client Report Access<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'report_access_status\',this.value)" style="margin-top:6px;">';
-  ['Pending','Requested','Received','Reviewed','Blocked'].forEach(function(status) { h += '<option value="' + status + '"' + ((c.report_access_status || 'Pending') === status ? ' selected' : '') + '>' + status + '</option>'; });
+  if (!sourceReady) {
+    h += '<div class="source-lock-banner">Report access, SSN funding, BNPL, and review fields remain locked until the client source is validated.</div>';
+  }
+  h += '<div class="detail-row"><span class="detail-label">Membership Balance Due</span><span class="detail-val' + (sourceReady ? ' editable' : '') + '"' + (sourceReady ? ' onclick="startInlineEdit(\'' + cid + '\',\'membership_balance_due\',this)"' : '') + '>' + escapeHtml(sourceReady ? (c.membership_balance_due || '0') : 'Pending validation') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Engagement Fee Due</span><span class="detail-val' + (sourceReady ? ' editable' : '') + '"' + (sourceReady ? ' onclick="startInlineEdit(\'' + cid + '\',\'engagement_fee_balance_due\',this)"' : '') + '>' + escapeHtml(sourceReady ? (c.engagement_fee_balance_due || '0') : 'Pending validation') + '</span></div>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">Client Report Access<select class="form-select"' + inputLock + ' onchange="updateClientField(\'' + cid + '\',\'report_access_status\',this.value)" style="margin-top:6px;">';
+  ['Pending','Requested','Received','Reviewed','Blocked'].forEach(function(status) { h += '<option value="' + status + '"' + (reportAccessStatus === status ? ' selected' : '') + '>' + status + '</option>'; });
   h += '</select></label>';
-  h += '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">SSN Funding<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'ssn_funding_status\',this.value)" style="margin-top:6px;">';
-  ['Pending','Needed','Verified','Not Required'].forEach(function(status) { h += '<option value="' + status + '"' + ((c.ssn_funding_status || 'Pending') === status ? ' selected' : '') + '>' + status + '</option>'; });
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">SSN Funding<select class="form-select"' + inputLock + ' onchange="updateClientField(\'' + cid + '\',\'ssn_funding_status\',this.value)" style="margin-top:6px;">';
+  ['Pending','Needed','Verified','Not Required'].forEach(function(status) { h += '<option value="' + status + '"' + (ssnFundingStatus === status ? ' selected' : '') + '>' + status + '</option>'; });
   h += '</select></label>';
-  h += '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">BNPL Decision<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'bnpl_status\',this.value)" style="margin-top:6px;">';
-  ['Pending','Approved','Denied','Not Reviewed'].forEach(function(status) { h += '<option value="' + status + '"' + ((c.bnpl_status || 'Pending') === status ? ' selected' : '') + '>' + status + '</option>'; });
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">BNPL Decision<select class="form-select"' + inputLock + ' onchange="updateClientField(\'' + cid + '\',\'bnpl_status\',this.value)" style="margin-top:6px;">';
+  ['Pending','Approved','Denied','Not Reviewed'].forEach(function(status) { h += '<option value="' + status + '"' + (bnplStatus === status ? ' selected' : '') + '>' + status + '</option>'; });
   h += '</select></label>';
-  h += '<div class="detail-row"><span class="detail-label">BNPL Approved Amount</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'bnpl_approved_amount\',this)">' + escapeHtml(c.bnpl_approved_amount || '0') + '</span></div>';
-  h += '<label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">Client Review / Approval<select class="form-select" onchange="updateClientField(\'' + cid + '\',\'client_review_status\',this.value)" style="margin-top:6px;">';
-  ['Pending Client Review','Accepted','Approved','Denied','Changes Requested'].forEach(function(status) { h += '<option value="' + status + '"' + ((c.client_review_status || 'Pending Client Review') === status ? ' selected' : '') + '>' + status + '</option>'; });
+  h += '<div class="detail-row"><span class="detail-label">BNPL Approved Amount</span><span class="detail-val' + (sourceReady ? ' editable' : '') + '"' + (sourceReady ? ' onclick="startInlineEdit(\'' + cid + '\',\'bnpl_approved_amount\',this)"' : '') + '>' + escapeHtml(sourceReady ? (c.bnpl_approved_amount || '0') : 'Pending validation') + '</span></div>';
+  h += '<label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:8px;">Client Review / Approval<select class="form-select"' + inputLock + ' onchange="updateClientField(\'' + cid + '\',\'client_review_status\',this.value)" style="margin-top:6px;">';
+  ['Pending Client Review','Accepted','Approved','Denied','Changes Requested'].forEach(function(status) { h += '<option value="' + status + '"' + (clientReviewStatus === status ? ' selected' : '') + '>' + status + '</option>'; });
   h += '</select></label>';
-  h += '<div class="detail-row"><span class="detail-label">Report / Access Details</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'report_access_details\',this)" style="white-space:pre-wrap;">' + escapeHtml(c.report_access_details || '---') + '</span></div>';
-  h += '<div style="margin-top:10px;"><button class="btn btn-sm btn-success" onclick="openFundingFromClient(\'' + cid + '\')">Add Funding Request</button></div>';
+  h += '<div class="detail-row"><span class="detail-label">Report / Access Details</span><span class="detail-val' + (sourceReady ? ' editable' : '') + '" style="white-space:pre-wrap;"' + (sourceReady ? ' onclick="startInlineEdit(\'' + cid + '\',\'report_access_details\',this)"' : '') + '>' + escapeHtml(sourceReady ? (c.report_access_details || '---') : 'Pending validation') + '</span></div>';
+  h += '<div style="margin-top:10px;"><button class="btn btn-sm btn-success"' + buttonLock + ' onclick="openFundingFromClient(\'' + cid + '\')">Add Funding Request</button></div>';
   h += '</div>';
 
   /* ---- Vehicle Info (editable) ---- */
@@ -4220,7 +6206,7 @@ function buildClientDetailHtml(c) {
   h += '<div class="detail-section">';
   h += '<h4>Emergency Contact</h4>';
   h += '<div class="detail-row"><span class="detail-label">Name</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'emergency_name\',this)">' + escapeHtml(c.emergency_name || '---') + '</span></div>';
-  h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'emergency_phone\',this)">' + escapeHtml(c.emergency_phone || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'emergency_phone\',this)">' + escapeHtml(formatPhoneNumber(c.emergency_phone)) + '</span></div>';
   h += '<div class="detail-row"><span class="detail-label">Relationship</span><span class="detail-val editable" onclick="startInlineEdit(\'' + cid + '\',\'emergency_relationship\',this)">' + escapeHtml(c.emergency_relationship || '---') + '</span></div>';
   h += '</div>';
 
@@ -4343,6 +6329,7 @@ function buildClientDetailHtml(c) {
 
   h += '<div class="billing-quick-actions">';
   h += '<button class="btn btn-sm btn-primary" onclick="openCreateQuoteForClient(\'' + cid + '\')">Create Quote</button>';
+  h += '<button class="btn btn-sm btn-success" onclick="openCreatePaypalQuoteForClient(\'' + cid + '\')">Generate PayPal Quote</button>';
   h += '<button class="btn btn-sm btn-ghost" onclick="openCreateInvoiceForClient(\'' + cid + '\')">Create Invoice</button>';
   h += '<button class="btn btn-sm btn-ghost" onclick="openAddBillingForClient(\'' + cid + '\')">Add Payment</button>';
   h += '</div>';
@@ -4477,6 +6464,273 @@ function addNewClient() {
   renderDashboard();
 }
 
+/* ========== ENTERPRISE CRM ========== */
+function updateEnterpriseBadge() {
+  var badge = document.getElementById('badge-enterprise');
+  if (!badge) return;
+  badge.textContent = loadEnterpriseAccounts().length;
+}
+
+function refreshEnterpriseManagementList() {
+  renderEnterpriseAccounts();
+  showToast('Enterprise list refreshed', 'info');
+}
+
+function renderEnterpriseAccounts() {
+  var accounts = loadEnterpriseAccounts();
+  var search = (document.getElementById('enterprise-search') && document.getElementById('enterprise-search').value || '').toLowerCase();
+  var filterType = document.getElementById('enterprise-filter-type') ? document.getElementById('enterprise-filter-type').value : '';
+  var filterStatus = document.getElementById('enterprise-filter-status') ? document.getElementById('enterprise-filter-status').value : '';
+  var filterStage = document.getElementById('enterprise-filter-stage') ? document.getElementById('enterprise-filter-stage').value : '';
+  var detailContainer = document.getElementById('enterprise-detail-container');
+  var tbody = document.getElementById('enterprise-tbody');
+
+  var filtered = accounts.filter(function(a) {
+    var haystack = [a.company, a.primaryContact, a.email, a.phone, a.territory, a.owner, a.notes].join(' ').toLowerCase();
+    if (search && haystack.indexOf(search) === -1) return false;
+    if (filterType && a.type !== filterType) return false;
+    if (filterStatus && a.status !== filterStatus) return false;
+    if (filterStage && a.stage !== filterStage) return false;
+    return true;
+  }).sort(function(a, b) {
+    return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+  });
+
+  var activeCount = accounts.filter(function(a) { return a.status === 'Active'; }).length;
+  var riskCount = accounts.filter(function(a) { return a.riskLevel === 'High' || a.status === 'On Hold'; }).length;
+  var totalVolume = accounts.reduce(function(sum, a) { return sum + Number(a.monthlyVolume || 0); }, 0);
+  if (document.getElementById('enterprise-stat-total')) document.getElementById('enterprise-stat-total').textContent = accounts.length;
+  if (document.getElementById('enterprise-stat-active')) document.getElementById('enterprise-stat-active').textContent = activeCount;
+  if (document.getElementById('enterprise-stat-volume')) document.getElementById('enterprise-stat-volume').textContent = totalVolume ? formatCurrency(totalVolume) : '$0';
+  if (document.getElementById('enterprise-stat-risk')) document.getElementById('enterprise-stat-risk').textContent = riskCount;
+  updateEnterpriseBadge();
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:32px;">No enterprise accounts found. Click "Add Enterprise Account" to start building the CRM.</td></tr>';
+    if (detailContainer) detailContainer.innerHTML = '';
+    return;
+  }
+
+  var html = '';
+  filtered.forEach(function(a) {
+    var isExpanded = expandedEnterpriseId === a.id;
+    html += '<tr class="' + (isExpanded ? 'expanded' : '') + '" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">';
+    html += '<td><strong>' + escapeHtml(a.company) + '</strong><div style="font-size:11px;color:var(--muted);margin-top:2px;">Owner: ' + escapeHtml(a.owner || '—') + '</div></td>';
+    html += '<td><span class="badge ' + enterpriseTypeBadgeClass(a.type) + '">' + escapeHtml(a.type) + '</span></td>';
+    html += '<td>' + escapeHtml(a.primaryContact || '—') + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + escapeHtml(a.email || '—') + '</div></td>';
+    html += '<td style="font-size:12px;color:var(--muted);">' + escapeHtml(a.territory || '—') + '</td>';
+    html += '<td><span class="stage-badge ' + enterpriseStageBadgeClass(a.stage) + '">' + escapeHtml(a.stage) + '</span></td>';
+    html += '<td><span class="badge ' + statusBadgeClass(a.status) + '">' + escapeHtml(a.status) + '</span></td>';
+    html += '<td style="font-size:12px;">' + escapeHtml(a.paymentTerms || '—') + '</td>';
+    html += '<td style="font-weight:600;color:var(--amber);">' + (a.monthlyVolume ? formatCurrency(a.monthlyVolume) : '---') + '</td>';
+    html += '<td style="font-size:12px;color:var(--muted);">' + (a.lastContactAt ? timeAgo(a.lastContactAt) : '—') + '</td>';
+    html += '<td onclick="event.stopPropagation();">';
+    html += '<button class="btn btn-sm btn-primary" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">Open</button>';
+    if (currentAdmin && currentAdmin.access === 'full') html += ' <button class="btn btn-sm btn-danger" onclick="deleteEnterpriseAccount(\'' + a.id + '\')">Del</button>';
+    html += '</td></tr>';
+  });
+  tbody.innerHTML = html;
+
+  if (detailContainer) {
+    if (expandedEnterpriseId) {
+      var expanded = filtered.find(function(a) { return a.id === expandedEnterpriseId; });
+      detailContainer.innerHTML = expanded ? buildEnterpriseDetailHtml(expanded) : '';
+    } else {
+      detailContainer.innerHTML = '';
+    }
+  }
+}
+
+function filterEnterpriseAccounts() { renderEnterpriseAccounts(); }
+
+function toggleEnterpriseDetail(accountId) {
+  expandedEnterpriseId = expandedEnterpriseId === accountId ? null : accountId;
+  renderEnterpriseAccounts();
+  if (expandedEnterpriseId) {
+    setTimeout(function() {
+      var detailEl = document.getElementById('enterprise-detail-container');
+      if (detailEl) detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+}
+
+function buildEnterpriseDetailHtml(a) {
+  var h = '<div class="client-detail-panel visible">';
+  h += '<div class="detail-grid">';
+  h += '<div class="detail-section detail-section--wide">';
+  h += '<h4>Account Profile</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Company</span><span class="detail-val">' + escapeHtml(a.company || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Primary Contact</span><span class="detail-val">' + escapeHtml(a.primaryContact || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val">' + escapeHtml(a.email || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val">' + escapeHtml(formatPhoneNumber(a.phone)) + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Territory</span><span class="detail-val">' + escapeHtml(a.territory || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Owner</span><span class="detail-val">' + escapeHtml(a.owner || '---') + '</span></div>';
+  h += '</div>';
+  h += '<div class="detail-section">';
+  h += '<h4>Relationship</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Type</span><span class="detail-val"><span class="badge ' + enterpriseTypeBadgeClass(a.type) + '">' + escapeHtml(a.type) + '</span></span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Stage</span><span class="detail-val"><span class="stage-badge ' + enterpriseStageBadgeClass(a.stage) + '">' + escapeHtml(a.stage) + '</span></span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-val"><span class="badge ' + statusBadgeClass(a.status) + '">' + escapeHtml(a.status) + '</span></span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Last Contact</span><span class="detail-val">' + (a.lastContactAt ? formatDate(a.lastContactAt) : '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Next Review</span><span class="detail-val">' + (a.nextReviewAt ? formatDate(a.nextReviewAt) : '---') + '</span></div>';
+  h += '</div>';
+  h += '</div>';
+
+  h += '<div class="detail-grid" style="margin-top:12px;">';
+  h += '<div class="detail-section">';
+  h += '<h4>Commercial Terms</h4>';
+  h += '<div class="detail-row"><span class="detail-label">Payment Terms</span><span class="detail-val">' + escapeHtml(a.paymentTerms || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Monthly Volume</span><span class="detail-val">' + (a.monthlyVolume ? formatCurrency(a.monthlyVolume) : '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Commission Rate</span><span class="detail-val">' + escapeHtml(a.commissionRate || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Relationship Strength</span><span class="detail-val">' + escapeHtml(a.relationshipStrength || '---') + '</span></div>';
+  h += '</div>';
+  h += '<div class="detail-section">';
+  h += '<h4>Compliance</h4>';
+  h += '<div class="detail-row"><span class="detail-label">KYC</span><span class="detail-val">' + escapeHtml(a.kycStatus || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Agreement</span><span class="detail-val">' + escapeHtml(a.agreementStatus || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Insurance</span><span class="detail-val">' + escapeHtml(a.insuranceStatus || '---') + '</span></div>';
+  h += '<div class="detail-row"><span class="detail-label">Risk Level</span><span class="detail-val">' + escapeHtml(a.riskLevel || '---') + '</span></div>';
+  h += '</div>';
+  h += '</div>';
+
+  h += '<div class="detail-section" style="margin-top:12px;">';
+  h += '<h4>Update Enterprise Account</h4>';
+  h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">';
+  h += '<div class="form-group"><label>Company</label><input class="form-input" id="enterprise-company-' + a.id + '" value="' + escapeHtml(a.company || '') + '"></div>';
+  h += '<div class="form-group"><label>Primary Contact</label><input class="form-input" id="enterprise-contact-' + a.id + '" value="' + escapeHtml(a.primaryContact || '') + '"></div>';
+  h += '<div class="form-group"><label>Email</label><input class="form-input" id="enterprise-email-' + a.id + '" value="' + escapeHtml(a.email || '') + '"></div>';
+  h += '</div>';
+  h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
+  h += '<div class="form-group"><label>Phone</label><input class="form-input" id="enterprise-phone-' + a.id + '" value="' + escapeHtml(a.phone || '') + '"></div>';
+  h += '<div class="form-group"><label>Territory</label><input class="form-input" id="enterprise-territory-' + a.id + '" value="' + escapeHtml(a.territory || '') + '"></div>';
+  h += '<div class="form-group"><label>Owner</label><input class="form-input" id="enterprise-owner-' + a.id + '" value="' + escapeHtml(a.owner || '') + '"></div>';
+  h += '<div class="form-group"><label>Payment Terms</label><input class="form-input" id="enterprise-terms-' + a.id + '" value="' + escapeHtml(a.paymentTerms || '') + '"></div>';
+  h += '</div>';
+  h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
+  h += '<div class="form-group"><label>Type</label><select class="form-select" id="enterprise-type-' + a.id + '"><option value="Supplier"' + (a.type === 'Supplier' ? ' selected' : '') + '>Supplier</option><option value="Broker"' + (a.type === 'Broker' ? ' selected' : '') + '>Broker</option><option value="Partner"' + (a.type === 'Partner' ? ' selected' : '') + '>Partner</option></select></div>';
+  h += '<div class="form-group"><label>Stage</label><select class="form-select" id="enterprise-stage-' + a.id + '"><option value="Sourcing"' + (a.stage === 'Sourcing' ? ' selected' : '') + '>Sourcing</option><option value="Onboarding"' + (a.stage === 'Onboarding' ? ' selected' : '') + '>Onboarding</option><option value="Contracted"' + (a.stage === 'Contracted' ? ' selected' : '') + '>Contracted</option><option value="Scaling"' + (a.stage === 'Scaling' ? ' selected' : '') + '>Scaling</option><option value="Review"' + (a.stage === 'Review' ? ' selected' : '') + '>Review</option></select></div>';
+  h += '<div class="form-group"><label>Status</label><select class="form-select" id="enterprise-status-' + a.id + '"><option value="Prospect"' + (a.status === 'Prospect' ? ' selected' : '') + '>Prospect</option><option value="Active"' + (a.status === 'Active' ? ' selected' : '') + '>Active</option><option value="Dormant"' + (a.status === 'Dormant' ? ' selected' : '') + '>Dormant</option><option value="On Hold"' + (a.status === 'On Hold' ? ' selected' : '') + '>On Hold</option><option value="Terminated"' + (a.status === 'Terminated' ? ' selected' : '') + '>Terminated</option></select></div>';
+  h += '<div class="form-group"><label>Monthly Volume</label><input class="form-input" type="number" min="0" id="enterprise-volume-' + a.id + '" value="' + escapeHtml(String(a.monthlyVolume || 0)) + '"></div>';
+  h += '</div>';
+  h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
+  h += '<div class="form-group"><label>KYC</label><input class="form-input" id="enterprise-kyc-' + a.id + '" value="' + escapeHtml(a.kycStatus || '') + '"></div>';
+  h += '<div class="form-group"><label>Agreement</label><input class="form-input" id="enterprise-agreement-' + a.id + '" value="' + escapeHtml(a.agreementStatus || '') + '"></div>';
+  h += '<div class="form-group"><label>Insurance</label><input class="form-input" id="enterprise-insurance-' + a.id + '" value="' + escapeHtml(a.insuranceStatus || '') + '"></div>';
+  h += '<div class="form-group"><label>Risk Level</label><input class="form-input" id="enterprise-risk-' + a.id + '" value="' + escapeHtml(a.riskLevel || '') + '"></div>';
+  h += '</div>';
+  h += '<div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">';
+  h += '<div class="form-group"><label>Commission Rate</label><input class="form-input" id="enterprise-commission-' + a.id + '" value="' + escapeHtml(a.commissionRate || '') + '"></div>';
+  h += '<div class="form-group"><label>Relationship Strength</label><input class="form-input" id="enterprise-strength-' + a.id + '" value="' + escapeHtml(a.relationshipStrength || '') + '"></div>';
+  h += '<div class="form-group"><label>Next Review</label><input class="form-input" type="date" id="enterprise-review-' + a.id + '" value="' + escapeHtml(a.nextReviewAt ? String(a.nextReviewAt).slice(0, 10) : '') + '"></div>';
+  h += '</div>';
+  h += '<div class="form-group"><label>Notes</label><textarea class="form-textarea" id="enterprise-notes-' + a.id + '" rows="4">' + escapeHtml(a.notes || '') + '</textarea></div>';
+  h += '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">';
+  h += '<button class="btn btn-ghost" onclick="toggleEnterpriseDetail(\'' + a.id + '\')">Close</button>';
+  h += '<button class="btn btn-primary" onclick="saveEnterpriseAccountDetail(\'' + a.id + '\')">Save Enterprise Account</button>';
+  h += '</div>';
+  h += '</div>';
+  h += '</div>';
+  return h;
+}
+
+function saveEnterpriseAccountDetail(accountId) {
+  var accounts = loadEnterpriseAccounts();
+  var account = accounts.find(function(x) { return x.id === accountId; });
+  if (!account) return;
+  account.company = document.getElementById('enterprise-company-' + accountId).value.trim();
+  account.primaryContact = document.getElementById('enterprise-contact-' + accountId).value.trim();
+  account.email = document.getElementById('enterprise-email-' + accountId).value.trim();
+  account.phone = document.getElementById('enterprise-phone-' + accountId).value.trim();
+  account.territory = document.getElementById('enterprise-territory-' + accountId).value.trim();
+  account.owner = document.getElementById('enterprise-owner-' + accountId).value.trim();
+  account.paymentTerms = document.getElementById('enterprise-terms-' + accountId).value.trim();
+  account.type = document.getElementById('enterprise-type-' + accountId).value;
+  account.stage = document.getElementById('enterprise-stage-' + accountId).value;
+  account.status = document.getElementById('enterprise-status-' + accountId).value;
+  account.monthlyVolume = Number(document.getElementById('enterprise-volume-' + accountId).value || 0);
+  account.kycStatus = document.getElementById('enterprise-kyc-' + accountId).value.trim();
+  account.agreementStatus = document.getElementById('enterprise-agreement-' + accountId).value.trim();
+  account.insuranceStatus = document.getElementById('enterprise-insurance-' + accountId).value.trim();
+  account.riskLevel = document.getElementById('enterprise-risk-' + accountId).value.trim();
+  account.commissionRate = document.getElementById('enterprise-commission-' + accountId).value.trim();
+  account.relationshipStrength = document.getElementById('enterprise-strength-' + accountId).value.trim();
+  account.nextReviewAt = document.getElementById('enterprise-review-' + accountId).value;
+  account.notes = document.getElementById('enterprise-notes-' + accountId).value.trim();
+  account.lastContactAt = new Date().toISOString();
+  account.updatedAt = account.lastContactAt;
+  saveEnterpriseAccounts(accounts);
+  addActivity('Enterprise account updated: ' + account.company, 'blue');
+  showToast('Enterprise account saved', 'success');
+  renderEnterpriseAccounts();
+}
+
+function deleteEnterpriseAccount(accountId) {
+  if (!currentAdmin || currentAdmin.access !== 'full') {
+    showToast('Only owners can delete enterprise accounts', 'error');
+    return;
+  }
+  if (!confirm('Delete this enterprise account? This cannot be undone.')) return;
+  var accounts = loadEnterpriseAccounts();
+  var account = accounts.find(function(x) { return x.id === accountId; });
+  saveEnterpriseAccounts(accounts.filter(function(x) { return x.id !== accountId; }));
+  expandedEnterpriseId = null;
+  addActivity('Enterprise account deleted: ' + (account ? account.company : 'Unknown'), 'red');
+  showToast('Enterprise account deleted', 'info');
+  renderEnterpriseAccounts();
+}
+
+function openAddEnterpriseModal() {
+  document.getElementById('new-enterprise-company').value = '';
+  document.getElementById('new-enterprise-type').value = 'Supplier';
+  document.getElementById('new-enterprise-contact').value = '';
+  document.getElementById('new-enterprise-email').value = '';
+  document.getElementById('new-enterprise-phone').value = '';
+  document.getElementById('new-enterprise-territory').value = '';
+  document.getElementById('new-enterprise-owner').value = 'Ken';
+  document.getElementById('new-enterprise-stage').value = 'Sourcing';
+  document.getElementById('new-enterprise-status').value = 'Prospect';
+  document.getElementById('new-enterprise-notes').value = '';
+  openModal('modal-add-enterprise');
+}
+
+function addEnterpriseAccount() {
+  var company = document.getElementById('new-enterprise-company').value.trim();
+  var email = document.getElementById('new-enterprise-email').value.trim().toLowerCase();
+  if (!company) {
+    showToast('Company name is required', 'error');
+    return;
+  }
+  var accounts = loadEnterpriseAccounts();
+  var duplicate = accounts.find(function(a) {
+    return a.company.toLowerCase() === company.toLowerCase() || (email && a.email.toLowerCase() === email);
+  });
+  if (duplicate) {
+    showToast('An enterprise account with this company or email already exists', 'error');
+    return;
+  }
+  accounts.push(normalizeEnterpriseAccount({
+    id: generateId(),
+    company: company,
+    type: document.getElementById('new-enterprise-type').value,
+    primaryContact: document.getElementById('new-enterprise-contact').value.trim(),
+    email: email,
+    phone: document.getElementById('new-enterprise-phone').value.trim(),
+    territory: document.getElementById('new-enterprise-territory').value.trim(),
+    owner: document.getElementById('new-enterprise-owner').value,
+    stage: document.getElementById('new-enterprise-stage').value,
+    status: document.getElementById('new-enterprise-status').value,
+    notes: document.getElementById('new-enterprise-notes').value.trim(),
+    lastContactAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }));
+  saveEnterpriseAccounts(accounts);
+  closeModal('modal-add-enterprise');
+  addActivity('Enterprise account created: ' + company, 'green');
+  showToast('Enterprise account created', 'success');
+  renderEnterpriseAccounts();
+}
+
 function importSeedXchangeCsv(evt) {
   var file = evt && evt.target && evt.target.files ? evt.target.files[0] : null;
   if (!file) return;
@@ -4557,6 +6811,10 @@ function openScoreModal(clientId) {
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return;
+  if (!ensureClientSourceReady(c, 'Opening the score editor')) {
+    scoreModalClientId = null;
+    return;
+  }
   document.getElementById('score-modal-client-name').textContent = c.name;
   document.getElementById('modal-score-eq').value = c.scores.eq || '';
   document.getElementById('modal-score-ex').value = c.scores.ex || '';
@@ -4586,10 +6844,69 @@ function normalizeScoreNumber(value, max) {
   return n;
 }
 
+function extractScoreFieldsFromParsedReport(parsed) {
+  parsed = parsed || {};
+  var eq = parseInt(parsed.eq, 10) || 0;
+  var ex = parseInt(parsed.ex, 10) || 0;
+  var tu = parseInt(parsed.tu, 10) || 0;
+  if (!eq || !ex || !tu) return null;
+  return {
+    eq: eq,
+    ex: ex,
+    tu: tu,
+    score_model: parsed.score_model || '',
+    report_last_updated: parsed.report_last_updated || '',
+    fico_scores: parsed.fico_scores || '',
+    fico_auto_score_average: parsed.fico_auto_score_average || '',
+    fico_score_8: parsed.fico_score_8 || '',
+    fico_real_estate_rental_score: parsed.fico_real_estate_rental_score || ''
+  };
+}
+
+function buildSmartCreditParsedScores(data, client) {
+  var fields = {
+    eq: parseInt(data && (data.equifax || data.eq), 10) || 0,
+    ex: parseInt(data && (data.experian || data.ex), 10) || 0,
+    tu: parseInt(data && (data.transunion || data.tu), 10) || 0,
+    score_model: data && (data.scoreModel || data.score_model) || client.score_model || 'VantageScore 3.0',
+    report_last_updated: normalizeReportDate(data && (data.reportLastUpdated || data.report_last_updated || data.lastUpdated || '')),
+    fico_scores: data && (data.ficoScores || data.fico_scores) || client.fico_scores || '',
+    fico_auto_score_average: data && (data.ficoAutoScoreAverage || data.fico_auto_score_average) || client.fico_auto_score_average || '',
+    fico_score_8: data && (data.ficoScore8 || data.fico_score_8) || client.fico_score_8 || '',
+    fico_real_estate_rental_score: data && (data.ficoRealEstateRentalScore || data.fico_real_estate_rental_score) || client.fico_real_estate_rental_score || ''
+  };
+  return extractScoreFieldsFromParsedReport(fields);
+}
+
+function upsertSmartCreditReport(client, parsedScores) {
+  if (!client || !parsedScores) return null;
+  client.creditReports = Array.isArray(client.creditReports) ? client.creditReports : [];
+  var existing = client.creditReports.find(function(r) {
+    return r && (r.source === 'SmartCredit API' || (r.parsedScores && r.parsedScores.source_provider === 'SmartCredit'));
+  });
+  var now = new Date().toISOString();
+  var report = existing || { id: generateId(), type: 'Credit Report' };
+  report.name = 'SmartCredit Pull';
+  report.status = 'Parsed';
+  report.uploadedAt = existing && existing.uploadedAt ? existing.uploadedAt : now;
+  report.source = 'SmartCredit API';
+  report.selectedForSimulation = true;
+  report.parsedScores = Object.assign({}, parsedScores, { source_provider: 'SmartCredit', report_type: 'smartcredit_vantage_3b' });
+  report.parsedSummary = report.parsedSummary || null;
+  report.syncedAt = now;
+  if (!existing) client.creditReports.unshift(report);
+  client.creditReports.forEach(function(r) {
+    r.selectedForSimulation = String(r.id || '') === String(report.id || '');
+  });
+  client.selectedCreditReportId = report.id;
+  return report;
+}
+
 function persistClientScores(clientId, fields, sourceLabel) {
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === clientId; });
   if (!c) return null;
+  if (!ensureClientSourceReady(c, 'Saving client scores')) return null;
   c.scores = {
     eq: fields.eq || 0,
     ex: fields.ex || 0,
@@ -4679,8 +6996,42 @@ function firstScoreMatch(text, patterns) {
   return '';
 }
 
+function parseSmartCreditTriplet(text) {
+  var clean = String(text || '').replace(/\s+/g, ' ').trim();
+  var match = clean.match(/Transunion(?:®)?\s*Experian(?:®)?\s*Equifax(?:®)?\s*([3-8]\d{2})\s+([3-8]\d{2})\s+([3-8]\d{2})/i);
+  if (!match) {
+    match = clean.match(/Transunion(?:®)?[^\d]{0,80}([3-8]\d{2})[^\d]{0,80}Experian(?:®)?[^\d]{0,80}([3-8]\d{2})[^\d]{0,80}Equifax(?:®)?[^\d]{0,80}([3-8]\d{2})/i);
+  }
+  if (!match) return null;
+  return { tu: match[1], ex: match[2], eq: match[3] };
+}
+
+function parseSmartCreditSummary(text) {
+  var clean = String(text || '').replace(/\s+/g, ' ').trim();
+  function triplet(label) {
+    var m = clean.match(new RegExp(label + ':\\s*([0-9$,.]+)\\s+([0-9$,.]+)\\s+([0-9$,.]+)', 'i'));
+    return m ? { tu: m[1], ex: m[2], eq: m[3] } : null;
+  }
+  function counts(label) {
+    var m = clean.match(new RegExp(label + ':\\s*(\\d+)\\s+(\\d+)\\s+(\\d+)', 'i'));
+    return m ? { tu: m[1], ex: m[2], eq: m[3] } : null;
+  }
+  return {
+    total_accounts: counts('Total Accounts'),
+    open_accounts: counts('Open Accounts'),
+    closed_accounts: counts('Closed Accounts'),
+    delinquent: counts('Delinquent'),
+    derogatory: counts('Derogatory'),
+    balances: triplet('Balances'),
+    payments: triplet('Payments'),
+    public_records: counts('Public Records'),
+    inquiries: counts('Inquiries \\(2 years\\)')
+  };
+}
+
 function parseScoreReportText(text) {
-  var clean = String(text || '').replace(/\s+/g, ' ');
+  var raw = String(text || '');
+  var clean = raw.replace(/\s+/g, ' ');
   var dateMatch = clean.match(/(?:date report last updated|report last updated|last updated|report date|as of|updated)[:\s-]{0,20}([A-Z][a-z]{2,8}\s+\d{1,2},?\s+\d{4}|\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\d{4}-\d{2}-\d{2})/i);
   var vantage = clean.match(/Vantage\s*Score\s*(?:Score)?\s*(3\.0|4\.0|4plus|3|4)/i) || clean.match(/VantageScore\s*(3\.0|4\.0|4plus|3|4)/i);
   var ficoMatches = [];
@@ -4689,7 +7040,34 @@ function parseScoreReportText(text) {
   while ((fm = ficoRe.exec(clean)) !== null) {
     if (ficoMatches.indexOf(fm[1]) === -1) ficoMatches.push(fm[1]);
   }
+  var smartCreditTriplet = parseSmartCreditTriplet(raw);
+  var smartCreditSummary = parseSmartCreditSummary(raw);
+  var smartCreditName = '';
+  var nameMatch = raw.match(/Credit Report Date\s+[0-9/.-]+\s+Name\s+([A-Z][A-Z\s]+?)\s+Also Known As:/i);
+  if (nameMatch && nameMatch[1]) smartCreditName = nameMatch[1].trim().replace(/\s+/g, ' ');
+
+  if (smartCreditTriplet) {
+    return {
+      source_provider: 'SmartCredit',
+      report_type: 'smartcredit_vantage_3b',
+      report_holder_name: smartCreditName,
+      eq: smartCreditTriplet.eq,
+      ex: smartCreditTriplet.ex,
+      tu: smartCreditTriplet.tu,
+      score_model: vantage ? ('VantageScore ' + (vantage[1] === '3' ? '3.0' : vantage[1] === '4' ? '4.0' : vantage[1])) : 'VantageScore 3.0',
+      report_last_updated: dateMatch ? normalizeReportDate(dateMatch[1]) : '',
+      fico_scores: ficoMatches.slice(0, 6).join(' / '),
+      fico_auto_score_average: '',
+      fico_score_8: '',
+      fico_real_estate_rental_score: '',
+      summary: smartCreditSummary,
+    };
+  }
+
   return {
+    source_provider: '',
+    report_type: 'generic_credit_report',
+    report_holder_name: '',
     eq: firstScoreMatch(clean, [/(?:Equifax|EQX)[^\d]{0,60}([3-8]\d{2})/i, /([3-8]\d{2})[^\w]{0,30}(?:Equifax|EQX)/i]),
     ex: firstScoreMatch(clean, [/(?:Experian|EXP)[^\d]{0,60}([3-8]\d{2})/i, /([3-8]\d{2})[^\w]{0,30}(?:Experian|EXP)/i]),
     tu: firstScoreMatch(clean, [/(?:TransUnion|Trans Union|TU)[^\d]{0,60}([3-8]\d{2})/i, /([3-8]\d{2})[^\w]{0,30}(?:TransUnion|Trans Union|TU)/i]),
@@ -4698,7 +7076,8 @@ function parseScoreReportText(text) {
     fico_scores: ficoMatches.slice(0, 6).join(' / '),
     fico_auto_score_average: firstScoreMatch(clean, [/FICO\s*Auto(?:\s*Score)?(?:\s*Average)?[^\d]{0,60}([3-8]\d{2})/i, /Auto[^\d]{0,30}FICO[^\d]{0,40}([3-8]\d{2})/i]),
     fico_score_8: firstScoreMatch(clean, [/FICO\s*(?:Score)?\s*8[^\d]{0,60}([3-8]\d{2})/i]),
-    fico_real_estate_rental_score: firstScoreMatch(clean, [/(?:FICO[^\n]{0,40}(?:Real Estate|Rental|Mortgage)|(?:Real Estate|Rental|Mortgage)[^\n]{0,40}FICO)[^\d]{0,70}([3-8]\d{2})/i])
+    fico_real_estate_rental_score: firstScoreMatch(clean, [/(?:FICO[^\n]{0,40}(?:Real Estate|Rental|Mortgage)|(?:Real Estate|Rental|Mortgage)[^\n]{0,40}FICO)[^\d]{0,70}([3-8]\d{2})/i]),
+    summary: null,
   };
 }
 
@@ -4723,39 +7102,8 @@ function applyExtractedScoreFields(fields) {
 }
 
 function uploadScoreReport(input) {
-  var file = input && input.files && input.files[0];
-  if (!file || !scoreModalClientId) return;
-  var clients = loadClients();
-  var c = clients.find(function(x) { return x.id === scoreModalClientId; });
-  if (!c) return;
-  setScoreUploadStatus('Uploading and scanning ' + file.name + '...', 'info');
-
-  var fd = new FormData();
-  fd.append('file', file);
-  fd.append('memberId', c.caseNumber || c.id);
-  fd.append('docType', 'credit-report');
-  fd.append('metadata', JSON.stringify({ source: 'admin-score-modal', clientId: c.id, uploadedBy: currentAdmin ? currentAdmin.name : 'admin' }));
-
-  fetch('/api/upload', { method: 'POST', body: fd }).catch(function(err) {
-    console.warn('Credit report upload failed:', err);
-  });
-
-  extractTextFromScoreFile(file).then(function(text) {
-    var extracted = parseScoreReportText(text);
-    var count = applyExtractedScoreFields(extracted);
-    if (count) {
-      setScoreUploadStatus('Extracted ' + count + ' field' + (count === 1 ? '' : 's') + ' from ' + file.name + '. Review before saving.', 'success');
-      showToast('Scores extracted. Review and Save & Sync.', 'success');
-    } else {
-      setScoreUploadStatus('Report uploaded, but no scores were detected. Enter scores manually.', 'error');
-      showToast('No scores detected in report', 'error');
-    }
-  }).catch(function(err) {
-    setScoreUploadStatus('Report uploaded, but extraction failed: ' + err.message, 'error');
-    showToast('Extraction failed. Enter scores manually.', 'error');
-  }).finally(function() {
-    input.value = '';
-  });
+  if (!scoreModalClientId) return;
+  uploadScoreReportForClient(input, scoreModalClientId, true);
 }
 
 function saveModalScores() {
@@ -4802,6 +7150,11 @@ function saveClientProfileScores(clientId, sid) {
   var fico8 = normalizeScoreNumber((document.getElementById('client-fico-8-' + sid) || {}).value, 900);
   var ficoRental = normalizeScoreNumber((document.getElementById('client-fico-rental-' + sid) || {}).value, 900);
   var statusEl = document.getElementById('client-score-save-status-' + sid);
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (c && !ensureClientSourceReady(c, 'Saving client scores')) {
+    return;
+  }
   if (eq === null || ex === null || tu === null || ficoAuto === null || fico8 === null || ficoRental === null) {
     if (statusEl) { statusEl.textContent = 'Scores must be between 300 and 850. FICO specialty scores can be up to 900.'; statusEl.style.color = 'var(--error)'; }
     showToast('Check score ranges before saving', 'error');
@@ -4844,6 +7197,7 @@ function saveManualScores() {
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === sel; });
   if (!c) return;
+  if (!ensureClientSourceReady(c, 'Saving manual scores')) return;
 
   c.scores = { eq: eq, ex: ex, tu: tu };
   c.lastActive = new Date().toISOString();
@@ -5702,6 +8056,7 @@ function createFundingRequestFromImport() {
   var newFromPifr = selected.enrollment && !findClientForPifr(selected.enrollment);
   var client = selected.client || ensureFundingClientFromPifr(selected.enrollment);
   if (!client) { showToast('Unable to create funding client', 'error'); return; }
+  if (!ensureClientSourceReady(client, 'Creating a funding request')) return;
 
   var clients = loadClients();
   var c = clients.find(function(x) { return x.id === client.id; });
@@ -6023,6 +8378,10 @@ function updateFundingRequestField(clientId, fundingId, field, value) {
     ssnFundingStatus: 'ssn_funding_status',
     clientFundingEmail: 'funding_email_username'
   };
+  if (clientFieldMap[field] && isClientSourceLockedField(clientFieldMap[field]) && !clientSourceIsConnected(c)) {
+    showToast('Source validation is required before saving ' + (field || 'this field'), 'error');
+    return;
+  }
   if (clientFieldMap[field]) c[clientFieldMap[field]] = finalValue;
   recalcClientActiveApprovals(c);
   c.lastActive = new Date().toISOString();
@@ -6778,6 +9137,35 @@ function openCreateQuoteForClient(clientId) {
   document.getElementById('quote-client-select').value = clientId;
 }
 
+function paypalQuoteDefaultsForClient(client) {
+  var name = String(client && (client.name || client.preferredName || '') || '').trim().toLowerCase();
+  var defaults = {
+    service: 'PayPal Payment Quote',
+    description: 'PayPal quote for HIRECAR services. Final payment link and approval will be sent after review.',
+    notes: 'PayPal quote requested from Client Management.'
+  };
+  if (name.indexOf('darrin') > -1) {
+    defaults.description = 'PayPal quote for Darrin. Final payment link and approval will be sent after review.';
+    defaults.notes = 'PayPal quote prepared for Darrin from Client Management.';
+  } else if (name.indexOf('olivia') > -1) {
+    defaults.description = 'PayPal quote for Olivia. Final payment link and approval will be sent after review.';
+    defaults.notes = 'PayPal quote prepared for Olivia from Client Management.';
+  }
+  return defaults;
+}
+
+function openCreatePaypalQuoteForClient(clientId) {
+  var clients = loadClients();
+  var c = clients.find(function(x) { return x.id === clientId; });
+  if (!c) { showToast('Client not found', 'error'); return; }
+  var defaults = paypalQuoteDefaultsForClient(c);
+  openCreateQuoteModal();
+  document.getElementById('quote-client-select').value = clientId;
+  document.getElementById('quote-service').value = defaults.service;
+  document.getElementById('quote-description').value = defaults.description;
+  document.getElementById('quote-notes').value = defaults.notes;
+}
+
 function createQuote() {
   var clientId = document.getElementById('quote-client-select').value;
   var service = document.getElementById('quote-service').value.trim();
@@ -7192,6 +9580,13 @@ window.saveModalScores = saveModalScores;
 window.saveClientProfileScores = saveClientProfileScores;
 window.uploadClientDocument = uploadClientDocument;
 window.saveManualScores = saveManualScores;
+window.uploadScoreReportForClient = uploadScoreReportForClient;
+window.selectClientCreditReport = selectClientCreditReport;
+window.updateClientSimulatorMode = updateClientSimulatorMode;
+window.runClientSimulation = runClientSimulation;
+window.addClientSimulatorStep = addClientSimulatorStep;
+window.removeClientSimulatorStep = removeClientSimulatorStep;
+window.moveClientSimulatorStep = moveClientSimulatorStep;
 window.openMsgModal = openMsgModal;
 window.sendModalMessage = sendModalMessage;
 window.filterReports = filterReports;
@@ -7544,7 +9939,10 @@ function convertPifrEnrollmentToClient(mid) {
   if (!e) return;
   var clients = loadClients();
   var email = (e.email || '').toLowerCase();
-  var existing = clients.find(function(c){ return (c.email || '').toLowerCase() === email; });
+  var existing = findClientForPifr(e);
+  if (!existing && email) {
+    existing = clients.find(function(c){ return (c.email || '').toLowerCase() === email; });
+  }
   if (existing) {
     applyPifrFieldsToClient(existing, e);
     existing.stage = 'Onboarding';
