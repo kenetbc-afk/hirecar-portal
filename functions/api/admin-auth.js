@@ -1,14 +1,14 @@
 /**
  * Cloudflare Pages Function — Admin authentication endpoint
  * POST /api/admin-auth
- * Body: { username: "ken", pin: "8086" }
+ * Body: { username: "<admin>", pin: "<pin>" }
  *
  * Validates admin credentials against environment variables.
  * Returns a signed session token on success and sets an HttpOnly cookie.
  *
  * Environment variables required (set in Cloudflare Pages dashboard):
  *   ADMIN_CREDENTIALS = JSON string, e.g.:
- *   [{"username":"ken","pin":"8086","role":"Owner","name":"Ken","access":"full"},
+ *   [{"username":"admin1","pin":"1234","role":"Owner","name":"Admin 1","access":"full"},
  *    {"username":"admin2","pin":"1234","role":"Staff","name":"Admin 2","access":"limited"}]
  *
  *   ADMIN_EXTRA_CREDENTIALS = optional JSON array merged into ADMIN_CREDENTIALS
@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json();
-    const username = String(body.username || '').trim().toLowerCase();
+    const username = canonicalUsername(body.username);
     const pin = String(body.pin || '').trim();
 
     if (!username || !pin) {
@@ -45,24 +45,16 @@ export async function onRequestPost(context) {
     // Load admin credentials from environment variables. ADMIN_EXTRA_CREDENTIALS
     // is additive so one-off users can be added without replacing the primary
     // encrypted ADMIN_CREDENTIALS secret.
-    let admins = [];
-    try {
-      admins = JSON.parse(env.ADMIN_CREDENTIALS || '[]');
-      const extraAdmins = JSON.parse(env.ADMIN_EXTRA_CREDENTIALS || '[]');
-      const runtimeAdmins = JSON.parse(env.ADMIN_RUNTIME_CREDENTIALS || '[]');
-      admins = admins.concat(extraAdmins).concat(runtimeAdmins);
-    } catch (e) {
-      admins = [];
-    }
+    const admins = mergeAdminCredentials(env);
 
     if (!admins.length) {
-      admins = [
-        { username: 'ken', pin: '4456', role: 'Owner', name: 'Ken', access: 'full' },
-      ];
+      return new Response(JSON.stringify({ success: false, error: 'Invalid credentials' }), {
+        status: 401, headers: cors
+      });
     }
 
     // Find matching admin
-    const admin = admins.find(a => a.username.toLowerCase() === username);
+    const admin = admins.find(a => canonicalUsername(a.username) === username);
     if (!admin) {
       return new Response(JSON.stringify({ success: false, error: 'Invalid credentials' }), {
         status: 401, headers: cors
@@ -114,7 +106,7 @@ export async function onRequestPost(context) {
       status: 200,
       headers: {
         ...cors,
-        'Set-Cookie': `hc_admin_token=${token}; Path=/; Max-Age=28800; SameSite=Strict; Secure; HttpOnly`,
+        'Set-Cookie': `hc_admin_token=${token}; Path=/; Max-Age=28800; SameSite=Strict${new URL(request.url).protocol === 'https:' ? '; Secure' : ''}; HttpOnly`,
       },
     });
   } catch (err) {
@@ -153,4 +145,47 @@ function simpleHash(value) {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function canonicalUsername(value) {
+  const username = String(value || '').trim().toLowerCase();
+  if (username === 'kene') return 'ken';
+  if (username === 'mayra') return 'myra';
+  return username;
+}
+
+function mergeAdminCredentials(env) {
+  const sources = [
+    env.ADMIN_CREDENTIALS,
+    env.ADMIN_EXTRA_CREDENTIALS,
+    env.ADMIN_RUNTIME_CREDENTIALS,
+  ];
+  const merged = new Map();
+
+  for (const source of sources) {
+    const parsed = parseCredentialList(source);
+    for (const admin of parsed) {
+      const username = canonicalUsername(admin.username);
+      if (!username || !admin.pin) continue;
+      merged.set(username, {
+        username,
+        pin: String(admin.pin).trim(),
+        role: String(admin.role || '').trim(),
+        name: String(admin.name || username).trim(),
+        access: String(admin.access || 'limited').trim() || 'limited',
+      });
+    }
+  }
+
+  return Array.from(merged.values());
+}
+
+function parseCredentialList(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
 }
