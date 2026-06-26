@@ -1833,6 +1833,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
               <option value="">All Outreach Status</option>
               <option value="Not Contacted">Not Contacted</option>
               <option value="Contacted">Contacted</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Archived">Archived</option>
               <option value="Moved to Client Management">Moved to Client Management</option>
               <option value="Do Not Contact">Do Not Contact</option>
             </select>
@@ -4790,6 +4792,8 @@ function oldClientLeadFileCount(lead) {
 
 function oldClientLeadStatusClass(status) {
   return status === 'Moved to Client Management' ? 'badge-green' :
+    status === 'Archived' ? 'badge-muted' :
+    status === 'Blocked' ? 'badge-red' :
     status === 'Contacted' ? 'badge-blue' :
     status === 'Do Not Contact' ? 'badge-red' : 'badge-amber';
 }
@@ -4892,6 +4896,8 @@ function buildOldClientLeadAttachmentChips(lead) {
 }
 
 function buildOldClientLeadDetailHtml(lead) {
+  var isUnavailable = lead.outreachStatus === 'Blocked' || lead.outreachStatus === 'Archived' || lead.outreachStatus === 'Do Not Contact';
+  var canMove = lead.outreachStatus !== 'Moved to Client Management' && !isUnavailable;
   return ''
     + '<div class="a-card" style="padding:18px;">'
     + '<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;">'
@@ -4902,7 +4908,9 @@ function buildOldClientLeadDetailHtml(lead) {
     + '</div>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
     + (lead.email ? '<button class="btn btn-primary" onclick="emailOldClientLead(\'' + lead.id + '\')">Email Lead</button>' : '<button class="btn btn-ghost" disabled>No Email</button>')
-    + '<button class="btn btn-success" onclick="moveOldClientLeadToClientManagement(\'' + lead.id + '\')">' + (lead.outreachStatus === 'Moved to Client Management' ? 'Already Moved' : 'Move to Client Management') + '</button>'
+    + (canMove
+      ? '<button class="btn btn-success" onclick="moveOldClientLeadToClientManagement(\'' + lead.id + '\')">Move to Client Management</button>'
+      : '<button class="btn btn-ghost" disabled>' + (lead.outreachStatus === 'Moved to Client Management' ? 'Already Moved' : 'Unavailable to Move') + '</button>')
     + '</div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px;">'
@@ -4929,6 +4937,8 @@ function buildOldClientLeadDetailHtml(lead) {
     + '<select onchange="setOldClientLeadStatus(\'' + lead.id + '\', this.value)">'
     + '<option value="Not Contacted"' + (lead.outreachStatus === 'Not Contacted' ? ' selected' : '') + '>Not Contacted</option>'
     + '<option value="Contacted"' + (lead.outreachStatus === 'Contacted' ? ' selected' : '') + '>Contacted</option>'
+    + '<option value="Blocked"' + (lead.outreachStatus === 'Blocked' ? ' selected' : '') + '>Blocked</option>'
+    + '<option value="Archived"' + (lead.outreachStatus === 'Archived' ? ' selected' : '') + '>Archived</option>'
     + '<option value="Do Not Contact"' + (lead.outreachStatus === 'Do Not Contact' ? ' selected' : '') + '>Do Not Contact</option>'
     + '<option value="Moved to Client Management"' + (lead.outreachStatus === 'Moved to Client Management' ? ' selected' : '') + '>Moved to Client Management</option>'
     + '</select>'
@@ -4936,6 +4946,8 @@ function buildOldClientLeadDetailHtml(lead) {
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
     + '<button class="btn btn-ghost" onclick="saveOldClientLeadNotes(\'' + lead.id + '\')">Save Notes</button>'
     + '<button class="btn btn-ghost" onclick="markOldClientLeadContacted(\'' + lead.id + '\')">Mark Contacted</button>'
+    + '<button class="btn btn-danger" onclick="blockOldClientLead(\'' + lead.id + '\')">Block</button>'
+    + '<button class="btn btn-ghost" onclick="archiveOldClientLead(\'' + lead.id + '\')">Archive</button>'
     + '</div>'
     + '</div>'
     + '</div>'
@@ -4984,7 +4996,8 @@ function renderOldClientLeads() {
 
   tbody.innerHTML = filtered.map(function(lead) {
     var statusClass = oldClientLeadStatusClass(lead.outreachStatus);
-    var canPromote = lead.outreachStatus !== 'Moved to Client Management';
+    var isUnavailable = lead.outreachStatus === 'Blocked' || lead.outreachStatus === 'Archived' || lead.outreachStatus === 'Do Not Contact';
+    var canPromote = lead.outreachStatus !== 'Moved to Client Management' && !isUnavailable;
     var emailAction = lead.email
       ? '<button class="btn btn-sm btn-primary" onclick="emailOldClientLead(\'' + lead.id + '\')">Email</button>'
       : '<button class="btn btn-sm btn-ghost" disabled>No Email</button>';
@@ -5005,6 +5018,8 @@ function renderOldClientLeads() {
       emailAction +
       promoteAction +
       '<button class="btn btn-sm btn-ghost" onclick="markOldClientLeadContacted(\'' + lead.id + '\')">Mark Contacted</button>' +
+      '<button class="btn btn-sm btn-danger" onclick="blockOldClientLead(\'' + lead.id + '\')">Block</button>' +
+      '<button class="btn btn-sm btn-ghost" onclick="archiveOldClientLead(\'' + lead.id + '\')">Archive</button>' +
       '</td>' +
     '</tr>';
   }).join('');
@@ -5070,6 +5085,24 @@ function setOldClientLeadStatus(leadId, status) {
   if (!lead) return;
   addActivity('Updated legacy lead status for ' + lead.name + ': ' + lead.outreachStatus, 'blue');
   showToast('Legacy lead status updated', 'success');
+}
+
+function blockOldClientLead(leadId) {
+  var lead = updateOldClientLead(leadId, function(item) {
+    item.outreachStatus = 'Blocked';
+  });
+  if (!lead) return;
+  addActivity('Blocked legacy lead from outreach: ' + lead.name, 'red');
+  showToast(lead.name + ' blocked and marked unavailable', 'success');
+}
+
+function archiveOldClientLead(leadId) {
+  var lead = updateOldClientLead(leadId, function(item) {
+    item.outreachStatus = 'Archived';
+  });
+  if (!lead) return;
+  addActivity('Archived legacy lead: ' + lead.name, 'amber');
+  showToast(lead.name + ' archived and marked unavailable', 'success');
 }
 
 function saveOldClientLeadNotes(leadId) {
@@ -12529,6 +12562,8 @@ window.markOldClientLeadContacted = markOldClientLeadContacted;
 window.moveOldClientLeadToClientManagement = moveOldClientLeadToClientManagement;
 window.toggleOldClientLeadDetail = toggleOldClientLeadDetail;
 window.setOldClientLeadStatus = setOldClientLeadStatus;
+window.blockOldClientLead = blockOldClientLead;
+window.archiveOldClientLead = archiveOldClientLead;
 window.saveOldClientLeadNotes = saveOldClientLeadNotes;
 window.refreshOldClientLeadWorkspace = refreshOldClientLeadWorkspace;
 window.addPifrNote = addPifrNote;
