@@ -1824,8 +1824,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <div>
             <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;">Old Client Leads</div>
             <div style="font-size:13px;color:var(--muted);margin-top:4px;">Legacy client records stay here until you intentionally move them into active Client Management.</div>
+            <div id="old-client-leads-source-note" style="font-size:11px;color:var(--muted);margin-top:6px;">Legacy archive not loaded yet.</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-ghost" onclick="refreshOldClientLeadWorkspace()">Refresh Legacy Workspace</button>
             <input type="text" id="old-client-lead-search" placeholder="Search old leads by name, email, phone..." oninput="renderOldClientLeads()" style="min-width:240px;">
             <select id="old-client-lead-status-filter" onchange="renderOldClientLeads()">
               <option value="">All Outreach Status</option>
@@ -1852,6 +1854,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
                 <th>Location</th>
                 <th>DOB</th>
                 <th>Files</th>
+                <th>Last Contact</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -1859,6 +1862,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
             <tbody id="old-client-leads-tbody"></tbody>
           </table>
         </div>
+        <div id="old-client-lead-detail-container" style="margin-top:14px;"></div>
       </div>
     </div>
 
@@ -3170,6 +3174,7 @@ var HIRECAR_API = 'https://hirecar-api.hirecar.workers.dev';
 var SESSION_KEY = 'hc_admin_session';
 var CLIENTS_KEY = 'hc_admin_clients';
 var OLD_CLIENT_LEADS_KEY = 'hc_admin_old_client_leads';
+var OLD_CLIENT_LEADS_ARCHIVE_SEEDED_KEY = 'hc_admin_old_client_leads_archive_seeded_v1';
 var ENTERPRISE_KEY = 'hc_admin_enterprise_accounts';
 var ENTERPRISE_UPDATES_KEY = 'hc_admin_enterprise_lead_updates';
 var ENTERPRISE_SEED_URL = './data/enterprise_leads_deploy_ready.json';
@@ -4783,10 +4788,171 @@ function oldClientLeadFileCount(lead) {
   return Array.isArray(lead.attachments) ? lead.attachments.length : 0;
 }
 
+function oldClientLeadStatusClass(status) {
+  return status === 'Moved to Client Management' ? 'badge-green' :
+    status === 'Contacted' ? 'badge-blue' :
+    status === 'Do Not Contact' ? 'badge-red' : 'badge-amber';
+}
+
+function oldClientLeadLastContactText(lead) {
+  return lead && lead.lastContactAt ? timeAgo(lead.lastContactAt) : '—';
+}
+
+var expandedOldClientLeadId = null;
+
+function updateOldClientLeadSourceNote(leads) {
+  var note = document.getElementById('old-client-leads-source-note');
+  if (!note) return;
+  var fromArchive = localStorage.getItem(OLD_CLIENT_LEADS_ARCHIVE_SEEDED_KEY) === '1';
+  if (!Array.isArray(leads) || !leads.length) {
+    note.textContent = fromArchive
+      ? 'Bundled legacy archive is connected, but this browser has no loaded records.'
+      : 'Legacy archive not loaded yet.';
+    return;
+  }
+  var emailable = leads.filter(function(lead) { return !!lead.email; }).length;
+  var withFiles = leads.filter(function(lead) { return oldClientLeadFileCount(lead) > 0; }).length;
+  note.textContent = (fromArchive ? 'Bundled legacy archive loaded.' : 'Legacy archive loaded.') + ' ' + leads.length + ' records, ' + emailable + ' email-ready, ' + withFiles + ' with linked files.';
+}
+
+function mergeOldClientLeadRows(rows, sourceFile, defaultNote) {
+  var leads = loadOldClientLeads();
+  var seen = {};
+  leads.forEach(function(lead) {
+    var key = ((lead.email || '').toLowerCase()) + '|' + ((lead.name || '').toLowerCase());
+    seen[key] = true;
+  });
+  var added = 0;
+  var updated = 0;
+  rows.forEach(function(row) {
+    var name = String(row.name || row.full_name || '').trim();
+    var email = String(row.email || '').trim().toLowerCase();
+    var key = email + '|' + name.toLowerCase();
+    if (!name && !email) return;
+    var existing = leads.find(function(lead) {
+      return ((lead.email || '').toLowerCase() === email && !!email) ||
+        ((lead.name || '').toLowerCase() === name.toLowerCase() && !!name);
+    });
+    if (existing) {
+      existing.dob = row.dob || existing.dob;
+      existing.phone = row.phone || existing.phone;
+      existing.address = row.address || existing.address;
+      existing.city = row.city || existing.city;
+      existing.state = row.state || existing.state;
+      existing.zip = row.zip || existing.zip;
+      existing.country = row.country || existing.country;
+      existing.ssn = row.ssn || existing.ssn;
+      existing.hrWorkEmail = row.hr_work_email || existing.hrWorkEmail;
+      existing.userPass = row.user_pass || existing.userPass;
+      existing.sourceFile = sourceFile || existing.sourceFile;
+      existing.attachments = normalizeOldClientLeadRecord(row).attachments;
+      existing.notes = existing.notes || defaultNote || '';
+      existing.updatedAt = new Date().toISOString();
+      updated++;
+      return;
+    }
+    if (seen[key]) return;
+    leads.push(normalizeOldClientLeadRecord({
+      name: name,
+      email: email,
+      dob: row.dob,
+      ssn: row.ssn,
+      phone: row.phone,
+      address: row.address,
+      city: row.city,
+      state: row.state,
+      zip: row.zip,
+      country: row.country,
+      hr_work_email: row.hr_work_email,
+      user_pass: row.user_pass,
+      identity_proof_file: row.identity_proof_file,
+      ssn_proof_file: row.ssn_proof_file,
+      address_proof_file: row.address_proof_file,
+      other_file: row.other_file,
+      other_file2: row.other_file2,
+      other_file3: row.other_file3,
+      sourceFile: sourceFile || 'clients.csv',
+      outreachStatus: row.outreachStatus || 'Not Contacted',
+      notes: row.notes || defaultNote || 'Imported from old client leads archive.'
+    }));
+    seen[key] = true;
+    added++;
+  });
+  saveOldClientLeads(leads);
+  updateOldClientLeadSourceNote(leads);
+  return { leads: leads, added: added, updated: updated };
+}
+
+function buildOldClientLeadAttachmentChips(lead) {
+  var attachments = Array.isArray(lead.attachments) ? lead.attachments : [];
+  if (!attachments.length) return '<span style="color:var(--muted);">No files linked</span>';
+  return attachments.map(function(item) {
+    return '<span class="badge badge-blue" style="margin:0 6px 6px 0;">' + escapeHtml(item.label || item.path || 'File') + '</span>';
+  }).join('');
+}
+
+function buildOldClientLeadDetailHtml(lead) {
+  return ''
+    + '<div class="a-card" style="padding:18px;">'
+    + '<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;">'
+    + '<div>'
+    + '<div style="font-size:12px;color:var(--cyan);text-transform:uppercase;letter-spacing:2px;">Legacy Client Workspace</div>'
+    + '<div style="font-size:24px;font-weight:700;margin-top:6px;">' + escapeHtml(lead.name || 'Unknown') + '</div>'
+    + '<div style="font-size:12px;color:var(--muted);margin-top:6px;">Source: ' + escapeHtml(lead.sourceFile || 'clients.csv') + '</div>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    + (lead.email ? '<button class="btn btn-primary" onclick="emailOldClientLead(\'' + lead.id + '\')">Email Lead</button>' : '<button class="btn btn-ghost" disabled>No Email</button>')
+    + '<button class="btn btn-success" onclick="moveOldClientLeadToClientManagement(\'' + lead.id + '\')">' + (lead.outreachStatus === 'Moved to Client Management' ? 'Already Moved' : 'Move to Client Management') + '</button>'
+    + '</div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px;">'
+    + '<div class="stat-card"><div class="s-label">Phone</div><div class="s-num s-cyan" style="font-size:18px;">' + escapeHtml(formatPhoneNumber(lead.phone || '') || '—') + '</div></div>'
+    + '<div class="stat-card"><div class="s-label">Email</div><div class="s-num s-blue" style="font-size:18px;word-break:break-word;">' + escapeHtml(lead.email || '—') + '</div></div>'
+    + '<div class="stat-card"><div class="s-label">Files</div><div class="s-num s-amber" style="font-size:18px;">' + oldClientLeadFileCount(lead) + '</div></div>'
+    + '<div class="stat-card"><div class="s-label">Status</div><div style="margin-top:10px;"><span class="badge ' + oldClientLeadStatusClass(lead.outreachStatus) + '">' + escapeHtml(lead.outreachStatus) + '</span></div></div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:16px;">'
+    + '<div class="a-card" style="padding:14px;background:rgba(255,255,255,.02);">'
+    + '<div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;">Profile</div>'
+    + '<div style="display:grid;gap:8px;font-size:13px;">'
+    + '<div><strong>DOB:</strong> ' + escapeHtml(lead.dob || '—') + '</div>'
+    + '<div><strong>Location:</strong> ' + escapeHtml(oldClientLeadLocation(lead)) + '</div>'
+    + '<div><strong>Address:</strong> ' + escapeHtml(lead.address || '—') + '</div>'
+    + '<div><strong>HR Work Email:</strong> ' + escapeHtml(lead.hrWorkEmail || '—') + '</div>'
+    + '<div><strong>Legacy Login:</strong> ' + escapeHtml(lead.userPass || '—') + '</div>'
+    + '<div><strong>Last Contact:</strong> ' + escapeHtml(oldClientLeadLastContactText(lead)) + '</div>'
+    + '</div>'
+    + '</div>'
+    + '<div class="a-card" style="padding:14px;background:rgba(255,255,255,.02);">'
+    + '<div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;">Outreach Controls</div>'
+    + '<div style="display:grid;gap:10px;">'
+    + '<select onchange="setOldClientLeadStatus(\'' + lead.id + '\', this.value)">'
+    + '<option value="Not Contacted"' + (lead.outreachStatus === 'Not Contacted' ? ' selected' : '') + '>Not Contacted</option>'
+    + '<option value="Contacted"' + (lead.outreachStatus === 'Contacted' ? ' selected' : '') + '>Contacted</option>'
+    + '<option value="Do Not Contact"' + (lead.outreachStatus === 'Do Not Contact' ? ' selected' : '') + '>Do Not Contact</option>'
+    + '<option value="Moved to Client Management"' + (lead.outreachStatus === 'Moved to Client Management' ? ' selected' : '') + '>Moved to Client Management</option>'
+    + '</select>'
+    + '<textarea id="old-client-lead-notes-' + lead.id + '" rows="5" placeholder="Add legacy outreach notes..." style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;color:var(--text);">' + escapeHtml(lead.notes || '') + '</textarea>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    + '<button class="btn btn-ghost" onclick="saveOldClientLeadNotes(\'' + lead.id + '\')">Save Notes</button>'
+    + '<button class="btn btn-ghost" onclick="markOldClientLeadContacted(\'' + lead.id + '\')">Mark Contacted</button>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+    + '<div class="a-card" style="padding:14px;background:rgba(255,255,255,.02);margin-top:14px;">'
+    + '<div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;">Linked Files</div>'
+    + buildOldClientLeadAttachmentChips(lead)
+    + '</div>'
+    + '</div>';
+}
+
 function renderOldClientLeads() {
   var leads = loadOldClientLeads();
   var tbody = document.getElementById('old-client-leads-tbody');
+  var detailContainer = document.getElementById('old-client-lead-detail-container');
   if (!tbody) return;
+  updateOldClientLeadSourceNote(leads);
   var search = ((document.getElementById('old-client-lead-search') || {}).value || '').toLowerCase();
   var statusFilter = ((document.getElementById('old-client-lead-status-filter') || {}).value || '').trim();
   var filtered = leads.filter(function(lead) {
@@ -4811,14 +4977,13 @@ function renderOldClientLeads() {
   if (emailEl) emailEl.textContent = emailableCount;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">No old client leads imported yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px;">No old client leads loaded yet.</td></tr>';
+    if (detailContainer) detailContainer.innerHTML = '';
     return;
   }
 
   tbody.innerHTML = filtered.map(function(lead) {
-    var statusClass = lead.outreachStatus === 'Moved to Client Management' ? 'badge-green' :
-      lead.outreachStatus === 'Contacted' ? 'badge-blue' :
-      lead.outreachStatus === 'Do Not Contact' ? 'badge-red' : 'badge-amber';
+    var statusClass = oldClientLeadStatusClass(lead.outreachStatus);
     var canPromote = lead.outreachStatus !== 'Moved to Client Management';
     var emailAction = lead.email
       ? '<button class="btn btn-sm btn-primary" onclick="emailOldClientLead(\'' + lead.id + '\')">Email</button>'
@@ -4826,21 +4991,38 @@ function renderOldClientLeads() {
     var promoteAction = canPromote
       ? '<button class="btn btn-sm btn-success" onclick="moveOldClientLeadToClientManagement(\'' + lead.id + '\')">Move</button>'
       : '<button class="btn btn-sm btn-ghost" disabled>Moved</button>';
-    return '<tr>' +
+    var isExpanded = expandedOldClientLeadId === lead.id;
+    return '<tr class="' + (isExpanded ? 'expanded' : '') + '" onclick="toggleOldClientLeadDetail(\'' + lead.id + '\')">' +
       '<td><strong>' + escapeHtml(lead.name || 'Unknown') + '</strong><div style="font-size:11px;color:var(--muted);margin-top:4px;">' + escapeHtml(lead.sourceFile || 'clients.csv') + '</div></td>' +
       '<td style="font-size:12px;color:var(--muted);word-break:break-word;">' + escapeHtml(lead.email || '—') + '</td>' +
       '<td style="font-size:12px;">' + escapeHtml(formatPhoneNumber(lead.phone || '') || lead.phone || '—') + '</td>' +
       '<td style="font-size:12px;color:var(--muted);">' + escapeHtml(oldClientLeadLocation(lead)) + '</td>' +
       '<td style="font-size:12px;">' + escapeHtml(lead.dob || '—') + '</td>' +
       '<td style="font-size:12px;color:var(--muted);">' + oldClientLeadFileCount(lead) + '</td>' +
+      '<td style="font-size:12px;color:var(--muted);">' + escapeHtml(oldClientLeadLastContactText(lead)) + '</td>' +
       '<td><span class="badge ' + statusClass + '">' + escapeHtml(lead.outreachStatus) + '</span></td>' +
-      '<td style="display:flex;gap:6px;flex-wrap:wrap;">' +
+      '<td onclick="event.stopPropagation();" style="display:flex;gap:6px;flex-wrap:wrap;">' +
       emailAction +
       promoteAction +
       '<button class="btn btn-sm btn-ghost" onclick="markOldClientLeadContacted(\'' + lead.id + '\')">Mark Contacted</button>' +
       '</td>' +
     '</tr>';
   }).join('');
+  if (detailContainer) {
+    var expanded = filtered.find(function(lead) { return lead.id === expandedOldClientLeadId; });
+    detailContainer.innerHTML = expanded ? buildOldClientLeadDetailHtml(expanded) : '';
+  }
+}
+
+function toggleOldClientLeadDetail(leadId) {
+  expandedOldClientLeadId = expandedOldClientLeadId === leadId ? null : leadId;
+  renderOldClientLeads();
+  if (expandedOldClientLeadId) {
+    setTimeout(function() {
+      var detailEl = document.getElementById('old-client-lead-detail-container');
+      if (detailEl) detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
 }
 
 function updateOldClientLead(leadId, updater) {
@@ -4878,6 +5060,72 @@ function markOldClientLeadContacted(leadId) {
   if (!lead) return;
   addActivity('Marked old client lead as contacted: ' + lead.name, 'blue');
   showToast('Updated outreach status for ' + lead.name, 'success');
+}
+
+function setOldClientLeadStatus(leadId, status) {
+  var lead = updateOldClientLead(leadId, function(item) {
+    item.outreachStatus = status || item.outreachStatus;
+    if (status === 'Contacted') item.lastContactAt = new Date().toISOString();
+  });
+  if (!lead) return;
+  addActivity('Updated legacy lead status for ' + lead.name + ': ' + lead.outreachStatus, 'blue');
+  showToast('Legacy lead status updated', 'success');
+}
+
+function saveOldClientLeadNotes(leadId) {
+  var textarea = document.getElementById('old-client-lead-notes-' + leadId);
+  var notes = textarea ? textarea.value : '';
+  var lead = updateOldClientLead(leadId, function(item) {
+    item.notes = String(notes || '').trim();
+  });
+  if (!lead) return;
+  addActivity('Updated legacy notes for ' + lead.name, 'amber');
+  showToast('Legacy notes saved', 'success');
+}
+
+function seedBundledOldClientLeadsIfEmpty(force) {
+  var leads = loadOldClientLeads();
+  if (leads.length && !force) {
+    updateOldClientLeadSourceNote(leads);
+    return Promise.resolve({ skipped: true, total: leads.length });
+  }
+  return fetch('/data/old-client-leads.csv', { cache: 'no-store' })
+    .then(function(r) {
+      if (!r.ok) throw new Error('Missing bundled legacy archive');
+      return r.text();
+    })
+    .then(function(text) {
+      var rows = parseCsvText(text);
+      if (rows.length < 2) throw new Error('Bundled archive has no rows');
+      var headers = rows[0].map(normalizeCsvHeaderName);
+      var records = rows.slice(1).map(function(cols) {
+        var row = {};
+        headers.forEach(function(header, idx) {
+          row[header] = String(cols[idx] || '').trim();
+        });
+        return row;
+      });
+      var result = mergeOldClientLeadRows(records, 'old-client-leads.csv', 'Loaded from bundled legacy client archive.');
+      localStorage.setItem(OLD_CLIENT_LEADS_ARCHIVE_SEEDED_KEY, '1');
+      return { added: result.added, updated: result.updated, total: result.leads.length };
+    })
+    .catch(function(err) {
+      console.error(err);
+      updateOldClientLeadSourceNote(loadOldClientLeads());
+      return { error: err.message || 'Legacy archive load failed' };
+    });
+}
+
+function refreshOldClientLeadWorkspace() {
+  seedBundledOldClientLeadsIfEmpty(true).then(function(result) {
+    renderOldClientLeads();
+    renderDashboard();
+    if (result && result.error) {
+      showToast('Legacy workspace refresh failed: ' + result.error, 'error');
+      return;
+    }
+    showToast('Legacy workspace refreshed', 'success');
+  });
 }
 
 function moveOldClientLeadToClientManagement(leadId) {
@@ -7571,75 +7819,19 @@ function importOldClientLeadsCsv(evt) {
         return;
       }
       var headers = rows[0].map(normalizeCsvHeaderName);
-      var leads = loadOldClientLeads();
-      var seen = {};
-      leads.forEach(function(lead) {
-        seen[(lead.email || '').toLowerCase() + '|' + (lead.name || '').toLowerCase()] = true;
-      });
-      var added = 0;
-      var updated = 0;
-      rows.slice(1).forEach(function(cols) {
+      var records = rows.slice(1).map(function(cols) {
         var row = {};
         headers.forEach(function(header, idx) {
           row[header] = String(cols[idx] || '').trim();
         });
-        var name = row.name || row.full_name || '';
-        var email = (row.email || '').toLowerCase();
-        var key = email + '|' + name.toLowerCase();
-        if (!name && !email) return;
-        var existing = leads.find(function(lead) {
-          return ((lead.email || '').toLowerCase() === email && !!email) ||
-            ((lead.name || '').toLowerCase() === name.toLowerCase() && !!name);
-        });
-        if (existing) {
-          existing.dob = row.dob || existing.dob;
-          existing.phone = row.phone || existing.phone;
-          existing.address = row.address || existing.address;
-          existing.city = row.city || existing.city;
-          existing.state = row.state || existing.state;
-          existing.zip = row.zip || existing.zip;
-          existing.country = row.country || existing.country;
-          existing.ssn = row.ssn || existing.ssn;
-          existing.hrWorkEmail = row.hr_work_email || existing.hrWorkEmail;
-          existing.userPass = row.user_pass || existing.userPass;
-          existing.sourceFile = file.name || existing.sourceFile;
-          existing.attachments = normalizeOldClientLeadRecord(row).attachments;
-          existing.updatedAt = new Date().toISOString();
-          updated++;
-          return;
-        }
-        if (seen[key]) return;
-        leads.push(normalizeOldClientLeadRecord({
-          name: name,
-          email: email,
-          dob: row.dob,
-          ssn: row.ssn,
-          phone: row.phone,
-          address: row.address,
-          city: row.city,
-          state: row.state,
-          zip: row.zip,
-          country: row.country,
-          hr_work_email: row.hr_work_email,
-          user_pass: row.user_pass,
-          identity_proof_file: row.identity_proof_file,
-          ssn_proof_file: row.ssn_proof_file,
-          address_proof_file: row.address_proof_file,
-          other_file: row.other_file,
-          other_file2: row.other_file2,
-          other_file3: row.other_file3,
-          sourceFile: file.name || 'clients.csv',
-          outreachStatus: 'Not Contacted',
-          notes: 'Imported from old client leads CSV.'
-        }));
-        seen[key] = true;
-        added++;
+        return row;
       });
-      saveOldClientLeads(leads);
+      var result = mergeOldClientLeadRows(records, file.name || 'clients.csv', 'Imported from old client leads CSV.');
       if (evt && evt.target) evt.target.value = '';
-      addActivity('Old client leads imported: ' + added + ' added, ' + updated + ' updated', 'green');
-      showToast('Imported old client leads: ' + added + ' added, ' + updated + ' updated', 'success');
+      addActivity('Old client leads imported: ' + result.added + ' added, ' + result.updated + ' updated', 'green');
+      showToast('Imported old client leads: ' + result.added + ' added, ' + result.updated + ' updated', 'success');
       renderOldClientLeads();
+      renderDashboard();
     } catch (err) {
       console.error(err);
       showToast('Old client lead import failed', 'error');
@@ -12335,6 +12527,10 @@ window.renderOldClientLeads = renderOldClientLeads;
 window.emailOldClientLead = emailOldClientLead;
 window.markOldClientLeadContacted = markOldClientLeadContacted;
 window.moveOldClientLeadToClientManagement = moveOldClientLeadToClientManagement;
+window.toggleOldClientLeadDetail = toggleOldClientLeadDetail;
+window.setOldClientLeadStatus = setOldClientLeadStatus;
+window.saveOldClientLeadNotes = saveOldClientLeadNotes;
+window.refreshOldClientLeadWorkspace = refreshOldClientLeadWorkspace;
 window.addPifrNote = addPifrNote;
 window.deletePifrNote = deletePifrNote;
 window.openCreatePaypalQuoteForClient = openCreatePaypalQuoteForClient;
@@ -12347,6 +12543,10 @@ loadPifrSampleData();
 renderPifrSection();
 refreshPifrData();
 refreshMeetRequests();
+seedBundledOldClientLeadsIfEmpty().then(function() {
+  renderOldClientLeads();
+  renderDashboard();
+});
 // Auto-refresh every 15s so admin reflects new enrollments in near real-time
 setInterval(refreshPifrData, 15000);
 setInterval(refreshMeetRequests, 30000);
