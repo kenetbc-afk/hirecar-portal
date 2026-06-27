@@ -468,6 +468,41 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
 .doc-upload-modal{background:var(--white);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:28px;}
 .doc-upload-modal h3{font-size:20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
 .doc-upload-modal .modal-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);padding:4px;}
+.deal-flow-overlay{position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px;}
+.deal-flow-overlay.open{display:flex;}
+.deal-flow-modal{width:min(920px,100%);max-height:92vh;overflow-y:auto;border-radius:20px;background:linear-gradient(160deg,#0f172a,#101827 42%,#060912);border:1px solid rgba(255,255,255,.08);box-shadow:0 30px 90px rgba(0,0,0,.6);padding:24px;}
+.deal-flow-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;}
+.deal-flow-eyebrow{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan);margin-bottom:6px;}
+.deal-flow-title{font-size:24px;margin:0;color:var(--ink);}
+.deal-flow-subtitle{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;}
+.deal-flow-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0;}
+.deal-flow-step{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,242,247,.56);text-align:center;}
+.deal-flow-step.active{border-color:rgba(34,211,238,.35);background:rgba(34,211,238,.08);color:#8eefff;box-shadow:0 0 0 1px rgba(34,211,238,.08) inset;}
+.deal-flow-step.done{border-color:rgba(52,211,153,.28);background:rgba(52,211,153,.08);color:#7ff0bc;}
+.deal-flow-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:16px;align-items:start;}
+.deal-flow-panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:18px;}
+.deal-flow-panel h4{margin:0 0 10px;font-size:15px;}
+.deal-flow-list{list-style:none;padding:0;margin:0;display:grid;gap:10px;}
+.deal-flow-list li{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.deal-flow-list li:last-child{border-bottom:none;}
+.deal-flow-list strong{color:var(--ink);font-weight:600;}
+.deal-flow-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.deal-flow-actions .btn-primary,.deal-flow-actions .btn-ghost,.deal-flow-actions .btn-success{padding:10px 16px;font-size:13px;}
+.deal-flow-note{font-size:12px;color:var(--muted);line-height:1.7;margin-top:10px;}
+.signature-shell{display:grid;gap:10px;}
+.signature-canvas{width:100%;height:180px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);touch-action:none;}
+.signature-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+.signature-toolbar .hint{font-size:12px;color:var(--muted);}
+.deal-flow-input{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--ink);}
+.deal-flow-input::placeholder{color:rgba(240,242,247,.35);}
+.deal-flow-check{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.6;color:var(--muted);}
+.deal-flow-check input{margin-top:3px;accent-color:var(--gold);}
+.deal-flow-resume{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.deal-flow-resume .badge{font-size:9px;}
+@media (max-width: 860px){
+  .deal-flow-stepper{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .deal-flow-grid{grid-template-columns:1fr;}
+}
 .doc-upload-field{margin-bottom:16px;}
 .doc-upload-field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink);letter-spacing:0.15em;text-transform:uppercase;}
 .doc-upload-field input,.doc-upload-field select,.doc-upload-field textarea{width:100%;padding:10px 14px;border:1px solid var(--rule);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;transition:border-color .2s;background:var(--cream);color:var(--ink);}
@@ -1831,6 +1866,27 @@ textarea.editable-field-input{display:block;width:100%;max-width:420px;min-heigh
           <button style="padding:10px 24px;background:var(--cream);border:1px solid var(--rule);border-radius:8px;font-size:14px;cursor:pointer;" onclick="closeDocUpload()">Cancel</button>
           <button class="btn-primary" style="padding:10px 28px;" onclick="submitDocUpload()">Upload Document</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Agreement / Signature / Financing Flow Modal -->
+    <div class="deal-flow-overlay" id="deal-flow-overlay" role="dialog" aria-modal="true" aria-label="Agreement and financing workflow" onclick="if(event.target===this) closeDealFlow()">
+      <div class="deal-flow-modal">
+        <div class="deal-flow-head">
+          <div>
+            <div class="deal-flow-eyebrow">Agreement → Signature → Financing → Invoice</div>
+            <h3 class="deal-flow-title" id="deal-flow-title">Review Agreement</h3>
+            <div class="deal-flow-subtitle" id="deal-flow-subtitle">Review the agreement, sign on the next step, and then move into the financing and invoice outline.</div>
+          </div>
+          <button class="modal-close" onclick="closeDealFlow()" aria-label="Close deal flow">&times;</button>
+        </div>
+        <div class="deal-flow-stepper">
+          <div class="deal-flow-step" id="deal-step-review">1 Review</div>
+          <div class="deal-flow-step" id="deal-step-sign">2 Sign</div>
+          <div class="deal-flow-step" id="deal-step-finance">3 Financing</div>
+          <div class="deal-flow-step" id="deal-step-invoice">4 Invoice</div>
+        </div>
+        <div id="deal-flow-content"></div>
       </div>
     </div>
 
@@ -8769,7 +8825,7 @@ function showToast(msg,type){
   function _billingBadge(status) {
     switch (status) {
       case 'Paid': case 'Kept': case 'Accepted': return 'badge-green';
-      case 'Outstanding': case 'Partial': case 'Pending': case 'Sent': return 'badge-gold';
+      case 'Outstanding': case 'Partial': case 'Pending': case 'Pending Review': case 'Sent': return 'badge-gold';
       case 'Overdue': case 'Failed': case 'Declined': return 'badge-red';
       case 'Scheduled': case 'Draft': return 'badge-blue';
       case 'Recommitted': return 'badge-gold';
@@ -8787,6 +8843,604 @@ function showToast(msg,type){
     renderClientQuotesAndInvoices();
     renderClientNotifications();
     updateNotificationBadge();
+  }
+
+  var _dealFlowActiveQuoteId = '';
+  var _dealFlowSignature = { canvas: null, ctx: null, drawing: false, hasInk: false, lastX: 0, lastY: 0 };
+
+  function dealFlowStorageKey(quoteId) {
+    return 'hc_client_deal_flow_' + quoteId;
+  }
+
+  function dealFlowStepLabel(step) {
+    switch (String(step || 'review')) {
+      case 'review': return 'Agreement review';
+      case 'sign': return 'Signature';
+      case 'finance': return 'Financing';
+      case 'invoice': return 'Invoice outline';
+      default: return 'Agreement review';
+    }
+  }
+
+  function dealFlowStepIndex(step) {
+    switch (String(step || 'review')) {
+      case 'review': return 0;
+      case 'sign': return 1;
+      case 'finance': return 2;
+      case 'invoice': return 3;
+      default: return 0;
+    }
+  }
+
+  function loadDealFlowState(quoteId) {
+    try {
+      return JSON.parse(localStorage.getItem(dealFlowStorageKey(quoteId)) || 'null');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function buildDealFlowState(quote, state) {
+    var now = new Date().toISOString();
+    var next = state ? JSON.parse(JSON.stringify(state)) : {};
+    next.quoteId = quote.id;
+    next.clientId = quote.clientId || quote.client_id || '';
+    next.quoteNumber = quote.number || quote.quote_number || quote.quoteNumber || quote.id;
+    next.service = quote.service || '';
+    next.amount = quote.amount || 0;
+    next.currentStep = next.currentStep || 'review';
+    next.status = next.status || 'open';
+    next.createdAt = next.createdAt || now;
+    next.updatedAt = now;
+    next.leftOff = next.leftOff || dealFlowStepLabel(next.currentStep);
+    next.resumeNote = next.resumeNote || '';
+    return next;
+  }
+
+  function syncDealFlowQuoteMirror(quote, state) {
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch (e) {}
+    quotes.forEach(function(q) {
+      if (q.id === quote.id) {
+        q.status = state.completedAt || state.signedAt ? 'Accepted' : (q.status || 'Sent');
+        q.workflow_step = state.currentStep;
+        q.workflow_status = state.completedAt ? 'complete' : (state.pausedAt ? 'paused' : 'in_progress');
+        q.workflow_left_off = state.leftOff || dealFlowStepLabel(state.currentStep);
+        q.signature_name = state.signatureName || '';
+        q.signature_data_url = state.signatureDataUrl || '';
+        q.signature_signed_at = state.signedAt || '';
+        q.financing_choice = state.financeChoice || '';
+        q.invoice_number = state.invoiceNumber || '';
+        q.parent_number = state.parentNumber || '';
+        q.sku = state.sku || '';
+        q.paypal_invoice_id = state.paypalInvoiceId || '';
+        q.paypal_share_link = state.paypalShareLink || '';
+        q.updatedAt = state.updatedAt || new Date().toISOString();
+      }
+    });
+    try { localStorage.setItem('hc_client_quotes', JSON.stringify(quotes)); } catch (e) {}
+
+    try {
+      var adminClients = JSON.parse(localStorage.getItem('hc_admin_clients') || '[]');
+      adminClients.forEach(function(client) {
+        (client.quotes || []).forEach(function(q) {
+          if (q.id === quote.id) {
+            q.status = state.completedAt || state.signedAt ? 'Accepted' : (q.status || 'Sent');
+            q.workflow_step = state.currentStep;
+            q.workflow_status = state.completedAt ? 'complete' : (state.pausedAt ? 'paused' : 'in_progress');
+            q.workflow_left_off = state.leftOff || dealFlowStepLabel(state.currentStep);
+            q.signature_name = state.signatureName || '';
+            q.signature_data_url = state.signatureDataUrl || '';
+            q.signature_signed_at = state.signedAt || '';
+            q.financing_choice = state.financeChoice || '';
+            q.invoice_number = state.invoiceNumber || '';
+            q.parent_number = state.parentNumber || '';
+            q.sku = state.sku || '';
+            q.paypal_invoice_id = state.paypalInvoiceId || '';
+            q.paypal_share_link = state.paypalShareLink || '';
+            q.updatedAt = state.updatedAt || new Date().toISOString();
+          }
+        });
+      });
+      localStorage.setItem('hc_admin_clients', JSON.stringify(adminClients));
+    } catch (e) {}
+  }
+
+  function syncDealFlowInvoiceMirror(quote, state) {
+    var invoices = [];
+    try { invoices = JSON.parse(localStorage.getItem('hc_client_invoices') || '[]'); } catch (e) {}
+    var invoiceId = 'deal_' + quote.id;
+    var invoiceNumber = state.invoiceNumber || quote.invoice_number || ('HC-INV-DRAFT-' + String(quote.number || quote.quote_number || quote.quoteNumber || quote.id).replace(/[^A-Za-z0-9]+/g, '-').toUpperCase());
+    var invoice = invoices.find(function(inv) {
+      return inv.id === invoiceId || inv.quoteId === quote.id || inv.fromQuote === quote.id;
+    });
+    if (!invoice) {
+      invoice = {
+        id: invoiceId,
+        number: invoiceNumber,
+        createdAt: state.createdAt || new Date().toISOString(),
+        status: 'Draft'
+      };
+      invoices.unshift(invoice);
+    }
+    invoice.quoteId = quote.id;
+    invoice.fromQuote = quote.id;
+    invoice.number = invoiceNumber;
+    invoice.description = quote.service + ' invoice outline';
+    invoice.amount = quote.amount || 0;
+    invoice.issuedAt = invoice.issuedAt || new Date().toISOString();
+    invoice.dueDate = state.dueDate || invoice.dueDate || new Date(Date.now() + 86400000 * 30).toISOString();
+    invoice.status = state.completedAt ? 'Draft' : 'Draft';
+    invoice.workflowStatus = state.completedAt ? 'complete' : (state.pausedAt ? 'paused' : 'in_progress');
+    invoice.parent_number = state.parentNumber || quote.number || quote.quote_number || '';
+    invoice.parentNumber = invoice.parent_number;
+    invoice.sku = state.sku || invoice.sku || ('HC-SKU-' + String(quote.number || quote.quote_number || quote.id).replace(/[^A-Za-z0-9]+/g, '-').toUpperCase());
+    invoice.paypal_invoice_id = state.paypalInvoiceId || '';
+    invoice.paypal_share_link = state.paypalShareLink || '';
+    invoice.order_details = {
+      quoteId: quote.id,
+      quoteNumber: quote.number || quote.quote_number || '',
+      service: quote.service || '',
+      amount: quote.amount || 0,
+      clientId: quote.clientId || quote.client_id || ''
+    };
+    try { localStorage.setItem('hc_client_invoices', JSON.stringify(invoices)); } catch (e) {}
+
+    try {
+      var adminClients = JSON.parse(localStorage.getItem('hc_admin_clients') || '[]');
+      adminClients.forEach(function(client) {
+        if (client.id !== quote.clientId && client.id !== quote.client_id) return;
+        if (!client.invoices) client.invoices = [];
+        var adminInvoice = client.invoices.find(function(inv) {
+          return inv.id === invoiceId || inv.quote_id === quote.id || inv.fromQuote === quote.id;
+        });
+        if (!adminInvoice) {
+          adminInvoice = { id: invoiceId, number: invoice.number, status: 'Draft' };
+          client.invoices.unshift(adminInvoice);
+        }
+        adminInvoice.id = invoiceId;
+        adminInvoice.number = invoice.number;
+        adminInvoice.description = invoice.description;
+        adminInvoice.amount = invoice.amount;
+        adminInvoice.issuedAt = invoice.issuedAt;
+        adminInvoice.dueDate = invoice.dueDate;
+        adminInvoice.status = invoice.status;
+        adminInvoice.fromQuote = quote.id;
+        adminInvoice.parentNumber = invoice.parent_number;
+        adminInvoice.parent_number = invoice.parent_number;
+        adminInvoice.sku = invoice.sku;
+        adminInvoice.paypal_invoice_id = invoice.paypal_invoice_id;
+        adminInvoice.paypal_share_link = invoice.paypal_share_link;
+        adminInvoice.workflowStatus = invoice.workflowStatus;
+      });
+      localStorage.setItem('hc_admin_clients', JSON.stringify(adminClients));
+    } catch (e) {}
+  }
+
+  function saveDealFlowState(quote, state) {
+    if (!quote || !quote.id) return null;
+    var next = buildDealFlowState(quote, state);
+    try {
+      localStorage.setItem(dealFlowStorageKey(quote.id), JSON.stringify(next));
+    } catch (e) {}
+    syncDealFlowQuoteMirror(quote, next);
+    syncDealFlowInvoiceMirror(quote, next);
+    return next;
+  }
+
+  function renderDealFlowStepper(step) {
+    var idx = dealFlowStepIndex(step);
+    ['review', 'sign', 'finance', 'invoice'].forEach(function(key, i) {
+      var el = document.getElementById('deal-step-' + key);
+      if (!el) return;
+      el.classList.remove('active', 'done');
+      if (i < idx) el.classList.add('done');
+      else if (i === idx) el.classList.add('active');
+    });
+  }
+
+  function dealFlowInvoiceNumber(quote, state) {
+    return state.invoiceNumber || quote.invoice_number || ('HC-INV-DRAFT-' + String(quote.number || quote.quote_number || quote.id).replace(/[^A-Za-z0-9]+/g, '-').toUpperCase());
+  }
+
+  function renderDealFlowModal(quote, state) {
+    var content = document.getElementById('deal-flow-content');
+    var title = document.getElementById('deal-flow-title');
+    var subtitle = document.getElementById('deal-flow-subtitle');
+    if (!content || !title || !subtitle) return;
+
+    var currentStep = String(state.currentStep || 'review');
+    title.textContent = dealFlowStepLabel(currentStep);
+    subtitle.textContent = state.pausedAt
+      ? 'Progress saved. Resume at ' + dealFlowStepLabel(currentStep) + ' when the client comes back.'
+      : 'Review the agreement, capture a finger signature, and keep the financing and invoice outline tied to the quote.';
+    renderDealFlowStepper(currentStep);
+
+    var quoteNumber = quote.number || quote.quote_number || quote.id;
+    var amountText = _formatCurrency(quote.amount || 0);
+    var sourceLine = quote.source_link || quote.source_file_name || quote.client_left_off || 'No source metadata saved yet.';
+
+    if (currentStep === 'review') {
+      content.innerHTML =
+        '<div class="deal-flow-grid">' +
+          '<div class="deal-flow-panel">' +
+            '<h4>Agreement Review</h4>' +
+            '<ul class="deal-flow-list">' +
+              '<li><span>Quote</span><strong>' + _escapeHtml(quoteNumber) + '</strong></li>' +
+              '<li><span>Service</span><strong>' + _escapeHtml(quote.service || '---') + '</strong></li>' +
+              '<li><span>Amount</span><strong>' + _escapeHtml(amountText) + '</strong></li>' +
+              '<li><span>Source</span><strong>' + _escapeHtml(sourceLine) + '</strong></li>' +
+            '</ul>' +
+            '<div class="deal-flow-note">This draft stays staged until the client signs. After signature, the financing step creates the invoice outline and stores the PayPal reference for later completion.</div>' +
+            '<div class="deal-flow-actions">' +
+              '<button class="btn-primary" onclick="dealFlowAdvanceStep(\'sign\')">Continue to Signature</button>' +
+              '<button class="btn-ghost" onclick="dealFlowPause()">Save &amp; Pause</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="deal-flow-panel">' +
+            '<h4>Resume Context</h4>' +
+            '<ul class="deal-flow-list">' +
+              '<li><span>Status</span><strong>' + _escapeHtml(state.pausedAt ? 'Paused' : 'Ready') + '</strong></li>' +
+              '<li><span>Left off</span><strong>' + _escapeHtml(state.leftOff || 'Agreement review') + '</strong></li>' +
+              '<li><span>Updated</span><strong>' + _escapeHtml(_formatDate(state.updatedAt || quote.createdAt)) + '</strong></li>' +
+            '</ul>' +
+            '<div class="deal-flow-note">If you close this window now, the workflow is saved and the quote will reopen exactly where it left off.</div>' +
+          '</div>' +
+        '</div>';
+      return;
+    }
+
+    if (currentStep === 'sign') {
+      content.innerHTML =
+        '<div class="deal-flow-grid">' +
+          '<div class="deal-flow-panel">' +
+            '<h4>Signature Capture</h4>' +
+            '<div class="signature-shell">' +
+              '<input class="deal-flow-input" id="deal-sign-name" placeholder="Typed signer name" value="' + _escapeHtml(state.signatureName || '') + '">' +
+              '<label class="deal-flow-check"><input type="checkbox" id="deal-sign-ack" ' + (state.acknowledged ? 'checked' : '') + '> I confirm I have reviewed the agreement and authorize this signature capture.</label>' +
+              '<canvas id="deal-sign-canvas" class="signature-canvas" width="860" height="220"></canvas>' +
+              '<div class="signature-toolbar">' +
+                '<span class="hint">Draw with a finger, stylus, or mouse.</span>' +
+                '<button class="btn btn-ghost" onclick="dealFlowClearSignature()">Clear signature</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="deal-flow-actions">' +
+              '<button class="btn-primary" onclick="dealFlowCommitSignature()">Save Signature &amp; Continue</button>' +
+              '<button class="btn-ghost" onclick="dealFlowPause()">Save &amp; Pause</button>' +
+              '<button class="btn-ghost" onclick="dealFlowAdvanceStep(\'review\')">Back</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="deal-flow-panel">' +
+            '<h4>Signature Evidence</h4>' +
+            '<ul class="deal-flow-list">' +
+              '<li><span>Signer</span><strong>' + _escapeHtml(state.signatureName || 'Pending') + '</strong></li>' +
+              '<li><span>Acknowledgment</span><strong>' + (state.acknowledged ? 'Checked' : 'Required') + '</strong></li>' +
+              '<li><span>Captured</span><strong>' + _escapeHtml(state.signedAt ? _formatDate(state.signedAt) : 'Not yet') + '</strong></li>' +
+            '</ul>' +
+            '<div class="deal-flow-note">The signed step moves the quote into an accepted state and creates the invoice draft that the client can return to later.</div>' +
+          '</div>' +
+        '</div>';
+      setTimeout(function() { setupDealFlowSignaturePad(quote, state); }, 0);
+      return;
+    }
+
+    if (currentStep === 'finance') {
+      content.innerHTML =
+        '<div class="deal-flow-grid">' +
+          '<div class="deal-flow-panel">' +
+            '<h4>Financing</h4>' +
+            '<div class="form-group" style="margin-bottom:12px;">' +
+              '<label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:6px;">Financing path</label>' +
+              '<select class="deal-flow-input" id="deal-finance-choice">' +
+                '<option value="pay-now" ' + (state.financeChoice === 'pay-now' ? 'selected' : '') + '>Pay now</option>' +
+                '<option value="invoice-later" ' + (state.financeChoice === 'invoice-later' ? 'selected' : '') + '>Invoice later</option>' +
+                '<option value="pause" ' + (state.financeChoice === 'pause' ? 'selected' : '') + '>Pause and resume later</option>' +
+              '</select>' +
+            '</div>' +
+            '<div class="form-group" style="margin-bottom:12px;">' +
+              '<label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:6px;">PayPal invoice link</label>' +
+              '<input class="deal-flow-input" id="deal-paypal-link" placeholder="Paste the PayPal invoice or share link" value="' + _escapeHtml(state.paypalShareLink || '') + '">' +
+            '</div>' +
+            '<div class="form-group" style="margin-bottom:12px;">' +
+              '<label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:6px;">Parent number</label>' +
+              '<input class="deal-flow-input" id="deal-parent-number" value="' + _escapeHtml(state.parentNumber || quoteNumber) + '">' +
+            '</div>' +
+            '<div class="form-group" style="margin-bottom:12px;">' +
+              '<label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:6px;">SKU reference</label>' +
+              '<input class="deal-flow-input" id="deal-sku" value="' + _escapeHtml(state.sku || ('HC-SKU-' + String(quoteNumber).replace(/[^A-Za-z0-9]+/g, '-').toUpperCase())) + '">' +
+            '</div>' +
+            '<div class="deal-flow-actions">' +
+              '<button class="btn-primary" onclick="dealFlowCommitFinance()">Save &amp; Continue</button>' +
+              '<button class="btn-ghost" onclick="dealFlowPause()">Save &amp; Pause</button>' +
+              '<button class="btn-ghost" onclick="dealFlowAdvanceStep(\'sign\')">Back</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="deal-flow-panel">' +
+            '<h4>Invoice Preview</h4>' +
+            '<ul class="deal-flow-list">' +
+              '<li><span>Invoice number</span><strong>' + _escapeHtml(dealFlowInvoiceNumber(quote, state)) + '</strong></li>' +
+              '<li><span>PayPal link</span><strong>' + _escapeHtml(state.paypalShareLink || 'Not linked yet') + '</strong></li>' +
+              '<li><span>Next step</span><strong>Invoice outline</strong></li>' +
+            '</ul>' +
+            '<div class="deal-flow-note">This step keeps the PayPal link attached to the quote so the client can return to complete payment later.</div>' +
+          '</div>' +
+        '</div>';
+      return;
+    }
+
+    content.innerHTML =
+      '<div class="deal-flow-grid">' +
+        '<div class="deal-flow-panel">' +
+          '<h4>Invoice Outline</h4>' +
+          '<ul class="deal-flow-list">' +
+            '<li><span>Invoice number</span><strong>' + _escapeHtml(dealFlowInvoiceNumber(quote, state)) + '</strong></li>' +
+            '<li><span>Parent number</span><strong>' + _escapeHtml(state.parentNumber || quoteNumber) + '</strong></li>' +
+            '<li><span>SKU</span><strong>' + _escapeHtml(state.sku || '') + '</strong></li>' +
+            '<li><span>PayPal link</span><strong>' + _escapeHtml(state.paypalShareLink || 'Pending') + '</strong></li>' +
+          '</ul>' +
+          '<div class="deal-flow-note">The invoice outline is saved as a resumable record. If payment is not complete, the workflow stays staged until the client returns.</div>' +
+          '<div class="deal-flow-actions">' +
+            '<button class="btn-success" onclick="dealFlowFinalize()">Mark Complete</button>' +
+            '<button class="btn-ghost" onclick="dealFlowPause()">Save &amp; Pause</button>' +
+            '<button class="btn-ghost" onclick="dealFlowAdvanceStep(\'finance\')">Back</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="deal-flow-panel">' +
+          '<h4>Completion Status</h4>' +
+          '<ul class="deal-flow-list">' +
+            '<li><span>Signed by</span><strong>' + _escapeHtml(state.signatureName || 'Pending') + '</strong></li>' +
+            '<li><span>Signed at</span><strong>' + _escapeHtml(state.signedAt ? _formatDate(state.signedAt) : 'Pending') + '</strong></li>' +
+            '<li><span>Financing choice</span><strong>' + _escapeHtml(state.financeChoice || 'Pending') + '</strong></li>' +
+          '</ul>' +
+          '<div class="deal-flow-note">Final completion preserves the signature record, invoice outline, and payment reference in the same workflow thread.</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function openDealFlow(quoteId) {
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch (e) {}
+    var quote = quotes.find(function(q) { return q.id === quoteId; });
+    if (!quote) {
+      showToast('Quote not found', 'error');
+      return;
+    }
+    var state = loadDealFlowState(quoteId) || {};
+    state = buildDealFlowState(quote, state);
+    _dealFlowActiveQuoteId = quoteId;
+    saveDealFlowState(quote, state);
+    renderDealFlowModal(quote, state);
+    var overlay = document.getElementById('deal-flow-overlay');
+    if (overlay) overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDealFlow() {
+    var overlay = document.getElementById('deal-flow-overlay');
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    _dealFlowActiveQuoteId = '';
+  }
+
+  function pauseDealFlow() {
+    if (!_dealFlowActiveQuoteId) return;
+    var quote = null;
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch (e) {}
+    quote = quotes.find(function(q) { return q.id === _dealFlowActiveQuoteId; });
+    if (!quote) return;
+    var state = loadDealFlowState(_dealFlowActiveQuoteId) || {};
+    state = buildDealFlowState(quote, state);
+    state.pausedAt = new Date().toISOString();
+    state.leftOff = dealFlowStepLabel(state.currentStep);
+    saveDealFlowState(quote, state);
+    showToast('Workflow saved. You can resume later.', 'info');
+    closeDealFlow();
+    loadClientBillingData();
+  }
+
+  function dealFlowAdvanceStep(step) {
+    if (!_dealFlowActiveQuoteId) return;
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch (e) {}
+    var quote = quotes.find(function(q) { return q.id === _dealFlowActiveQuoteId; });
+    if (!quote) return;
+    var state = loadDealFlowState(quote.id) || {};
+    state = buildDealFlowState(quote, state);
+    state.currentStep = step;
+    state.leftOff = dealFlowStepLabel(step);
+    state.updatedAt = new Date().toISOString();
+    saveDealFlowState(quote, state);
+    renderDealFlowModal(quote, state);
+  }
+
+  function setupDealFlowSignaturePad(quote, state) {
+    var canvas = document.getElementById('deal-sign-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    _dealFlowSignature.canvas = canvas;
+    _dealFlowSignature.ctx = ctx;
+    _dealFlowSignature.drawing = false;
+    _dealFlowSignature.hasInk = false;
+
+    function resizeCanvas() {
+      var rect = canvas.getBoundingClientRect();
+      var dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(180, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#e5eefc';
+      ctx.fillStyle = 'transparent';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (state.signatureDataUrl) {
+        var img = new Image();
+        img.onload = function() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          _dealFlowSignature.hasInk = true;
+        };
+        img.src = state.signatureDataUrl;
+      }
+    }
+
+    function pointerPos(evt) {
+      var rect = canvas.getBoundingClientRect();
+      return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+    }
+
+    function drawPoint(p, start) {
+      if (start) ctx.beginPath();
+      ctx.moveTo(_dealFlowSignature.lastX, _dealFlowSignature.lastY);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      _dealFlowSignature.lastX = p.x;
+      _dealFlowSignature.lastY = p.y;
+    }
+
+    canvas.onpointerdown = function(evt) {
+      evt.preventDefault();
+      var p = pointerPos(evt);
+      _dealFlowSignature.drawing = true;
+      _dealFlowSignature.lastX = p.x;
+      _dealFlowSignature.lastY = p.y;
+      canvas.setPointerCapture(evt.pointerId);
+    };
+    canvas.onpointermove = function(evt) {
+      if (!_dealFlowSignature.drawing) return;
+      evt.preventDefault();
+      var p = pointerPos(evt);
+      drawPoint(p, false);
+      _dealFlowSignature.hasInk = true;
+    };
+    function finishStroke(evt) {
+      if (!_dealFlowSignature.drawing) return;
+      _dealFlowSignature.drawing = false;
+      try { canvas.releasePointerCapture(evt.pointerId); } catch (e) {}
+      if (_dealFlowSignature.hasInk) {
+        state.signatureDataUrl = canvas.toDataURL('image/png');
+        saveDealFlowState(quote, state);
+      }
+    }
+    canvas.onpointerup = finishStroke;
+    canvas.onpointercancel = finishStroke;
+    canvas.onpointerleave = function(evt) {
+      if (_dealFlowSignature.drawing) finishStroke(evt);
+    };
+    window.addEventListener('resize', resizeCanvas, { once: true });
+    resizeCanvas();
+  }
+
+  function dealFlowClearSignature() {
+    if (!_dealFlowSignature.canvas || !_dealFlowSignature.ctx) return;
+    var canvas = _dealFlowSignature.canvas;
+    var ctx = _dealFlowSignature.ctx;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    _dealFlowSignature.hasInk = false;
+    if (!_dealFlowActiveQuoteId) return;
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch (e) {}
+    var quote = quotes.find(function(q) { return q.id === _dealFlowActiveQuoteId; });
+    if (!quote) return;
+    var state = loadDealFlowState(quote.id) || {};
+    state.signatureDataUrl = '';
+    saveDealFlowState(quote, state);
+  }
+
+  function dealFlowCommitSignature() {
+    if (!_dealFlowActiveQuoteId) return;
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch (e) {}
+    var quote = quotes.find(function(q) { return q.id === _dealFlowActiveQuoteId; });
+    if (!quote) return;
+    var nameEl = document.getElementById('deal-sign-name');
+    var ackEl = document.getElementById('deal-sign-ack');
+    var state = loadDealFlowState(quote.id) || {};
+    state = buildDealFlowState(quote, state);
+    state.signatureName = (nameEl && nameEl.value || '').trim();
+    state.acknowledged = !!(ackEl && ackEl.checked);
+    if (!state.signatureName) {
+      showToast('Please enter the signer name.', 'error');
+      return;
+    }
+    if (!state.acknowledged) {
+      showToast('Please confirm the acknowledgment before signing.', 'error');
+      return;
+    }
+    if (!_dealFlowSignature.hasInk && !state.signatureDataUrl) {
+      showToast('Please draw a signature before continuing.', 'error');
+      return;
+    }
+    state.currentStep = 'finance';
+    state.signedAt = new Date().toISOString();
+    state.leftOff = dealFlowStepLabel(state.currentStep);
+    state.pausedAt = '';
+    saveDealFlowState(quote, state);
+    showToast('Signature saved. Continue to financing.', 'success');
+    renderDealFlowModal(quote, state);
+    loadClientBillingData();
+  }
+
+  function dealFlowCommitFinance() {
+    if (!_dealFlowActiveQuoteId) return;
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch (e) {}
+    var quote = quotes.find(function(q) { return q.id === _dealFlowActiveQuoteId; });
+    if (!quote) return;
+    var state = loadDealFlowState(quote.id) || {};
+    state = buildDealFlowState(quote, state);
+    var choiceEl = document.getElementById('deal-finance-choice');
+    var linkEl = document.getElementById('deal-paypal-link');
+    var parentEl = document.getElementById('deal-parent-number');
+    var skuEl = document.getElementById('deal-sku');
+    state.financeChoice = choiceEl ? choiceEl.value : state.financeChoice;
+    state.paypalShareLink = (linkEl && linkEl.value || '').trim();
+    state.parentNumber = (parentEl && parentEl.value || '').trim() || (quote.number || quote.quote_number || quote.id);
+    state.sku = (skuEl && skuEl.value || '').trim() || ('HC-SKU-' + String(state.parentNumber).replace(/[^A-Za-z0-9]+/g, '-').toUpperCase());
+    state.invoiceNumber = state.invoiceNumber || dealFlowInvoiceNumber(quote, state);
+    if (state.financeChoice === 'pause') {
+      state.currentStep = 'finance';
+      state.leftOff = dealFlowStepLabel(state.currentStep);
+      state.pausedAt = new Date().toISOString();
+      saveDealFlowState(quote, state);
+      showToast('Financing saved. Resume later when ready.', 'info');
+      closeDealFlow();
+      loadClientBillingData();
+      return;
+    }
+    state.currentStep = 'invoice';
+    state.leftOff = dealFlowStepLabel(state.currentStep);
+    state.pausedAt = '';
+    saveDealFlowState(quote, state);
+    showToast('Financing saved. Invoice outline is ready.', 'success');
+    renderDealFlowModal(quote, state);
+    loadClientBillingData();
+  }
+
+  function dealFlowFinalize() {
+    if (!_dealFlowActiveQuoteId) return;
+    var quotes = [];
+    try { quotes = JSON.parse(localStorage.getItem('hc_client_quotes') || '[]'); } catch (e) {}
+    var quote = quotes.find(function(q) { return q.id === _dealFlowActiveQuoteId; });
+    if (!quote) return;
+    var state = loadDealFlowState(quote.id) || {};
+    state = buildDealFlowState(quote, state);
+    state.currentStep = 'invoice';
+    state.completedAt = new Date().toISOString();
+    state.leftOff = 'Completed';
+    state.pausedAt = '';
+    state.status = 'complete';
+    if (!state.invoiceNumber) state.invoiceNumber = dealFlowInvoiceNumber(quote, state);
+    saveDealFlowState(quote, state);
+    if (typeof window.acceptQuote === 'function') {
+      window.acceptQuote(quote.id);
+    }
+    showToast('Deal workflow completed.', 'success');
+    closeDealFlow();
+    loadClientBillingData();
   }
 
   function renderClientFinancialSummary() {
@@ -8924,7 +9578,7 @@ function showToast(msg,type){
 
     // Update badges
     var acceptedCount = quotes.filter(function(q) { return q.status === 'Accepted'; }).length;
-    var pendingCount = quotes.filter(function(q) { return q.status === 'Pending' || q.status === 'Sent'; }).length;
+    var pendingCount = quotes.filter(function(q) { return q.status === 'Pending' || q.status === 'Sent' || q.status === 'Pending Review'; }).length;
     var badgeContainer = quotesTable.closest('.card');
     if (badgeContainer) {
       var badges = badgeContainer.querySelectorAll('.badge');
@@ -8951,19 +9605,28 @@ function showToast(msg,type){
       var desc = item.type === 'quote' ? d.description : d.description;
       var amount = d.amount;
       var status = d.status;
+      var dealFlow = item.type === 'quote' ? loadDealFlowState(d.id) : null;
+      var dealFlowActive = !!(dealFlow && !dealFlow.completedAt);
+      var dealFlowLabel = dealFlow ? dealFlowStepLabel(dealFlow.currentStep || 'review') : '';
+      var sourceLabel = item.type === 'quote' ? (d.source_link || d.source_file_name || '') : '';
 
       html += '<tr>';
       html += '<td style="font-family:\'Share Tech Mono\',monospace;font-size:12px;">' + _escapeHtml(num) + '</td>';
       html += '<td>' + _escapeHtml(type) + '</td>';
-      html += '<td>' + _escapeHtml(desc) + '</td>';
+      html += '<td>' + _escapeHtml(desc);
+      if (sourceLabel) html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;">Source: ' + _escapeHtml(sourceLabel) + '</div>';
+      if (dealFlowActive) html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;">Left off: ' + _escapeHtml(dealFlowLabel) + '</div>';
+      html += '</td>';
       html += '<td style="font-weight:700;">' + _formatCurrency(amount) + '</td>';
       html += '<td><span class="badge ' + _billingBadge(status) + '" style="font-size:9px;">' + _escapeHtml(status).toUpperCase() + '</span></td>';
       html += '<td>';
-      if (item.type === 'quote' && (status === 'Pending' || status === 'Sent')) {
+      if (item.type === 'quote' && (status === 'Pending' || status === 'Sent' || status === 'Pending Review' || status === 'Draft')) {
         html += '<div style="display:flex;gap:4px;">';
-        html += '<button class="btn-primary" style="padding:4px 12px;font-size:11px;" onclick="acceptQuote(\'' + _escapeHtml(d.id) + '\')">Accept</button>';
+        html += '<button class="btn-primary" style="padding:4px 12px;font-size:11px;" onclick="openDealFlow(\'' + _escapeHtml(d.id) + '\')">' + (dealFlowActive ? 'Resume Deal' : 'Review &amp; Sign') + '</button>';
         html += '<button style="padding:4px 12px;font-size:11px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;" onclick="declineQuote(\'' + _escapeHtml(d.id) + '\')">Decline</button>';
         html += '</div>';
+      } else if (item.type === 'quote' && (status === 'Accepted' || dealFlowActive)) {
+        html += '<button class="btn-primary" style="padding:4px 12px;font-size:11px;" onclick="openDealFlow(\'' + _escapeHtml(d.id) + '\')">' + (dealFlowActive ? 'Resume Deal' : 'View Deal') + '</button>';
       } else {
         html += '<button style="padding:4px 12px;font-size:11px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted);cursor:pointer;">View</button>';
       }
@@ -9081,6 +9744,15 @@ function showToast(msg,type){
     showToast('Quote ' + q.number + ' accepted! Confirmation sent.', 'success');
     loadClientBillingData();
   };
+
+  window.openDealFlow = openDealFlow;
+  window.closeDealFlow = closeDealFlow;
+  window.dealFlowAdvanceStep = dealFlowAdvanceStep;
+  window.dealFlowPause = pauseDealFlow;
+  window.dealFlowCommitSignature = dealFlowCommitSignature;
+  window.dealFlowCommitFinance = dealFlowCommitFinance;
+  window.dealFlowFinalize = dealFlowFinalize;
+  window.dealFlowClearSignature = dealFlowClearSignature;
 
   window.declineQuote = function(quoteId) {
     var quotes = [];

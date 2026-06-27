@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050607">
+<title>HIRECAR Darrin Project Management</title>
+<meta name="description" content="Project management page for Darrin Bonds with proof-path milestones, a 2,478 tradeline target, and a Data Integrity Audit action path.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050607;
+    --panel: rgba(10, 14, 26, .82);
+    --panel-strong: rgba(15, 21, 40, .94);
+    --line: rgba(255, 255, 255, .08);
+    --ink: #f3f5f8;
+    --muted: #c0cad7;
+    --subtle: rgba(192, 202, 215, .72);
+    --blue: #2a6bb8;
+    --blue-2: #3b82d6;
+    --gold: #d4aa4a;
+    --gold-2: #b8922a;
+    --red: #f87171;
+    --green: #34d399;
+    --shadow: 0 30px 90px rgba(0, 0, 0, .44);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(42,107,184,.24), transparent 26vw),
+      radial-gradient(circle at 88% 2%, rgba(212,170,74,.14), transparent 24vw),
+      radial-gradient(circle at 50% 114%, rgba(0,180,140,.08), transparent 30vw),
+      linear-gradient(160deg, #000 0%, #020408 20%, #050912 36%, #09111f 55%, #0d172a 72%, #101d33 88%, #07101d 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+  body::before {
+    background:
+      linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.54) 42%, rgba(0,0,0,.12) 100%),
+      radial-gradient(circle at 18% 10%, rgba(42,107,184,.16), transparent 34%);
+    opacity: .92;
+  }
+  body::after {
+    opacity: .22;
+    background:
+      linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+    background-size: 72px 72px, 72px 72px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.35) 72%, transparent);
+  }
+  a { color: inherit; text-decoration: none; }
+  .shell {
+    width: min(1500px, calc(100% - 32px));
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    background:
+      radial-gradient(circle at 10% -28%, rgba(42,107,184,.18), transparent 42%),
+      radial-gradient(circle at 90% -28%, rgba(212,170,74,.12), transparent 38%),
+      linear-gradient(180deg, rgba(0,0,0,.9), rgba(2,7,14,.72));
+    backdrop-filter: blur(18px);
+    box-shadow: 0 12px 36px rgba(0,0,0,.28);
+  }
+  .topbar-inner {
+    min-height: 82px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .brand img {
+    width: clamp(118px, 10vw, 180px);
+    height: auto;
+    filter: brightness(0) invert(1);
+    flex-shrink: 0;
+  }
+  .brand-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .brand-copy strong {
+    font-size: 13px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+  .brand-copy span {
+    font: 700 11px/1 "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: .16em;
+    color: var(--subtle);
+    text-transform: uppercase;
+  }
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 13px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.04);
+    color: #dce4ee;
+    font: 700 11px/1 "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .pill.accent {
+    border-color: rgba(42,107,184,.24);
+    background: rgba(42,107,184,.12);
+    color: #9ecaff;
+  }
+  .hero {
+    padding: 34px 0 18px;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.22fr) minmax(320px, .78fr);
+    gap: 18px;
+    align-items: stretch;
+  }
+  .panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 24px;
+    background: linear-gradient(145deg, rgba(18,27,48,.96), rgba(8,13,24,.96));
+    box-shadow: var(--shadow);
+  }
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(42,107,184,.24), rgba(212,170,74,.12), transparent);
+  }
+  .hero-copy {
+    padding: 30px;
+    animation: rise .55s ease both;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .eyebrow {
+    margin-bottom: 12px;
+    color: #9dc5ff;
+    font: 700 11px/1 "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+  }
+  h1, h2, h3 {
+    margin: 0;
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  h1 {
+    font-size: clamp(48px, 6.8vw, 92px);
+    line-height: .92;
+    max-width: 14ch;
+    margin-bottom: 16px;
+  }
+  .lead {
+    max-width: 860px;
+    margin: 0;
+    color: #d2dbe6;
+    font-size: clamp(16px, 1.45vw, 19px);
+    line-height: 1.65;
+  }
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.04);
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: .01em;
+    transition: transform .2s ease, border-color .2s ease, background .2s ease;
+  }
+  .button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(42,107,184,.28);
+    background: rgba(42,107,184,.08);
+  }
+  .button.primary {
+    border-color: rgba(42,107,184,.28);
+    background: linear-gradient(135deg, rgba(30,90,158,.96), rgba(59,130,214,.92));
+    color: #fff;
+  }
+  .button.primary:hover { background: linear-gradient(135deg, rgba(42,107,184,.98), rgba(90,155,230,.96)); }
+  .hero-notes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .note {
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.04);
+  }
+  .note .value {
+    display: block;
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -.04em;
+    margin-bottom: 6px;
+  }
+  .note .label {
+    color: var(--subtle);
+    font: 700 11px/1.4 "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+  .hero-board {
+    padding: 22px;
+  }
+  .board-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .board-card {
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.04);
+    padding: 18px;
+  }
+  .board-card h2 {
+    font-size: 28px;
+    line-height: .95;
+    margin-bottom: 8px;
+  }
+  .board-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .proof-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 20px 0 0;
+  }
+  .proof-chip {
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.03);
+  }
+  .proof-chip strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .proof-chip span {
+    color: var(--subtle);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .section {
+    padding: 16px 0 0;
+  }
+  .section-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 16px;
+  }
+  .section-head h2 {
+    font-size: clamp(28px, 3vw, 42px);
+    line-height: .95;
+  }
+  .section-head p {
+    margin: 0;
+    color: var(--subtle);
+    max-width: 720px;
+    line-height: 1.6;
+  }
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .metric {
+    padding: 18px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: linear-gradient(160deg, rgba(21,29,48,.94), rgba(14,20,36,.94));
+  }
+  .metric .num {
+    display: block;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -.04em;
+    margin-bottom: 6px;
+  }
+  .metric .txt {
+    color: var(--subtle);
+    font: 700 10px/1.4 "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .card {
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: linear-gradient(160deg, rgba(17,24,39,.94), rgba(10,15,28,.94));
+    box-shadow: 0 18px 42px rgba(0,0,0,.18);
+  }
+  .card h3 {
+    font-size: 28px;
+    line-height: .95;
+    margin-bottom: 10px;
+  }
+  .card p {
+    margin: 0;
+    color: #d2dbe6;
+    line-height: 1.65;
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    color: #d9e3ef;
+    font: 700 10px/1 "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+  }
+  .tag.blue { border-color: rgba(59,130,214,.22); background: rgba(59,130,214,.08); color: #a9d4ff; }
+  .tag.gold { border-color: rgba(208,163,75,.25); background: rgba(208,163,75,.08); color: #f1cf8d; }
+  .tag.green { border-color: rgba(52,211,153,.2); background: rgba(52,211,153,.08); color: #9bf0ca; }
+  .timeline {
+    position: relative;
+    padding-left: 26px;
+    display: grid;
+    gap: 14px;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: linear-gradient(180deg, rgba(59,130,214,.8), rgba(208,163,75,.6), rgba(255,255,255,.16));
+  }
+  .step {
+    position: relative;
+    padding: 18px 18px 18px 20px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.04);
+  }
+  .step::before {
+    content: "";
+    position: absolute;
+    left: -22px;
+    top: 22px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.22);
+    background: #fff;
+  }
+  .step.active::before {
+    background: var(--blue);
+    border-color: rgba(255,255,255,.9);
+    box-shadow: 0 0 0 6px rgba(59,130,214,.12);
+  }
+  .step .top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .step .name {
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: .01em;
+  }
+  .step .when {
+    font: 700 10px/1 "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--subtle);
+  }
+  .step p { margin: 0; color: var(--muted); line-height: 1.6; }
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .mini {
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.04);
+  }
+  .mini strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 15px;
+  }
+  .mini p {
+    margin: 0;
+    color: var(--subtle);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .footer {
+    padding: 24px 0 38px;
+    color: var(--subtle);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .footer strong { color: #fff; }
+  .footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  @media (max-width: 1100px) {
+    .hero-grid,
+    .grid-2,
+    .metric-row,
+    .mini-grid,
+    .hero-notes,
+    .proof-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .section-head {
+      align-items: start;
+      flex-direction: column;
+    }
+  }
+  @media (max-width: 720px) {
+    .shell { width: min(100% - 20px, 100%); }
+    .topbar-inner { min-height: 72px; align-items: start; padding: 12px 0; }
+    .brand { align-items: start; }
+    .brand-copy strong { font-size: 12px; }
+    .nav { justify-content: flex-start; }
+    .hero { padding-top: 18px; }
+    .hero-grid,
+    .grid-2,
+    .metric-row,
+    .mini-grid,
+    .hero-notes,
+    .proof-grid {
+      grid-template-columns: 1fr;
+    }
+    .hero-copy, .hero-board, .card, .metric, .mini, .step { border-radius: 18px; }
+    .hero-copy { padding: 22px; }
+    h1 { max-width: none; }
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="brand">
+        <img src="../../hirecar-logo.png" alt="HIRECAR logo">
+        <div class="brand-copy">
+          <strong>Project Management Page</strong>
+          <span>Darrin Bonds | Credit Readiness, Tradeline Build, and Data Integrity</span>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Page sections">
+        <a class="pill accent" href="#overview">Overview</a>
+        <a class="pill" href="#proof">Proof Path</a>
+        <a class="pill" href="#pricing">Pricing</a>
+        <a class="pill" href="#roadmap">Roadmap</a>
+        <a class="pill" href="#deliverables">Deliverables</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" id="overview">
+      <div class="hero-grid">
+        <div class="panel hero-copy">
+          <div class="eyebrow">HIRECAR copy standard</div>
+          <h1>Do not just list the file. Track the asset.</h1>
+          <p class="lead">
+            This page turns the current Darrin record into a working project plan. It keeps the proof visible, keeps the claims conditional, and keeps the next step obvious: read the report, build the tradeline mix, complete the data integrity audit, and move toward the next decision with a clean record.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#roadmap">Open the roadmap</a>
+            <a class="button" href="#proof">Review the evidence</a>
+            <a class="button" href="#pricing">Review pricing</a>
+            <a class="button" href="../../downloads/Darrin_Member_Services_Client_Memo_2026-06-25.docx" download>Download memo</a>
+            <a class="button" href="../../downloads/Darrin_Member_Services_Client_Memo_2026-06-25.html" download>Open preview</a>
+          </div>
+          <div class="hero-notes">
+            <div class="note">
+              <span class="value">2,478</span>
+              <span class="label">Tradeline target</span>
+            </div>
+            <div class="note">
+              <span class="value">AU + PR</span>
+              <span class="label">Tradeline mix</span>
+            </div>
+            <div class="note">
+              <span class="value">DIA</span>
+              <span class="label">Data integrity audit</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="panel hero-board">
+          <div class="board-grid">
+            <div class="board-card">
+              <h2>Three Yes Test</h2>
+              <p>Can I visualize it? Can I falsify it? Can nobody else say this? If the line does not pass all three, it does not belong in the client-facing page.</p>
+            </div>
+            <div class="board-card">
+              <div class="proof-grid">
+                <div class="proof-chip">
+                  <strong>Page 1</strong>
+                  <span>Scores, totals, payments, public records, and inquiry counts.</span>
+                </div>
+                <div class="proof-chip">
+                  <strong>Pages 9-10</strong>
+                  <span>CAP1/MNRDS utilization pressure and the AMEX revolving balance.</span>
+                </div>
+                <div class="proof-chip">
+                  <strong>Page 43</strong>
+                  <span>Public records section, currently showing none reported.</span>
+                </div>
+                <div class="proof-chip">
+                  <strong>Pages 44-45</strong>
+                  <span>Inquiry section with matching and no-match pulls by bureau.</span>
+                </div>
+                <div class="proof-chip">
+                  <strong>Tradeline build</strong>
+                  <span>Authorized-user and primary tradeline mix planned around the 2,478 target.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="proof">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Evidence first</div>
+          <h2>Current record</h2>
+        </div>
+        <p>The page is built around what is already visible in the report, not what sounds good in a pitch. Keep the record clean, keep the language direct, and keep the next step tied to the proof path.</p>
+      </div>
+      <div class="metric-row">
+        <div class="metric"><span class="num">2,478</span><span class="txt">Target tradelines</span></div>
+        <div class="metric"><span class="num">AU</span><span class="txt">Authorized-user lanes</span></div>
+        <div class="metric"><span class="num">PR</span><span class="txt">Primary tradelines</span></div>
+        <div class="metric"><span class="num">DIA</span><span class="txt">Data integrity audit</span></div>
+        <div class="metric"><span class="num">0</span><span class="txt">Public records</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="grid-2">
+        <article class="card">
+          <div class="eyebrow">What the file says</div>
+          <h3>Use the report as the source of truth.</h3>
+          <p>
+            The readable report shows the credit score set at 609, 613, and 622; balances at roughly $342,222 on TransUnion and $339,484 on Experian and Equifax; public records at zero; and inquiry totals at 17, 9, and 4. The project target adds the tradeline build needed to get to 2,478 total tradelines across a planned mix of authorized-user and primary tradelines.
+          </p>
+          <div class="tag-row">
+            <span class="tag blue">Report page 1</span>
+            <span class="tag gold">Visible balances</span>
+            <span class="tag green">No public records</span>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="eyebrow">What matters next</div>
+          <h3>Show the drag, then show the route.</h3>
+          <p>
+            The biggest visible pressure points are CAP1/MNRDS at 85 percent utilization and AMEX at 90 percent utilization. Those sections give the client a concrete reason to slow down, clean up the file, and use the written action plan instead of guessing.
+          </p>
+          <div class="tag-row">
+            <span class="tag blue">Pages 9-10</span>
+            <span class="tag gold">Utilization pressure</span>
+            <span class="tag green">Conditional language only</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Data integrity audit</div>
+          <h2>Cleanup and accuracy layer</h2>
+        </div>
+        <p>This section makes the audit plain: the work is designed to clean up the file, remove or reconcile stale and conflicting entries where supported, and maximize the accuracy of the client profile and discovery documents.</p>
+      </div>
+      <div class="grid-2">
+        <article class="card">
+          <div class="eyebrow">Purpose</div>
+          <h3>Discover the documents and normalize the profile.</h3>
+          <p>
+            The Data Integrity Audit is the cleanup and verification step that checks the client profile against the supporting documents. Its job is to surface missing records, resolve conflicting data, and make sure the discovery package reflects the most accurate version of the file.
+          </p>
+          <div class="tag-row">
+            <span class="tag blue">Discovery documents</span>
+            <span class="tag gold">Maximum accuracy</span>
+            <span class="tag green">Profile cleanup</span>
+          </div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">What it includes</div>
+          <h3>Clean, remove, reconcile.</h3>
+          <p>
+            That means reviewing duplicated items, stale addresses, bureau mismatches, incomplete identifiers, inconsistent balances, and any entries that should be removed or corrected based on the supporting record. The memo should say this plainly so the client understands the audit is meant to improve accuracy, not just summarize the file.
+          </p>
+          <div class="tag-row">
+            <span class="tag blue">Bureau mismatch review</span>
+            <span class="tag gold">File hygiene</span>
+            <span class="tag green">Document control</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="pricing">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Quote map</div>
+          <h2>Pricing and funding terms</h2>
+        </div>
+        <p>The target funding is an SBA or other business loan in the $250,000 to $500,000 range. Use it as an example range for costs and fees only, not as a guarantee or promise of funding.</p>
+      </div>
+      <div class="grid-2">
+        <article class="card">
+          <div class="eyebrow">Fixed charges</div>
+          <h3>Service fees that can be stated plainly.</h3>
+          <p>
+            Tradeline line: $2,800. Data Integrity Audit: $2,400. If the six-month carry is shown separately, add $600 at the discussed $100/month rate.
+          </p>
+          <div class="tag-row">
+            <span class="tag blue">$2,800 tradeline line</span>
+            <span class="tag gold">$2,400 audit</span>
+            <span class="tag green">$600 carry</span>
+          </div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Success fee</div>
+          <h3>Funding compensation stays tied to the result.</h3>
+          <p>
+            Charge 6% of funding acquired. On a $250,000 example, that equals $15,000. On a $500,000 example, that equals $30,000.
+          </p>
+          <div class="tag-row">
+            <span class="tag blue">6% of funding</span>
+            <span class="tag gold">$250K to $500K</span>
+            <span class="tag green">$15K to $30K fee</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="roadmap">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Roadmap</div>
+          <h2>Project milestones</h2>
+        </div>
+        <p>Use this sequence as a project management view: explain the current state, isolate the issues, reduce the noise, and move toward the next decision point without promising an outcome.</p>
+      </div>
+      <div class="timeline">
+        <div class="step active">
+          <div class="top">
+            <div class="name">1. Read the file</div>
+            <div class="when">Day 0</div>
+          </div>
+          <p>Review the report pages that are readable and build the client story from facts, not from assumptions.</p>
+        </div>
+        <div class="step">
+          <div class="top">
+            <div class="name">2. Name the issue set</div>
+            <div class="when">Days 1-3</div>
+          </div>
+          <p>Separate late history, utilization pressure, and inquiry activity so the client can see what is actually holding the file back.</p>
+        </div>
+        <div class="step">
+          <div class="top">
+            <div class="name">3. Control the input</div>
+            <div class="when">Days 3-7</div>
+          </div>
+          <p>Hold balance growth down, avoid avoidable new pulls, and keep the record stable while the plan is active.</p>
+        </div>
+        <div class="step">
+          <div class="top">
+            <div class="name">4. Confirm the scope</div>
+            <div class="when">Week 2</div>
+          </div>
+          <p>Put the next step in writing so the client understands what is included, what is not, and what has to happen before the next move, including the data integrity audit and tradeline build targets.</p>
+        </div>
+        <div class="step">
+          <div class="top">
+            <div class="name">5. Move to decision</div>
+            <div class="when">Week 2-4</div>
+          </div>
+          <p>Use the roadmap, the source map, and the follow-up thread to create a purchase or funding decision point that can be reviewed cleanly.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="deliverables">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Operational output</div>
+          <h2>Deliverables and controls</h2>
+        </div>
+        <p>This is the project-management layer for Darrin. It should keep the internal view and the client view separate while still pointing to the same proof base.</p>
+      </div>
+      <div class="mini-grid">
+        <div class="mini">
+          <strong>Internal memo</strong>
+          <p>Training and control language for the HIRECAR team, with the revision logic and source notes preserved.</p>
+        </div>
+        <div class="mini">
+          <strong>Client memo</strong>
+          <p>Roadmap language that explains the record, the issue set, and the next step without exposing internal strategy. Download: <a href="../../downloads/Darrin_Member_Services_Client_Memo_2026-06-25.docx" download style="color:#9ecaff;">DOCX</a>.</p>
+        </div>
+        <div class="mini">
+          <strong>Source map</strong>
+          <p>Page-level support for report facts, call references, and any provisional items that still need confirmation.</p>
+        </div>
+        <div class="mini">
+          <strong>Data integrity audit</strong>
+          <p>Explain the cleanup step plainly: it is designed to improve accuracy, reconcile conflicts, and support discovery of supporting documents.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="grid-2">
+        <article class="card">
+          <div class="eyebrow">HIRECAR standard</div>
+          <h3>Real vehicles. Real payments. Real records.</h3>
+          <p>
+            The point of the page is not to sound polished. The point is to make the business model legible: the reader should see the record, see the drag, and see the path forward.
+          </p>
+          <div class="tag-row">
+            <span class="tag blue">Visible proof</span>
+            <span class="tag gold">Falsifiable claims</span>
+            <span class="tag green">Specific to HIRECAR</span>
+          </div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Final note</div>
+          <h3>Keep the next step obvious.</h3>
+          <p>
+            If the client cannot tell what happens next, the page is not finished. The final line should always point to one concrete action: review, confirm, document, or move.
+          </p>
+          <div class="tag-row">
+            <span class="tag blue">One next step</span>
+            <span class="tag gold">No hype</span>
+            <span class="tag green">Client-safe</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <strong>Implementation note:</strong> this repo is static HTML/JS, so the React shadcn component was not dropped into `/components/ui` here. If you later move this page into a React app, the default shadcn path should be `components/ui` and the styling should live in the app global stylesheet.
+      <div class="footer-row">
+        <span class="pill accent">HIRECAR logo used</span>
+        <span class="pill">Static dev page</span>
+        <span class="pill">2,478 tradeline target</span>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>

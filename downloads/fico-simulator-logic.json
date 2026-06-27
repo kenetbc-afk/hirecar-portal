@@ -1,0 +1,642 @@
+{
+  "name": "HIRECAR Credit Simulator Logic",
+  "version": "1.0.0",
+  "scope": "admin-portal-only",
+  "purpose": "Original simulation framework for bureau-level credit score range estimates, stacked scenario testing, and report-driven analysis. This file is designed to power a client-specific simulator without reproducing proprietary FICO formulas.",
+  "disclaimer": "Estimates are heuristic, not guaranteed, and should be treated as educational and operational guidance only.",
+  "supportedReportSources": [
+    "smartcredit_vantage_3b",
+    "myfico_3bureau",
+    "uploaded_pdf",
+    "uploaded_html",
+    "uploaded_csv",
+    "uploaded_json",
+    "manual_entry"
+  ],
+  "reportSelection": {
+    "defaultStrategy": "latest_selected_for_simulation",
+    "fallbackStrategy": "latest_parsed_report",
+    "manualOverride": true,
+    "selectionFields": [
+      "selectedForSimulation",
+      "uploadedAt",
+      "report_last_updated",
+      "source_provider",
+      "report_type"
+    ]
+  },
+  "bureauKeys": [
+    "transunion",
+    "experian",
+    "equifax"
+  ],
+  "scoreFamilies": [
+    {
+      "key": "fico_8",
+      "label": "FICO 8",
+      "range": [300, 850],
+      "usedFor": [
+        "personal_loan",
+        "credit_card",
+        "general_underwriting",
+        "retail_credit"
+      ],
+      "bureauAggregation": "individual_and_average",
+      "defaultConfidence": "medium"
+    },
+    {
+      "key": "fico_auto_8",
+      "label": "FICO Auto Score 8",
+      "range": [250, 900],
+      "usedFor": [
+        "auto_loan"
+      ],
+      "bureauAggregation": "individual_and_average",
+      "defaultConfidence": "medium"
+    },
+    {
+      "key": "fico_bankcard_8",
+      "label": "FICO Bankcard Score 8",
+      "range": [250, 900],
+      "usedFor": [
+        "bankcard",
+        "credit_card"
+      ],
+      "bureauAggregation": "individual_and_average",
+      "defaultConfidence": "medium"
+    },
+    {
+      "key": "fico_mortgage_54_2",
+      "label": "FICO Score 5, 4 & 2",
+      "range": [300, 850],
+      "usedFor": [
+        "mortgage"
+      ],
+      "bureauAggregation": "individual_and_average",
+      "defaultConfidence": "medium"
+    },
+    {
+      "key": "vantage_3_0",
+      "label": "VantageScore 3.0",
+      "range": [300, 850],
+      "usedFor": [
+        "monitoring",
+        "consumer_education",
+        "broad_trending"
+      ],
+      "bureauAggregation": "individual_and_average",
+      "defaultConfidence": "medium"
+    }
+  ],
+  "outputSchema": {
+    "requiredFields": [
+      "exactEstimate",
+      "rangeLow",
+      "rangeHigh",
+      "confidence",
+      "bureauBreakdown",
+      "approvalLikelihood",
+      "rating",
+      "opportunitiesForImprovement",
+      "focusFirst"
+    ],
+    "ratingBands": [
+      { "label": "Poor", "max": 579 },
+      { "label": "Fair", "min": 580, "max": 669 },
+      { "label": "Good", "min": 670, "max": 739 },
+      { "label": "Very Good", "min": 740, "max": 799 },
+      { "label": "Exceptional", "min": 800 }
+    ],
+    "approvalBands": [
+      { "label": "Very Low", "max": 19 },
+      { "label": "Low", "min": 20, "max": 39 },
+      { "label": "Moderate", "min": 40, "max": 59 },
+      { "label": "High", "min": 60, "max": 79 },
+      { "label": "Very High", "min": 80 }
+    ]
+  },
+  "baselineSignals": {
+    "paymentHistory": {
+      "weight": 0.34,
+      "positiveDrivers": [
+        "On-time payments",
+        "Long clean payment streaks",
+        "Recent positive activity"
+      ],
+      "negativeDrivers": [
+        "Missed payments",
+        "Collections",
+        "Charge-offs",
+        "Bankruptcies",
+        "Repossessions"
+      ]
+    },
+    "utilization": {
+      "weight": 0.23,
+      "thresholds": [
+        { "lte": 10, "effect": "strong_positive" },
+        { "lte": 30, "effect": "neutral_positive" },
+        { "lte": 50, "effect": "neutral" },
+        { "gt": 50, "effect": "negative" }
+      ]
+    },
+    "age": {
+      "weight": 0.15,
+      "drivers": [
+        "Average age of accounts",
+        "Age of oldest account",
+        "Age since most recent new account"
+      ]
+    },
+    "mix": {
+      "weight": 0.11,
+      "drivers": [
+        "Revolving mix",
+        "Installment mix",
+        "Mortgage mix",
+        "Open-ended account diversity"
+      ]
+    },
+    "inquiries": {
+      "weight": 0.09,
+      "drivers": [
+        "Recent hard inquiries",
+        "Inquiry concentration by bureau",
+        "Inquiry age"
+      ]
+    },
+    "negativeItems": {
+      "weight": 0.08,
+      "drivers": [
+        "Collections",
+        "Public records",
+        "Recent derogatories",
+        "Open disputes"
+      ]
+    }
+  },
+  "reportFeatures": {
+    "scoreSources": [
+      "bureau_scores",
+      "derived_averages",
+      "report_summary",
+      "open_accounts",
+      "closed_accounts",
+      "delinquent_accounts",
+      "derogatory_accounts",
+      "balances",
+      "payments",
+      "public_records",
+      "inquiries",
+      "tradeline_history"
+    ],
+    "specialtyFields": [
+      "fico_auto_score_average",
+      "fico_bankcard_score_average",
+      "fico_mortgage_score_average",
+      "vantage_score_model"
+    ]
+  },
+  "reportSelectionRules": {
+    "priorityOrder": [
+      "selectedForSimulation",
+      "report_last_updated",
+      "parsedScores.source_provider",
+      "uploadedAt"
+    ],
+    "manualSelectionAllowed": true,
+    "manualSelectionFields": [
+      "reportId",
+      "source_provider",
+      "report_type",
+      "report_last_updated"
+    ]
+  },
+  "aggregationRules": {
+    "bureauAverage": "round(mean(nonzero bureau values))",
+    "specialtyAverage": "round(mean(nonzero specialty bureau values))",
+    "confidenceFromSpread": {
+      "spreadLe10": "high",
+      "spreadLe25": "medium",
+      "spreadLe40": "low",
+      "spreadGt40": "very_low"
+    },
+    "rangeWidthByConfidence": {
+      "high": 8,
+      "medium": 16,
+      "low": 24,
+      "very_low": 36
+    }
+  },
+  "stackingRules": {
+    "mode": "sequential",
+    "description": "Scenarios are applied in the order they were added. Each scenario consumes the output of the prior scenario.",
+    "maxSingleActionScenarios": 24,
+    "maxMultiActionScenarios": 26,
+    "crossBureauConsistency": "retain bureau-relative spread unless a scenario explicitly targets one bureau",
+    "conflictResolution": "last_write_wins_for_same_field",
+    "fieldStacking": [
+      "utilization",
+      "inquiries",
+      "ages",
+      "balances",
+      "account_mix",
+      "derogatory_items"
+    ]
+  },
+  "scoreInterpretation": {
+    "fico8": {
+      "good": [670, 739],
+      "fair": [580, 669],
+      "poor": [300, 579]
+    },
+    "auto": {
+      "good": [670, 739],
+      "fair": [580, 669],
+      "poor": [250, 579]
+    },
+    "bankcard": {
+      "good": [670, 739],
+      "fair": [580, 669],
+      "poor": [250, 579]
+    },
+    "mortgage": {
+      "good": [670, 739],
+      "fair": [580, 669],
+      "poor": [300, 579]
+    }
+  },
+  "scenarioLibrary": [
+    {
+      "id": "age_credit_report",
+      "label": "Age Credit Report",
+      "category": "time",
+      "inputs": {
+        "months": { "min": 1, "max": 24, "default": 3 }
+      },
+      "effects": {
+        "primary": "small_positive",
+        "auto": "small_positive",
+        "bankcard": "small_positive",
+        "mortgage": "small_positive",
+        "vantage": "small_positive"
+      },
+      "notes": "Older reports generally improve stability and modeled confidence."
+    },
+    {
+      "id": "new_credit_card",
+      "label": "Add Credit Card",
+      "category": "revolving",
+      "inputs": {
+        "limit": { "min": 250, "max": 100000, "default": 750 },
+        "balance": { "min": 0, "max": 100000, "default": 0 }
+      },
+      "effects": {
+        "primary": "mixed",
+        "auto": "slightly_negative",
+        "bankcard": "mixed",
+        "mortgage": "slightly_negative",
+        "vantage": "slightly_negative"
+      },
+      "notes": "Adds available credit and mix, but may create a hard inquiry and lower average age."
+    },
+    {
+      "id": "increase_utilization",
+      "label": "Increase Utilization",
+      "category": "revolving",
+      "inputs": {
+        "utilizationPercent": { "min": 1, "max": 100, "default": 30 }
+      },
+      "effects": {
+        "primary": "negative",
+        "auto": "negative",
+        "bankcard": "negative",
+        "mortgage": "negative",
+        "vantage": "negative"
+      },
+      "notes": "Higher revolving utilization is usually a broad negative."
+    },
+    {
+      "id": "pay_down_balance",
+      "label": "Pay Down Balance",
+      "category": "revolving",
+      "inputs": {
+        "amount": { "min": 0, "max": 100000, "default": 500 }
+      },
+      "effects": {
+        "primary": "positive",
+        "auto": "positive",
+        "bankcard": "positive",
+        "mortgage": "positive",
+        "vantage": "positive"
+      },
+      "notes": "Improves utilization and can raise modeled approval likelihood."
+    },
+    {
+      "id": "open_auto_loan",
+      "label": "Open Auto Loan",
+      "category": "installment",
+      "inputs": {
+        "loanAmount": { "min": 1000, "max": 100000, "default": 20000 },
+        "months": { "min": 12, "max": 84, "default": 60 }
+      },
+      "effects": {
+        "primary": "slightly_negative_then_positive",
+        "auto": "positive_if_clean",
+        "bankcard": "neutral_to_positive",
+        "mortgage": "neutral",
+        "vantage": "neutral_to_positive"
+      },
+      "notes": "Installment mix can help over time but may create a short-term inquiry impact."
+    },
+    {
+      "id": "open_mortgage",
+      "label": "Open Mortgage",
+      "category": "installment",
+      "inputs": {
+        "loanAmount": { "min": 50000, "max": 2000000, "default": 250000 },
+        "months": { "min": 84, "max": 360, "default": 360 }
+      },
+      "effects": {
+        "primary": "mixed",
+        "auto": "neutral",
+        "bankcard": "neutral",
+        "mortgage": "positive_if_clean",
+        "vantage": "neutral"
+      },
+      "notes": "Mortgage models reward mortgage mix and long-term stability."
+    },
+    {
+      "id": "open_personal_loan",
+      "label": "Open Personal Loan",
+      "category": "installment",
+      "inputs": {
+        "loanAmount": { "min": 500, "max": 100000, "default": 5000 },
+        "months": { "min": 6, "max": 84, "default": 36 }
+      },
+      "effects": {
+        "primary": "mixed",
+        "auto": "slightly_negative",
+        "bankcard": "neutral",
+        "mortgage": "neutral_to_negative",
+        "vantage": "neutral"
+      },
+      "notes": "Can improve mix, but short-term inquiry and added debt may offset gains."
+    },
+    {
+      "id": "add_hard_inquiry",
+      "label": "Add Hard Inquiry",
+      "category": "inquiry",
+      "inputs": {
+        "count": { "min": 1, "max": 12, "default": 1 },
+        "bureau": { "allowed": ["transunion", "experian", "equifax", "all"], "default": "all" }
+      },
+      "effects": {
+        "primary": "negative",
+        "auto": "negative",
+        "bankcard": "negative",
+        "mortgage": "negative",
+        "vantage": "negative"
+      },
+      "notes": "Inquiry impact is strongest in the short term and softens with age."
+    },
+    {
+      "id": "age_inquiry",
+      "label": "Age Inquiry",
+      "category": "inquiry",
+      "inputs": {
+        "months": { "min": 1, "max": 24, "default": 6 }
+      },
+      "effects": {
+        "primary": "positive",
+        "auto": "positive",
+        "bankcard": "positive",
+        "mortgage": "positive",
+        "vantage": "positive"
+      },
+      "notes": "Older inquiries should reduce impact over time."
+    },
+    {
+      "id": "add_collection",
+      "label": "Add Collection",
+      "category": "negative",
+      "inputs": {
+        "amount": { "min": 50, "max": 100000, "default": 230 }
+      },
+      "effects": {
+        "primary": "strong_negative",
+        "auto": "strong_negative",
+        "bankcard": "strong_negative",
+        "mortgage": "strong_negative",
+        "vantage": "strong_negative"
+      },
+      "notes": "Collections are one of the strongest negative signals."
+    },
+    {
+      "id": "resolve_collection",
+      "label": "Resolve Collection",
+      "category": "negative",
+      "inputs": {
+        "amount": { "min": 50, "max": 100000, "default": 230 }
+      },
+      "effects": {
+        "primary": "positive",
+        "auto": "positive",
+        "bankcard": "positive",
+        "mortgage": "positive",
+        "vantage": "positive"
+      },
+      "notes": "Resolution does not erase history but can improve the modeled outlook."
+    },
+    {
+      "id": "add_late_payment",
+      "label": "Add Late Payment",
+      "category": "negative",
+      "inputs": {
+        "daysLate": { "allowed": [30, 60, 90, 120, 150], "default": 30 }
+      },
+      "effects": {
+        "primary": "negative",
+        "auto": "negative",
+        "bankcard": "negative",
+        "mortgage": "negative",
+        "vantage": "negative"
+      },
+      "notes": "Severity increases as days late increase."
+    },
+    {
+      "id": "remove_late_payment",
+      "label": "Remove Late Payment",
+      "category": "negative",
+      "inputs": {
+        "daysLate": { "allowed": [30, 60, 90, 120, 150], "default": 30 }
+      },
+      "effects": {
+        "primary": "positive",
+        "auto": "positive",
+        "bankcard": "positive",
+        "mortgage": "positive",
+        "vantage": "positive"
+      },
+      "notes": "Useful for scenario planning if a dispute or correction succeeds."
+    },
+    {
+      "id": "installment_payoff",
+      "label": "Pay Off Installment Loan",
+      "category": "installment",
+      "inputs": {
+        "balancePercent": { "min": 0, "max": 100, "default": 0 }
+      },
+      "effects": {
+        "primary": "mixed",
+        "auto": "positive_if_clean",
+        "bankcard": "neutral",
+        "mortgage": "positive_if_mortgage_mix_changes",
+        "vantage": "neutral_to_positive"
+      },
+      "notes": "Can reduce DTI but may reduce active installment mix if the file is thin."
+    },
+    {
+      "id": "open_second_revolver",
+      "label": "Open Second Revolver",
+      "category": "revolving",
+      "inputs": {
+        "limit": { "min": 250, "max": 50000, "default": 1500 }
+      },
+      "effects": {
+        "primary": "mixed",
+        "auto": "neutral",
+        "bankcard": "positive_if_utilization_improves",
+        "mortgage": "neutral",
+        "vantage": "neutral"
+      },
+      "notes": "More revolvers can help utilization and mix if managed well."
+    }
+  ],
+  "scenarioOrdering": {
+    "defaultOrder": [
+      "age_credit_report",
+      "age_inquiry",
+      "pay_down_balance",
+      "installment_payoff",
+      "open_second_revolver",
+      "new_credit_card",
+      "open_auto_loan",
+      "open_mortgage",
+      "open_personal_loan",
+      "add_hard_inquiry",
+      "add_late_payment",
+      "add_collection",
+      "resolve_collection",
+      "remove_late_payment",
+      "increase_utilization"
+    ],
+    "rationale": "Positive stabilization steps should be applied before stress scenarios when simulating stacked outcomes."
+  },
+  "confidenceModel": {
+    "inputs": [
+      "reportCompleteness",
+      "bureauSpread",
+      "recentNegativeItems",
+      "recentPositiveReinforcement",
+      "scenarioCount",
+      "scenarioSeverity"
+    ],
+    "bands": {
+      "high": {
+        "spreadMax": 10,
+        "recentNegativeItemsMax": 0,
+        "scenarioSeverityMax": 2
+      },
+      "medium": {
+        "spreadMax": 25,
+        "recentNegativeItemsMax": 1,
+        "scenarioSeverityMax": 4
+      },
+      "low": {
+        "spreadMax": 40,
+        "recentNegativeItemsMax": 2,
+        "scenarioSeverityMax": 6
+      },
+      "very_low": {
+        "spreadMax": 999,
+        "recentNegativeItemsMax": 99,
+        "scenarioSeverityMax": 99
+      }
+    }
+  },
+  "improvementEngine": {
+    "priorityOrder": [
+      "pay_down_revolving_utilization",
+      "remove_or_resolve_negative_items",
+      "add_clean_revolving_history",
+      "improve_installment_mix",
+      "age_newest_accounts",
+      "reduce_new_inquiries"
+    ],
+    "recommendations": [
+      {
+        "id": "pay_down_revolving_utilization",
+        "label": "Lower revolving utilization below 10%",
+        "why": "Usually the fastest broad-based score improvement."
+      },
+      {
+        "id": "remove_or_resolve_negative_items",
+        "label": "Resolve collections and derogatories",
+        "why": "Negative items are typically the strongest drag on score bands."
+      },
+      {
+        "id": "add_clean_revolving_history",
+        "label": "Add clean revolving activity",
+        "why": "A thin revolving file can suppress bankcard and base FICO outcomes."
+      },
+      {
+        "id": "improve_installment_mix",
+        "label": "Maintain healthy installment history",
+        "why": "Installment mix supports auto and mortgage oriented outcomes."
+      },
+      {
+        "id": "age_newest_accounts",
+        "label": "Let new accounts age",
+        "why": "Age can improve modeled stability and confidence."
+      },
+      {
+        "id": "reduce_new_inquiries",
+        "label": "Avoid unnecessary hard inquiries",
+        "why": "Inquiry suppression helps preserve near-term score ceilings."
+      }
+    ]
+  },
+  "approvalLikelihood": {
+    "calculation": "estimate the probability band from score family, bureau spread, and scenario severity",
+    "bands": [
+      { "label": "Very Low", "minScore": 300, "maxScore": 579, "probability": [0, 19] },
+      { "label": "Low", "minScore": 580, "maxScore": 649, "probability": [20, 39] },
+      { "label": "Moderate", "minScore": 650, "maxScore": 709, "probability": [40, 59] },
+      { "label": "High", "minScore": 710, "maxScore": 769, "probability": [60, 79] },
+      { "label": "Very High", "minScore": 770, "maxScore": 900, "probability": [80, 96] }
+    ]
+  },
+  "clientOutputTemplate": {
+    "summaryFields": [
+      "selectedReport",
+      "scoreFamily",
+      "bureauScores",
+      "averageScore",
+      "range",
+      "confidence",
+      "approvalLikelihood",
+      "rating",
+      "keyDrivers",
+      "improvementActions"
+    ],
+    "detailFields": [
+      "bureauBreakdown",
+      "scenarioStack",
+      "assumptions",
+      "reportMetadata",
+      "selectedReportId",
+      "uploadedReports"
+    ]
+  }
+}

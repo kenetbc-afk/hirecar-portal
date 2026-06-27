@@ -6,7 +6,7 @@
  *   - file: the uploaded file (image or PDF)
  *   - memberId: PIFR member ID or client ID
  *   - docType: "id-front" | "id-back" | "driver-license-front" | "driver-license-back"
- *              | "utility-bill" | "second-id" | "client-docs" | "business-details"
+ *              | "utility-bill" | "ssn-card" | "second-id" | "client-docs" | "business-details"
  *              | "credit-report" | "dispute-doc" | "general"
  *   - metadata: optional JSON string with extra context
  *
@@ -58,6 +58,7 @@ export async function onRequestPost(context) {
       'driver-license-front',
       'driver-license-back',
       'utility-bill',
+      'ssn-card',
       'second-id',
       'client-docs',
       'business-details',

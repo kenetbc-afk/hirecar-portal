@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS admin_invoices (
   id              TEXT PRIMARY KEY,
   client_id       TEXT NOT NULL,
   invoice_number  TEXT NOT NULL,
+  parent_number   TEXT DEFAULT '',
+  sku             TEXT DEFAULT '',
   description     TEXT DEFAULT '',
   amount_cents    INTEGER NOT NULL DEFAULT 0,
   status          TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','sent','paid','overdue','cancelled')),
@@ -45,6 +47,9 @@ CREATE TABLE IF NOT EXISTS admin_invoices (
   paid_at         TEXT,
   payment_method  TEXT DEFAULT '',
   quote_id        TEXT,
+  order_details   TEXT DEFAULT '',
+  paypal_invoice_id TEXT DEFAULT '',
+  paypal_share_link TEXT DEFAULT '',
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

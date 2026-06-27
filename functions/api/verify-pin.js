@@ -1,7 +1,7 @@
 /**
  * Cloudflare Pages Function — PIN verification endpoint
  * POST /api/verify-pin
- * Body: { pin: "4456" }
+ * Body: { pin: "4040" }
  *
  * Sets a 24-hour auth cookie on success.
  */
@@ -20,7 +20,7 @@ export async function onRequestPost(context) {
     const body = await request.json();
     const pin = String(body.pin || '').trim();
 
-    if (pin === '4456') {
+    if (pin === '4040') {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: {

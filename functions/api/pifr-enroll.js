@@ -8,6 +8,15 @@ const PIFR_COL_MAP = {
   lname: 'lname',
   email: 'email',
   phone: 'phone',
+  address1: 'address1',
+  address2: 'address2',
+  city: 'city',
+  region: 'region',
+  postalCode: 'postal_code',
+  postal_code: 'postal_code',
+  country: 'country',
+  entryPoint: 'entry_point',
+  entry_point: 'entry_point',
   lane: 'lane',
   plan: 'plan',
   planPrice: 'plan_price',
@@ -25,6 +34,25 @@ const PIFR_COL_MAP = {
   level: 'level',
   status: 'status',
   notes: 'notes',
+  sourceValidationStatus: 'source_validation_status',
+  sourceValidationMatchedBy: 'source_validation_matched_by',
+  sourceValidationReason: 'source_validation_reason',
+  sourceValidationAt: 'source_validation_at',
+  reportAccessStatus: 'report_access_status',
+  reportAccessDetails: 'report_access_details',
+  scoreModel: 'score_model',
+  reportLastUpdated: 'report_last_updated',
+  equifaxScore: 'equifax_score',
+  experianScore: 'experian_score',
+  transunionScore: 'transunion_score',
+  ficoScores: 'fico_scores',
+  ficoAutoScoreAverage: 'fico_auto_score_average',
+  ficoScore8: 'fico_score_8',
+  ficoRealEstateRentalScore: 'fico_real_estate_rental_score',
+  ssnFundingStatus: 'ssn_funding_status',
+  bnplStatus: 'bnpl_status',
+  bnplApprovedAmount: 'bnpl_approved_amount',
+  clientReviewStatus: 'client_review_status',
   calDate: 'cal_date',
   cal_date: 'cal_date',
   calTime: 'cal_time',
@@ -49,6 +77,28 @@ const PIFR_COL_MAP = {
   email_day1_sent: 'email_day1_sent',
   email_day1_opened: 'email_day1_opened',
 };
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function normalizeMemberId(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function publicEnrollmentMatch(row) {
+  if (!row) return null;
+  return {
+    member_id: row.member_id || row.mid || '',
+    email: row.email || '',
+    fname: row.fname || '',
+    lname: row.lname || '',
+    phone: row.phone || '',
+    status: row.status || '',
+    lane: row.lane || '',
+    plan: row.plan || ''
+  };
+}
 
 export async function onRequestPost(context) {
   const cors = {
@@ -118,13 +168,20 @@ export async function onRequestPost(context) {
       } else {
         resolvedId = 'pifr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
         await context.env.DB.prepare(`
-          INSERT INTO pifr_enrollments (id, member_id, fname, lname, email, phone, plan, plan_price,
-            score_range, issues, goal, timeline, bureaus, channels, profile_score, xp, level,
+          INSERT INTO pifr_enrollments (id, member_id, fname, lname, email, phone,
+            address1, address2, city, region, postal_code, country, entry_point,
+            plan, plan_price, score_range, issues, goal, timeline, bureaus, channels, profile_score, xp, level,
             status, cal_date, cal_time, cal_month, cal_year, state, zip, notes, lane,
-            primary_member, covered_members, plan_members, dependent_count)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            primary_member, covered_members, plan_members, dependent_count,
+            source_validation_status, source_validation_matched_by, source_validation_reason, source_validation_at,
+            report_access_status, report_access_details, score_model, report_last_updated,
+            equifax_score, experian_score, transunion_score, fico_scores, fico_auto_score_average, fico_score_8, fico_real_estate_rental_score,
+            ssn_funding_status, bnpl_status, bnpl_approved_amount, client_review_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           resolvedId, data.mid, data.fname || '', data.lname || '', data.email, data.phone || '',
+          data.address1 || '', data.address2 || '', data.city || '', data.region || '',
+          data.postalCode || data.zip || '', data.country || '', data.entryPoint || data.entry_point || '',
           data.plan || '', data.planPrice || '', data.scoreRange || '', data.issues || '',
           data.goal || '', data.timeline || '', data.bureaus || '', data.channels || '',
           data.profileScore || 0, data.xp || 0, data.level || '',
@@ -132,7 +189,26 @@ export async function onRequestPost(context) {
           data.calDate || null, data.calTime || null, data.calMonth || null, data.calYear || null,
           data.state || '', data.zip || '', data.notes || '', data.lane || '',
           data.primaryMember || data.primary_member || '', data.coveredMembers || data.covered_members || '',
-          data.planMembers || data.plan_members || '', data.dependentCount || data.dependent_count || 0
+          data.planMembers || data.plan_members || '', data.dependentCount || data.dependent_count || 0,
+          data.sourceValidationStatus || data.source_validation_status || '',
+          data.sourceValidationMatchedBy || data.source_validation_matched_by || '',
+          data.sourceValidationReason || data.source_validation_reason || '',
+          data.sourceValidationAt || data.source_validation_at || null,
+          data.reportAccessStatus || data.report_access_status || '',
+          data.reportAccessDetails || data.report_access_details || '',
+          data.scoreModel || data.score_model || '',
+          data.reportLastUpdated || data.report_last_updated || null,
+          data.equifaxScore || data.equifax_score || 0,
+          data.experianScore || data.experian_score || 0,
+          data.transunionScore || data.transunion_score || 0,
+          data.ficoScores || data.fico_scores || '',
+          data.ficoAutoScoreAverage || data.fico_auto_score_average || 0,
+          data.ficoScore8 || data.fico_score_8 || 0,
+          data.ficoRealEstateRentalScore || data.fico_real_estate_rental_score || 0,
+          data.ssnFundingStatus || data.ssn_funding_status || '',
+          data.bnplStatus || data.bnpl_status || '',
+          data.bnplApprovedAmount || data.bnpl_approved_amount || 0,
+          data.clientReviewStatus || data.client_review_status || ''
         ).run();
 
         await context.env.DB.prepare(
@@ -162,10 +238,28 @@ export async function onRequestGet(context) {
     // Try D1 first
     if (context.env?.DB) {
       const url = new URL(context.request.url);
+      const validate = url.searchParams.get('validate') === '1';
       const status = url.searchParams.get('status');
       const memberId = url.searchParams.get('member_id');
       const email = url.searchParams.get('email');
       const archived = url.searchParams.get('archived'); // '1' = only archived, '0'/null = exclude archived, 'all' = include both
+
+      if (validate) {
+        if (!memberId || !email) {
+          return new Response(JSON.stringify({ success: false, allowed: false, error: 'HC number and email are required' }), { status: 400, headers: cors });
+        }
+        const row = await context.env.DB.prepare(
+          `SELECT member_id, email, fname, lname, phone, status, lane, plan
+           FROM pifr_enrollments
+           WHERE UPPER(member_id) = UPPER(?) AND LOWER(email) = LOWER(?)
+           LIMIT 1`
+        ).bind(normalizeMemberId(memberId), normalizeEmail(email)).first();
+        return new Response(JSON.stringify({
+          success: true,
+          allowed: !!row,
+          match: publicEnrollmentMatch(row)
+        }), { status: row ? 200 : 403, headers: cors });
+      }
 
       let query = 'SELECT * FROM pifr_enrollments';
       const where = [];
@@ -203,6 +297,24 @@ export async function onRequestGet(context) {
 
     // Fallback to KV
     if (context.env?.PIFR_ENROLLMENTS) {
+      const url = new URL(context.request.url);
+      const validate = url.searchParams.get('validate') === '1';
+      const memberId = url.searchParams.get('member_id');
+      const email = url.searchParams.get('email');
+      if (validate) {
+        if (!memberId || !email) {
+          return new Response(JSON.stringify({ success: false, allowed: false, error: 'HC number and email are required' }), { status: 400, headers: cors });
+        }
+        const raw = await context.env.PIFR_ENROLLMENTS.get(`enrollment:${memberId}`);
+        const row = raw ? JSON.parse(raw) : null;
+        const allowed = !!row && normalizeEmail(row.email) === normalizeEmail(email);
+        return new Response(JSON.stringify({
+          success: true,
+          allowed,
+          match: allowed ? publicEnrollmentMatch({ ...row, member_id: row.mid || memberId }) : null
+        }), { status: allowed ? 200 : 403, headers: cors });
+      }
+
       const listRaw = await context.env.PIFR_ENROLLMENTS.get('enrollment_list');
       const list = listRaw ? JSON.parse(listRaw) : [];
       const enrollments = [];

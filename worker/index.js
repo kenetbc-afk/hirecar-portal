@@ -110,6 +110,271 @@ function auth(req) {
   return key === API_KEY;
 }
 
+function makeId(prefix = 'hc') {
+  return prefix + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+}
+
+function toCents(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  const num = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(num * 100);
+}
+
+function paypalBaseUrl(env) {
+  if (env.PAYPAL_BASE_URL) return env.PAYPAL_BASE_URL;
+  return env.PAYPAL_ENV === 'sandbox' ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+}
+
+function paypalCompletedStatus(status) {
+  const value = String(status || '').toUpperCase();
+  return value === 'PAID' || value === 'COMPLETED' || value === 'PARTIALLY_PAID';
+}
+
+async function getPayPalAccessToken(env) {
+  if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
+    throw new Error('Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET');
+  }
+
+  const authValue = btoa(env.PAYPAL_CLIENT_ID + ':' + env.PAYPAL_CLIENT_SECRET);
+  const response = await fetch(paypalBaseUrl(env) + '/v1/oauth2/token', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Basic ' + authValue,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error('PayPal token request failed: ' + response.status + ' ' + text.slice(0, 300));
+  }
+
+  const data = await response.json();
+  if (!data.access_token) throw new Error('PayPal token missing access_token');
+  return data.access_token;
+}
+
+async function verifyPayPalWebhook(request, env, rawBody) {
+  if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET || !env.PAYPAL_WEBHOOK_ID) {
+    return { verified: false, mode: 'skipped_missing_config' };
+  }
+
+  const token = await getPayPalAccessToken(env);
+  const body = {
+    auth_algo: request.headers.get('paypal-auth-algo') || '',
+    cert_url: request.headers.get('paypal-cert-url') || '',
+    transmission_id: request.headers.get('paypal-transmission-id') || '',
+    transmission_sig: request.headers.get('paypal-transmission-sig') || '',
+    transmission_time: request.headers.get('paypal-transmission-time') || '',
+    webhook_id: env.PAYPAL_WEBHOOK_ID,
+    webhook_event: JSON.parse(rawBody),
+  };
+
+  const response = await fetch(paypalBaseUrl(env) + '/v1/notifications/verify-webhook-signature', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error('PayPal webhook verify failed: ' + response.status + ' ' + text.slice(0, 300));
+  }
+
+  const data = await response.json();
+  return {
+    verified: String(data.verification_status || '').toUpperCase() === 'SUCCESS',
+    mode: String(data.verification_status || '').toUpperCase() || 'UNKNOWN',
+    raw: data,
+  };
+}
+
+async function getPayPalInvoiceDetails(env, paypalInvoiceId) {
+  const token = await getPayPalAccessToken(env);
+  const response = await fetch(paypalBaseUrl(env) + '/v2/invoicing/invoices/' + encodeURIComponent(paypalInvoiceId), {
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error('PayPal invoice fetch failed: ' + response.status + ' ' + text.slice(0, 300));
+  }
+
+  return response.json();
+}
+
+function extractPayPalDetails(payload, override = {}) {
+  const resource = payload && payload.resource ? payload.resource : {};
+  const amountValue =
+    override.amount ||
+    resource.amount?.value ||
+    resource.amount?.breakdown?.paid_amount?.value ||
+    resource.primary_recipients?.[0]?.billing_info?.amount?.value ||
+    resource.payments?.transactions?.[0]?.amount?.value ||
+    resource.payments?.transactions?.[0]?.payment_amount?.value ||
+    0;
+
+  const invoiceNumberCandidates = [
+    override.invoice_number,
+    override.invoiceNumber,
+    override.parent_number,
+    override.parentNumber,
+    override.sku,
+    resource.detail?.invoice_number,
+    resource.invoice_number,
+    resource.invoiceNumber,
+    resource.detail?.parent_number,
+    resource.parent_number,
+    resource.parentNumber,
+    resource.detail?.sku,
+    resource.sku,
+    resource.metadata?.invoice_number,
+    resource.metadata?.parent_number,
+    resource.metadata?.sku,
+    resource.custom_id,
+    resource.reference,
+  ].filter(Boolean);
+
+  return {
+    event_type: override.event_type || payload.event_type || 'PAYPAL_MANUAL_RECONCILE',
+    event_status: override.status || resource.status || payload.summary || '',
+    paypal_event_id: override.paypal_event_id || payload.id || '',
+    invoice_id: override.invoice_id || '',
+    paypal_invoice_id: override.paypal_invoice_id || resource.id || resource.invoice_id || '',
+    invoice_number: invoiceNumberCandidates[0] || '',
+    parent_number: override.parent_number || override.parentNumber || resource.detail?.parent_number || resource.parent_number || resource.parentNumber || '',
+    sku: override.sku || resource.detail?.sku || resource.sku || resource.metadata?.sku || '',
+    order_details: override.order_details || resource.detail?.order_details || resource.metadata?.order_details || '',
+    amount_cents: override.amount_cents || toCents(amountValue),
+    currency_code: override.currency_code || resource.amount?.currency_code || resource.amount?.breakdown?.paid_amount?.currency_code || 'USD',
+    payer_email: override.payer_email || resource.payer_email || resource.payer?.email_address || resource.invoicer?.email_address || '',
+    source_ref: override.source_ref || override.paypal_share_link || resource.href || payload.resource_type || '',
+    raw: payload,
+  };
+}
+
+async function findInvoiceForPayPal(DB, details) {
+  const candidates = [details.invoice_id, details.invoice_number, details.parent_number, details.sku].filter(Boolean);
+  for (const candidate of candidates) {
+    const row = await DB.prepare('SELECT * FROM admin_invoices WHERE id = ? OR invoice_number = ? OR parent_number = ? OR sku = ? LIMIT 1')
+      .bind(candidate, candidate).first();
+    if (row) return row;
+  }
+  return null;
+}
+
+async function insertPayPalRouteEvent(DB, invoice, details, verification, notes) {
+  await DB.prepare(
+    `INSERT INTO paypal_route_events
+      (id, client_id, quote_id, invoice_id, event_type, event_status, paypal_event_id, paypal_order_id, paypal_invoice_id, payer_email, amount_cents, currency_code, source_ref, matched_by, notes, payload_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    makeId('pp'),
+    invoice?.client_id || '',
+    invoice?.quote_id || '',
+    invoice?.id || '',
+    details.event_type || '',
+    details.event_status || '',
+    details.paypal_event_id || '',
+    '',
+    details.paypal_invoice_id || '',
+    details.payer_email || '',
+    details.amount_cents || 0,
+    details.currency_code || 'USD',
+    details.source_ref || '',
+    invoice
+      ? (details.invoice_number ? 'invoice_number' : details.parent_number ? 'parent_number' : details.sku ? 'sku' : 'invoice_id')
+      : 'unmatched',
+    [verification?.mode, notes].filter(Boolean).join(' | '),
+    JSON.stringify(details.raw || {}),
+    new Date().toISOString()
+  ).run();
+}
+
+async function applyPayPalReconciliation(DB, details, verification) {
+  const invoice = await findInvoiceForPayPal(DB, details);
+  const completed = paypalCompletedStatus(details.event_status);
+
+  if (!invoice) {
+    await insertPayPalRouteEvent(DB, null, details, verification, 'No matching invoice found');
+    return { matched: false, applied: false, reason: 'invoice_not_found' };
+  }
+
+  let applied = false;
+  let newStatus = invoice.status;
+  let totalAppliedCents = 0;
+
+  if (completed && details.amount_cents > 0) {
+    const paymentMarker = 'paypal_event_id:' + (details.paypal_event_id || details.paypal_invoice_id || details.source_ref || 'manual');
+    const existingPayment = await DB.prepare(
+      'SELECT id FROM admin_billing WHERE client_id = ? AND reference_id = ? AND reference_type = ? AND notes LIKE ? LIMIT 1'
+    ).bind(invoice.client_id, invoice.id, 'invoice', '%' + paymentMarker + '%').first();
+
+    if (!existingPayment) {
+      await DB.prepare(
+        `INSERT INTO admin_billing
+          (id, client_id, entry_type, description, amount_cents, balance_cents, reference_id, reference_type, payment_method, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        makeId('bill'),
+        invoice.client_id,
+        'payment',
+        'PayPal payment for invoice ' + invoice.invoice_number,
+        details.amount_cents,
+        0,
+        invoice.id,
+        'invoice',
+        'paypal',
+        [paymentMarker, details.payer_email ? 'payer_email:' + details.payer_email : '', details.source_ref ? 'source_ref:' + details.source_ref : ''].filter(Boolean).join(' | '),
+        new Date().toISOString()
+      ).run();
+      applied = true;
+    }
+
+    const totalRow = await DB.prepare(
+      `SELECT COALESCE(SUM(amount_cents), 0) AS total
+       FROM admin_billing
+       WHERE client_id = ? AND reference_id = ? AND reference_type = ? AND entry_type IN ('payment', 'credit')`
+    ).bind(invoice.client_id, invoice.id, 'invoice').first();
+
+    totalAppliedCents = totalRow?.total || 0;
+    newStatus = totalAppliedCents >= invoice.amount_cents ? 'paid' : (invoice.status === 'draft' ? 'sent' : invoice.status);
+
+    await DB.prepare(
+      'UPDATE admin_invoices SET status = ?, paid_at = ?, payment_method = ?, updated_at = ? WHERE id = ?'
+    ).bind(
+      newStatus,
+      newStatus === 'paid' ? new Date().toISOString() : invoice.paid_at,
+      'paypal',
+      new Date().toISOString(),
+      invoice.id
+    ).run();
+  }
+
+  await insertPayPalRouteEvent(DB, invoice, details, verification, applied ? 'Payment applied' : 'Event logged without payment application');
+
+  return {
+    matched: true,
+    applied,
+    invoice_id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    parent_number: invoice.parent_number || '',
+    sku: invoice.sku || '',
+    client_id: invoice.client_id,
+    total_applied_cents: totalAppliedCents,
+    invoice_amount_cents: invoice.amount_cents,
+    status: newStatus,
+  };
+}
+
 // Get the client index (array of client IDs)
 async function getIndex(KV) {
   const raw = await KV.get(CLIENTS_INDEX_KEY);
@@ -267,7 +532,7 @@ export default {
     }
 
     // All other endpoints require API key
-    if (!auth(request)) {
+    if (path !== '/webhooks/paypal' && !auth(request)) {
       return err('Unauthorized', 401);
     }
 
@@ -413,6 +678,49 @@ export default {
     const DB = env.DB;
     if (!DB) {
       // D1 not bound — fall through to 404
+    }
+
+    else if (path === '/webhooks/paypal' && request.method === 'POST') {
+      const rawBody = await request.text();
+      let payload;
+      try { payload = JSON.parse(rawBody); } catch(e) { return err('Invalid JSON'); }
+
+      let verification;
+      try {
+        verification = await verifyPayPalWebhook(request, env, rawBody);
+      } catch (e) {
+        console.error('[PayPal webhook verify error]', e);
+        verification = { verified: false, mode: 'verify_error', error: String(e.message || e) };
+      }
+
+      const details = extractPayPalDetails(payload);
+      const result = await applyPayPalReconciliation(DB, details, verification);
+
+      return json({
+        ok: true,
+        verification,
+        result,
+      }, verification.verified ? 200 : 202);
+    }
+
+    else if (path === '/api/paypal/reconcile' && request.method === 'POST') {
+      if (!auth(request)) return err('Unauthorized', 401);
+
+      let body;
+      try { body = await request.json(); } catch(e) { return err('Invalid JSON'); }
+
+      let payload = { event_type: 'PAYPAL_MANUAL_RECONCILE', resource: {} };
+      if (body.paypal_invoice_id && body.fetch_from_paypal !== false) {
+        try {
+          payload.resource = await getPayPalInvoiceDetails(env, body.paypal_invoice_id);
+        } catch (e) {
+          return err('PayPal invoice fetch failed: ' + (e.message || e), 502);
+        }
+      }
+
+      const details = extractPayPalDetails(payload, body);
+      const result = await applyPayPalReconciliation(DB, details, { verified: false, mode: 'manual_admin_reconcile' });
+      return json({ ok: true, details, result });
     }
 
     // Generic CRUD helper for admin tables

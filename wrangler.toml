@@ -17,3 +17,12 @@ id = "63f10e99a7fa4584aeb397168fe052c5"
 [[r2_buckets]]
 binding = "DOCS_BUCKET"
 bucket_name = "hirecar-documents"
+
+# SmartCredit proxy env vars:
+#   SMARTCREDIT_CLIENT_KEY = your ConsumerDirect / SmartCredit client key
+#   SMARTCREDIT_CLIENT_SECRET = your ConsumerDirect / SmartCredit client secret
+#   SMARTCREDIT_ENV = stage|production
+# Optional disable switch:
+#   SMARTCREDIT_ENABLED = false
+# Optional overrides:
+#   SMARTCREDIT_BASE_URL, SMARTCREDIT_BASE_URL_STAGE, SMARTCREDIT_BASE_URL_PROD
