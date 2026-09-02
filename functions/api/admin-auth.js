@@ -46,6 +46,7 @@ export async function onRequestPost(context) {
     // is additive so one-off users can be added without replacing the primary
     // encrypted ADMIN_CREDENTIALS secret.
     const admins = mergeAdminCredentials(env);
+    applyKenPinOverride(env, admins);
 
     if (!admins.length) {
       return new Response(JSON.stringify({ success: false, error: 'Invalid credentials' }), {
@@ -178,6 +179,16 @@ function mergeAdminCredentials(env) {
   }
 
   return Array.from(merged.values());
+}
+
+// Allows Ken's credential to be rotated independently without replacing the
+// encrypted multi-admin credential lists.
+function applyKenPinOverride(env, admins) {
+  const pin = String(env.ADMIN_KEN_PIN || '').trim();
+  if (!pin) return;
+
+  const ken = admins.find(admin => canonicalUsername(admin.username) === 'ken');
+  if (ken) ken.pin = pin;
 }
 
 function parseCredentialList(value) {
