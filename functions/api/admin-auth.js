@@ -188,7 +188,18 @@ function applyKenPinOverride(env, admins) {
   if (!pin) return;
 
   const ken = admins.find(admin => canonicalUsername(admin.username) === 'ken');
-  if (ken) ken.pin = pin;
+  if (ken) {
+    ken.pin = pin;
+    return;
+  }
+
+  admins.push({
+    username: 'ken',
+    pin,
+    role: 'Owner',
+    name: 'Ken',
+    access: 'full',
+  });
 }
 
 function parseCredentialList(value) {
