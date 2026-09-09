@@ -3580,9 +3580,9 @@ function updateClientField(clientId, field, value) {
   var patch = buildClientFieldPatch(field, value);
   patch.lastActive = c.lastActive;
   patch.updatedAt = c.updatedAt;
-  fetch(HIRECAR_API + '/api/clients/' + clientId, {
+  adminProxyFetch('/api/clients/' + clientId, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch)
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.ok) {
@@ -3590,9 +3590,9 @@ function updateClientField(clientId, field, value) {
       /* Send profile_review notification to client for profile-relevant fields */
       var label = PROFILE_FIELD_LABELS[field];
       if (label && value !== oldVal) {
-        fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications', {
+        adminProxyFetch('/api/clients/' + clientId + '/notifications', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'profile_review',
             title: 'Profile Update — Review Required',
@@ -4789,9 +4789,8 @@ function cleanupDemoClients() {
 
 function deleteDemoClientFromCloud(id) {
   if (!id) return;
-  fetch(HIRECAR_API + '/api/clients/' + encodeURIComponent(id), {
+  adminProxyFetch('/api/clients/' + encodeURIComponent(id), {
     method: 'DELETE',
-    headers: { 'x-api-key': HC_API_KEY }
   }).catch(function() {});
 }
 
@@ -4805,6 +4804,12 @@ function loadClients() {
 
 function saveClients(clients) {
   try { localStorage.setItem(CLIENTS_KEY, JSON.stringify(normalizeClientList(clients))); } catch (e) {}
+}
+
+// The Pages function validates the signed admin session and injects the Worker
+// key server-side. Client records must never depend on a browser-held API key.
+function adminProxyFetch(path, options) {
+  return fetch('/api/admin-proxy?path=' + encodeURIComponent(path), options || {});
 }
 
 function normalizeOldClientLeadRecord(record) {
@@ -5691,68 +5696,34 @@ function mergeRemoteClientFields(localClient, remoteClient) {
 }
 
 function syncFromCloud(callback) {
-  if (_syncInProgress) { if (callback) callback(); return; }
+  if (_syncInProgress) { if (callback) callback(new Error('A client sync is already in progress')); return; }
   _syncInProgress = true;
-  fetch(HIRECAR_API + '/api/clients', {
-    headers: { 'x-api-key': HC_API_KEY }
-  }).then(function(r) { return r.json(); }).then(function(data) {
+  adminProxyFetch('/api/clients').then(function(r) {
+    if (!r.ok) throw new Error('Client sync failed (HTTP ' + r.status + ')');
+    return r.json();
+  }).then(function(data) {
     _syncInProgress = false;
-    if (!data.clients) { if (callback) callback(); return; }
-    var local = loadClients();
-    var localMap = {};
-    var localEmailMap = {};
-    local.forEach(function(c) { localMap[c.id] = c; if (c.email) localEmailMap[c.email.toLowerCase()] = c; });
-    var merged = local.slice(); // start with local
-    var newCount = 0;
-    var updatedCount = 0;
-    data.clients.forEach(function(remote) {
-      if (!remote || !remote.email) return;
-      remote = normalizeClientRecord(remote);
-      if (isDemoClientRecord(remote)) {
-        deleteDemoClientFromCloud(remote.id);
-        return;
-      }
-      var rEmail = remote.email.toLowerCase();
-      // Check if already in local by id
-      if (localMap[remote.id]) {
-        var l = localMap[remote.id];
-        var updated = mergeRemoteClientFields(l, remote);
-        if (updated) updatedCount++;
-        return;
-      }
-      // Check by email (remote might have different id than local seed)
-      if (localEmailMap[rEmail]) {
-        var l2 = localEmailMap[rEmail];
-        l2.id = remote.id; // sync to cloud ID
-        if (mergeRemoteClientFields(l2, remote)) updatedCount++;
-        return;
-      }
-      // Truly new client from portal signup — add to local
-      remote.program = remote.program || 'Credit Repair';
-      remote.lastActive = remote.updatedAt || remote.createdAt || new Date().toISOString();
-      merged.push(remote);
-      newCount++;
+    if (!data || !Array.isArray(data.clients)) throw new Error('Client sync returned an invalid response');
+    // The Worker is the canonical record. Replacing the browser cache, rather
+    // than merging into it, gives Ken, Myra, and Omar the same profile set.
+    var clients = data.clients.map(normalizeClientRecord).filter(function(client) {
+      if (!client || isDemoClientRecord(client)) return false;
+      client.program = client.program || 'Credit Repair';
+      client.lastActive = client.lastActive || client.updatedAt || client.createdAt || new Date().toISOString();
+      return true;
     });
-    if (newCount > 0 || updatedCount > 0) {
-      saveClients(merged);
-      if (newCount > 0) {
-        addActivity(newCount + ' new client' + (newCount > 1 ? 's' : '') + ' synced from portal', 'green');
-        showToast(newCount + ' new client' + (newCount > 1 ? 's' : '') + ' synced from member portal', 'success');
-      }
-      if (currentSection === 'clients' || currentSection === 'dashboard') {
-        renderSection(currentSection);
-      }
-    }
-    if (callback) callback();
+    saveClients(clients);
+    if (currentSection === 'clients' || currentSection === 'dashboard') renderSection(currentSection);
+    if (callback) callback(null, clients.length);
   }).catch(function(e) {
     _syncInProgress = false;
     console.warn('[HIRECAR Admin] Cloud sync failed:', e);
-    if (callback) callback();
+    if (callback) callback(e);
   });
 }
 
 function pushClientToCloud(client) {
-  fetch(HIRECAR_API + '/api/clients', {
+  adminProxyFetch('/api/clients', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(client)
@@ -5760,17 +5731,17 @@ function pushClientToCloud(client) {
 }
 
 function updateClientInCloud(clientId, fields) {
-  fetch(HIRECAR_API + '/api/clients/' + clientId, {
+  adminProxyFetch('/api/clients/' + clientId, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(fields)
   }).catch(function(e) { console.warn('[HIRECAR Admin] Cloud update failed:', e); });
 }
 
 function pushNotificationToClient(clientId, type, title, message, data) {
-  fetch(HIRECAR_API + '/api/clients/' + clientId + '/notifications', {
+  adminProxyFetch('/api/clients/' + clientId + '/notifications', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': HC_API_KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: type, title: title, message: message, data: data || {} })
   }).catch(function(e) { console.warn('[HIRECAR Admin] Notification push failed:', e); });
 }
@@ -5778,7 +5749,6 @@ function pushNotificationToClient(clientId, type, title, message, data) {
 // Auto-sync every 30 seconds
 var _cloudSyncInterval = null;
 function startCloudSync() {
-  syncFromCloud();
   if (_cloudSyncInterval) clearInterval(_cloudSyncInterval);
   _cloudSyncInterval = setInterval(function() { syncFromCloud(); }, 30000);
 }
@@ -6081,6 +6051,7 @@ function checkSession() {
           name: storedAdmin.name || adminRecord.name || username,
           access: storedAdmin.access || adminRecord.access || 'limited'
         };
+        if (['ken', 'myra', 'omar'].indexOf(username) !== -1) currentAdmin.access = 'full';
         ADMINS[username] = {
           role: currentAdmin.role,
           name: currentAdmin.name,
@@ -6239,9 +6210,13 @@ function enterApp() {
   importFromPortal();
   updateEnterpriseBadge();
   seedEnterpriseLeadsIfEmpty().finally(function() {
-    showSection('dashboard');
     startClock();
-    startCloudSync();
+    // Do not present a browser-cached client set as the current shared record.
+    syncFromCloud(function(err) {
+      if (err) showToast('Client records could not be synchronized. Refresh Client Management to retry.', 'error');
+      showSection('dashboard');
+      startCloudSync();
+    });
   });
 }
 
@@ -7331,8 +7306,14 @@ function refreshClientManagementView(clientId) {
 }
 
 function refreshClientManagementList() {
-  renderClients();
-  showToast('Client list refreshed', 'info');
+  syncFromCloud(function(err, count) {
+    if (err) {
+      showToast('Client sync failed. The cached list was not presented as current.', 'error');
+      return;
+    }
+    renderClients();
+    showToast(count + ' client profile' + (count === 1 ? '' : 's') + ' loaded from the shared portal record', 'success');
+  });
 }
 
 function renderClients() {

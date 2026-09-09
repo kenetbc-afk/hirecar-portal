@@ -178,6 +178,14 @@ function mergeAdminCredentials(env) {
     }
   }
 
+  // Ken, Myra, and Omar share the same internal-admin data scope. Credential
+  // sources may be rotated independently, but must not silently downgrade one
+  // of these three accounts to limited access.
+  for (const username of ['ken', 'myra', 'omar']) {
+    const admin = merged.get(username);
+    if (admin) admin.access = 'full';
+  }
+
   return Array.from(merged.values());
 }
 
