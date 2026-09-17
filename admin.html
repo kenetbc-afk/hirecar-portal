@@ -324,6 +324,27 @@ input, select, textarea, button { font-family: inherit; font-size: inherit; }
   padding: 0;
 }
 
+.offer-analytics-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+}
+.offer-analytics-grid .offer-wide { grid-column: 1 / -1; }
+.offer-analytics-table { width: 100%; border-collapse: collapse; min-width: 520px; }
+.offer-analytics-table th {
+  padding: 10px 12px; text-align: left; color: var(--muted); font-size: 10px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px;
+  border-bottom: 1px solid rgba(42,107,184,.25); white-space: nowrap;
+}
+.offer-analytics-table td {
+  padding: 11px 12px; color: var(--ink); font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.05); white-space: nowrap;
+}
+.offer-analytics-table tbody tr:hover { background: rgba(42,107,184,.06); }
+.offer-analytics-status { font-size: 12px; color: var(--muted); min-height: 18px; }
+@media (max-width: 900px) {
+  .offer-analytics-grid { grid-template-columns: 1fr; }
+  .offer-analytics-grid .offer-wide { grid-column: auto; }
+}
+
 #enterprise-table {
   table-layout: auto;
   min-width: 1680px;
@@ -1455,6 +1476,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       <button class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
         <span class="ni-icon">&#9632;</span> Dashboard
       </button>
+      <button class="nav-item" data-section="offer-analytics" onclick="showSection('offer-analytics')">
+        <span class="ni-icon">&#9673;</span> Offer Analytics
+      </button>
       <button class="nav-item" data-section="work" onclick="showSection('work')">
         <span class="ni-icon">&#9745;</span> Tasks &amp; Projects
         <span class="ni-badge ni-badge-red" id="badge-work" style="display:none;">0</span>
@@ -1666,6 +1690,59 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
         </div>
         <div id="dash-daily-kpis" class="kpi-strip" style="margin-bottom:12px;"></div>
         <div id="dash-daily-progress" class="day-progress-grid"></div>
+      </div>
+    </div>
+
+    <!-- ====== OFFER ANALYTICS ====== -->
+    <div class="admin-section" id="sec-offer-analytics">
+      <div class="sec-head" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div class="accent-bar"></div>
+          <div>
+            <h2>September Offer Analytics</h2>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px;">Anonymous visits and approximate Cloudflare location for hirecar.la/september2026only.</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select class="form-select" id="offer-analytics-days" onchange="refreshOfferAnalytics(true)" style="width:auto;min-width:145px;">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last year</option>
+          </select>
+          <button class="btn btn-primary" onclick="refreshOfferAnalytics(true)">Refresh Analytics</button>
+        </div>
+      </div>
+
+      <div class="offer-analytics-status" id="offer-analytics-status">Open this section to load visitor activity.</div>
+      <div class="stats-grid" style="margin-top:14px;">
+        <div class="stat-card"><div class="s-num s-cyan" id="offer-stat-views">0</div><div class="s-label">Page Views</div></div>
+        <div class="stat-card"><div class="s-num s-green" id="offer-stat-visitors">0</div><div class="s-label">Unique Visitors</div></div>
+        <div class="stat-card"><div class="s-num s-blue" id="offer-stat-sessions">0</div><div class="s-label">Sessions</div></div>
+        <div class="stat-card"><div class="s-num s-amber" id="offer-stat-repeat">0</div><div class="s-label">Repeat Views</div></div>
+      </div>
+
+      <div class="offer-analytics-grid">
+        <div class="a-card" style="padding:0;">
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Approximate Locations</h3>
+          <div class="a-table-wrap" id="offer-analytics-locations"></div>
+        </div>
+        <div class="a-card" style="padding:0;">
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Campaigns &amp; Sources</h3>
+          <div class="a-table-wrap" id="offer-analytics-campaigns"></div>
+        </div>
+        <div class="a-card" style="padding:0;">
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Daily Activity</h3>
+          <div class="a-table-wrap" id="offer-analytics-daily"></div>
+        </div>
+        <div class="a-card" style="padding:0;">
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Devices</h3>
+          <div class="a-table-wrap" id="offer-analytics-devices"></div>
+        </div>
+        <div class="a-card offer-wide" style="padding:0;">
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Recent Visitors</h3>
+          <div class="a-table-wrap" id="offer-analytics-recent"></div>
+        </div>
       </div>
     </div>
 
@@ -6252,6 +6329,7 @@ function showSection(name) {
 
   var titles = {
     dashboard: 'Dashboard',
+    'offer-analytics': 'Offer Analytics',
     work: 'Tasks & Projects',
     clients: 'Client Management',
     enterprise: 'Enterprise CRM',
@@ -6278,6 +6356,7 @@ function showSection(name) {
 
   switch (name) {
     case 'dashboard': renderDashboard(); break;
+    case 'offer-analytics': refreshOfferAnalytics(false); break;
     case 'work': renderWorkDashboard(); break;
     case 'clients': renderClients(); break;
     case 'enterprise': renderEnterpriseAccounts(); break;
@@ -6352,6 +6431,154 @@ function refreshVisitStats() {
       }
     })
     .catch(function() {});
+}
+
+var offerAnalyticsLoading = false;
+var offerAnalyticsLastLoaded = 0;
+
+function offerAnalyticsTable(rows, columns, emptyMessage) {
+  if (!rows || !rows.length) {
+    return '<div style="padding:18px 20px;font-size:12px;color:var(--muted);">' + escapeHtml(emptyMessage || 'No activity recorded yet.') + '</div>';
+  }
+  var head = columns.map(function(col) {
+    return '<th>' + escapeHtml(String(col.label)) + '</th>';
+  }).join('');
+  var body = rows.map(function(row) {
+    return '<tr>' + columns.map(function(col) {
+      var value = typeof col.render === 'function' ? col.render(row) : row[col.key];
+      return '<td>' + escapeHtml(String(value === null || typeof value === 'undefined' || value === '' ? '—' : value)) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+  return '<table class="offer-analytics-table"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table>';
+}
+
+function offerAnalyticsDate(value) {
+  if (!value) return '—';
+  var date = new Date(value);
+  if (isNaN(date.getTime())) return value;
+  return date.toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+  });
+}
+
+function refreshOfferAnalytics(force) {
+  if (offerAnalyticsLoading) return;
+  if (!force && offerAnalyticsLastLoaded && Date.now() - offerAnalyticsLastLoaded < 15000) return;
+
+  var daysSelect = document.getElementById('offer-analytics-days');
+  var days = daysSelect ? Number(daysSelect.value || 30) : 30;
+  var status = document.getElementById('offer-analytics-status');
+  offerAnalyticsLoading = true;
+  if (status) {
+    status.style.color = 'var(--muted)';
+    status.textContent = 'Loading visitor activity...';
+  }
+
+  fetch('/api/offer-analytics?days=' + encodeURIComponent(days))
+    .then(function(response) {
+      return response.json().then(function(data) {
+        if (!response.ok || !data || !data.success) {
+          throw new Error((data && data.error) || 'Unable to load analytics');
+        }
+        return data;
+      });
+    })
+    .then(function(data) {
+      var totals = data.totals || {};
+      var views = Number(totals.views || 0);
+      var visitors = Number(totals.visitors || 0);
+      var sessions = Number(totals.sessions || 0);
+      var fmt = function(value) { return Number(value || 0).toLocaleString(); };
+      document.getElementById('offer-stat-views').textContent = fmt(views);
+      document.getElementById('offer-stat-visitors').textContent = fmt(visitors);
+      document.getElementById('offer-stat-sessions').textContent = fmt(sessions);
+      document.getElementById('offer-stat-repeat').textContent = fmt(Math.max(0, views - visitors));
+
+      document.getElementById('offer-analytics-locations').innerHTML = offerAnalyticsTable(
+        data.byLocation || [],
+        [
+          { label: 'Country', key: 'country' },
+          { label: 'Region', key: 'region' },
+          { label: 'City', key: 'city' },
+          { label: 'Visitors', key: 'visitors' },
+          { label: 'Views', key: 'views' }
+        ],
+        'No location activity in this date range.'
+      );
+
+      var campaignHtml = '<div style="padding:0 20px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Campaigns</div>'
+        + offerAnalyticsTable(data.byCampaign || [], [
+          { label: 'Source', key: 'source' },
+          { label: 'Campaign', key: 'campaign' },
+          { label: 'Visitors', key: 'visitors' },
+          { label: 'Views', key: 'views' }
+        ], 'No campaign tags recorded yet.')
+        + '<div style="padding:18px 20px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Top Referrers</div>'
+        + offerAnalyticsTable(data.byReferrer || [], [
+          { label: 'Referrer', key: 'referrer' },
+          { label: 'Visitors', key: 'visitors' },
+          { label: 'Views', key: 'views' }
+        ], 'No referrer activity recorded yet.');
+      document.getElementById('offer-analytics-campaigns').innerHTML = campaignHtml;
+
+      document.getElementById('offer-analytics-daily').innerHTML = offerAnalyticsTable(
+        data.byDay || [],
+        [
+          { label: 'Date', key: 'day' },
+          { label: 'Visitors', key: 'visitors' },
+          { label: 'Views', key: 'views' }
+        ],
+        'No daily activity in this date range.'
+      );
+
+      document.getElementById('offer-analytics-devices').innerHTML = offerAnalyticsTable(
+        data.byDevice || [],
+        [
+          { label: 'Device', key: 'device' },
+          { label: 'Views', key: 'views' }
+        ],
+        'No device activity in this date range.'
+      );
+
+      var recent = (data.recent || []).map(function(row) {
+        var location = [row.city, row.region, row.country].filter(Boolean).join(', ');
+        var source = row.utm_source || row.referrer || 'Direct / unknown';
+        var visitor = String(row.visitor_id || 'Anonymous');
+        return {
+          time: offerAnalyticsDate(row.created_at),
+          visitor: visitor.length > 22 ? visitor.slice(0, 22) + '…' : visitor,
+          location: location || 'Unknown',
+          device: row.device_type || 'Unknown',
+          source: source
+        };
+      });
+      document.getElementById('offer-analytics-recent').innerHTML = offerAnalyticsTable(
+        recent,
+        [
+          { label: 'Time', key: 'time' },
+          { label: 'Visitor', key: 'visitor' },
+          { label: 'Approx. Location', key: 'location' },
+          { label: 'Device', key: 'device' },
+          { label: 'Source', key: 'source' }
+        ],
+        'No recent visitors in this date range.'
+      );
+
+      offerAnalyticsLastLoaded = Date.now();
+      if (status) {
+        status.style.color = 'var(--muted)';
+        status.textContent = 'Updated ' + offerAnalyticsDate(data.generatedAt) + ' · ' + data.days + '-day window · Approximate location only';
+      }
+    })
+    .catch(function(error) {
+      if (status) {
+        status.style.color = '#b91c1c';
+        status.textContent = error && error.message ? error.message : 'Unable to load analytics.';
+      }
+    })
+    .finally(function() {
+      offerAnalyticsLoading = false;
+    });
 }
 
 function workOwnerName(id) {

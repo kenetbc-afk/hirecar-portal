@@ -7,6 +7,11 @@ binding = "DB"
 database_name = "hirecar-db"
 database_id = "ada3c40f-a4d9-4b3c-9b40-dde656f6f099"
 
+[[d1_databases]]
+binding = "OFFER_ANALYTICS_DB"
+database_name = "hirecar-subscribers"
+database_id = "0c41fdbf-16e2-47dc-b82e-ad963d163dbe"
+
 [[kv_namespaces]]
 binding = "PIFR_ENROLLMENTS"
 id = "63f10e99a7fa4584aeb397168fe052c5"
