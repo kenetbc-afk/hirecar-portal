@@ -1,7 +1,7 @@
 const OPTIONAL_TEAM_ATTENDEES = [
   'ken@hirecar.la',
   'omar@hirecar.la',
-  'myra@hirecar.la',
+  'mayra@hirecar.la',
 ];
 
 export async function onRequestPost(context) {
