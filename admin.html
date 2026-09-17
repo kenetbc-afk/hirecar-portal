@@ -1700,7 +1700,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <div class="accent-bar"></div>
           <div>
             <h2>September Offer Analytics</h2>
-            <div style="font-size:12px;color:var(--muted);margin-top:3px;">Visitor sources, journeys, engagement, actions, and approximate Cloudflare location for hirecar.la/september2026only.</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px;">Visitor sources, landing pages, journeys, engagement, and approximate Cloudflare city/state location for hirecar.la/september2026only.</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1742,15 +1742,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
           <div class="a-table-wrap" id="offer-analytics-funnel"></div>
         </div>
         <div class="a-card" style="padding:0;">
-          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Pages Visited</h3>
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Pages Visited &amp; Last Seen</h3>
           <div class="a-table-wrap" id="offer-analytics-pages"></div>
         </div>
         <div class="a-card" style="padding:0;">
-          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Approximate Locations</h3>
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Detailed Geography</h3>
           <div class="a-table-wrap" id="offer-analytics-locations"></div>
         </div>
         <div class="a-card" style="padding:0;">
-          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Campaigns &amp; Sources</h3>
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Traffic Sources &amp; Landing Pages</h3>
           <div class="a-table-wrap" id="offer-analytics-campaigns"></div>
         </div>
         <div class="a-card" style="padding:0;">
@@ -6580,9 +6580,11 @@ function refreshOfferAnalytics(force) {
       ], 'No funnel activity yet.');
 
       document.getElementById('offer-analytics-pages').innerHTML = offerAnalyticsTable(data.byPage || [], [
-        { label: 'Page', key: 'page_path' }, { label: 'Visitors', key: 'visitors' },
+        { label: 'Page', key: 'page_path' }, { label: 'Title', key: 'page_title' },
+        { label: 'Visitors', key: 'visitors' },
         { label: 'Sessions', key: 'sessions' }, { label: 'Recovered', key: 'historical_requests' },
-        { label: 'Views', key: 'views' }
+        { label: 'Views', key: 'views' },
+        { label: 'Last Seen', key: 'last_visit', render: function(row) { return offerAnalyticsDate(row.last_visit); } }
       ], 'No page activity in this date range.');
 
       var history = data.history || {};
@@ -6596,21 +6598,33 @@ function refreshOfferAnalytics(force) {
         return {
           hour: offerAnalyticsDate(row.hour),
           country: row.country === 'XX' ? 'Unknown' : row.country,
+          city: 'Unavailable for recovered history',
           device: row.device,
           requests: row.requests
         };
       });
       document.getElementById('offer-analytics-history').innerHTML = offerAnalyticsTable(historyRows, [
-        { label: 'Hour', key: 'hour' }, { label: 'Country', key: 'country' },
+        { label: 'Hour', key: 'hour' }, { label: 'Country', key: 'country' }, { label: 'City', key: 'city' },
         { label: 'Device', key: 'device' }, { label: 'Successful Requests', key: 'requests' }
       ], 'No recovered request history in this date range.');
 
       document.getElementById('offer-analytics-locations').innerHTML = offerAnalyticsTable(data.byLocation || [], [
-        { label: 'Country', key: 'country' }, { label: 'Region', key: 'region' },
-        { label: 'City', key: 'city' }, { label: 'Visitors', key: 'visitors' }, { label: 'Views', key: 'views' }
-      ], 'No location activity in this date range.');
+        { label: 'Country', key: 'country' }, { label: 'City', key: 'city' },
+        { label: 'State / Region', key: 'region' }, { label: 'Code', key: 'region_code' },
+        { label: 'Timezone', key: 'timezone' }, { label: 'Visitors', key: 'visitors' },
+        { label: 'Views', key: 'views' },
+        { label: 'Last Visit', key: 'last_visit', render: function(row) { return offerAnalyticsDate(row.last_visit); } }
+      ], 'City and region will appear here when new detailed visits are recorded.');
 
-      var campaignHtml = '<div style="padding:0 20px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Source Categories</div>'
+      var campaignHtml = '<div style="padding:0 20px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Traffic Origin Detail</div>'
+        + offerAnalyticsTable(data.trafficOrigins || [], [
+          { label: 'Channel', key: 'channel' }, { label: 'Referrer', key: 'referrer' },
+          { label: 'Landing Page', key: 'landing_page' }, { label: 'UTM Source', key: 'utm_source' },
+          { label: 'UTM Medium', key: 'utm_medium' }, { label: 'Campaign', key: 'utm_campaign' },
+          { label: 'Visitors', key: 'visitors' }, { label: 'Views', key: 'views' },
+          { label: 'Last Visit', key: 'last_visit', render: function(row) { return offerAnalyticsDate(row.last_visit); } }
+        ], 'Traffic sources, landing pages, and campaigns will appear with new detailed visits.')
+        + '<div style="padding:18px 20px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Source Categories</div>'
         + offerAnalyticsTable(data.bySource || [], [
           { label: 'Source', key: 'source' }, { label: 'Visitors', key: 'visitors' }, { label: 'Views', key: 'views' }
         ], 'No source activity recorded yet.')
@@ -6621,7 +6635,9 @@ function refreshOfferAnalytics(force) {
         ], 'No campaign tags recorded yet.')
         + '<div style="padding:18px 20px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Referrers</div>'
         + offerAnalyticsTable(data.byReferrer || [], [
-          { label: 'Referrer', key: 'referrer' }, { label: 'Visitors', key: 'visitors' }, { label: 'Views', key: 'views' }
+          { label: 'Referrer', key: 'referrer' }, { label: 'Landing Page', key: 'landing_page' },
+          { label: 'Visitors', key: 'visitors' }, { label: 'Views', key: 'views' },
+          { label: 'Last Visit', key: 'last_visit', render: function(row) { return offerAnalyticsDate(row.last_visit); } }
         ], 'No referrer activity recorded yet.');
       document.getElementById('offer-analytics-campaigns').innerHTML = campaignHtml;
 

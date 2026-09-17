@@ -17,7 +17,7 @@ export async function onRequestGet({ request, env }) {
   const since = `-${days} days`
 
   try {
-    const [totals, byDay, byLocation, byReferrer, byCampaign, bySource, byDevice, byBrowser, byPage, visitors, funnel, recent, historyTotals, historyByDay, historyRows] = await Promise.all([
+    const [totals, byDay, byLocation, byReferrer, trafficOrigins, byCampaign, bySource, byDevice, byBrowser, byPage, visitors, funnel, recent, historyTotals, historyByDay, historyRows] = await Promise.all([
       db.prepare(
         `SELECT SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS views,
                 COUNT(DISTINCT CASE WHEN event_type = 'page_view' THEN visitor_id END) AS visitors,
@@ -47,18 +47,37 @@ export async function onRequestGet({ request, env }) {
       db.prepare(
         `SELECT COALESCE(country, 'Unknown') AS country,
                 COALESCE(region, 'Unknown') AS region,
+                COALESCE(region_code, '') AS region_code,
                 COALESCE(city, 'Unknown') AS city,
-                COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors
+                COALESCE(timezone, 'Unknown') AS timezone,
+                COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors,
+                MAX(created_at) AS last_visit
          FROM offer_behavior_events
          WHERE event_type = 'page_view' AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)
-         GROUP BY country, region, city ORDER BY views DESC LIMIT 100`
+         GROUP BY country, region, region_code, city, timezone ORDER BY views DESC LIMIT 100`
       ).bind(since).all(),
       db.prepare(
         `SELECT COALESCE(NULLIF(referrer, ''), 'Direct / unknown') AS referrer,
-                COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors
+                COALESCE(NULLIF(entry_page, ''), page_path) AS landing_page,
+                COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors,
+                MAX(created_at) AS last_visit
          FROM offer_behavior_events
          WHERE event_type = 'page_view' AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)
-         GROUP BY referrer ORDER BY views DESC LIMIT 30`
+         GROUP BY referrer, landing_page ORDER BY views DESC LIMIT 30`
+      ).bind(since).all(),
+      db.prepare(
+        `SELECT COALESCE(NULLIF(source_category, ''), 'unknown') AS channel,
+                COALESCE(NULLIF(referrer, ''), 'Direct / unavailable') AS referrer,
+                COALESCE(NULLIF(utm_source, ''), 'Unattributed') AS utm_source,
+                COALESCE(NULLIF(utm_medium, ''), 'Unattributed') AS utm_medium,
+                COALESCE(NULLIF(utm_campaign, ''), 'Unattributed') AS utm_campaign,
+                COALESCE(NULLIF(entry_page, ''), page_path) AS landing_page,
+                COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors,
+                MAX(created_at) AS last_visit
+         FROM offer_behavior_events
+         WHERE event_type = 'page_view' AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)
+         GROUP BY channel, referrer, utm_source, utm_medium, utm_campaign, landing_page
+         ORDER BY views DESC, last_visit DESC LIMIT 100`
       ).bind(since).all(),
       db.prepare(
         `SELECT COALESCE(NULLIF(utm_source, ''), 'Unattributed') AS source,
@@ -92,8 +111,10 @@ export async function onRequestGet({ request, env }) {
          GROUP BY browser, operating_system ORDER BY views DESC LIMIT 30`
       ).bind(since).all(),
       db.prepare(
-        `SELECT page_path, COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors,
-                COUNT(DISTINCT session_id) AS sessions
+        `SELECT page_path, COALESCE(MAX(page_title), '') AS page_title,
+                COUNT(*) AS views, COUNT(DISTINCT visitor_id) AS visitors,
+                COUNT(DISTINCT session_id) AS sessions,
+                MIN(created_at) AS first_visit, MAX(created_at) AS last_visit
          FROM offer_behavior_events
          WHERE event_type = 'page_view' AND created_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)
          GROUP BY page_path ORDER BY views DESC LIMIT 50`
@@ -226,6 +247,7 @@ export async function onRequestGet({ request, env }) {
       byDay: [...daily.values()].sort((a, b) => b.day.localeCompare(a.day)),
       byLocation: byLocation.results || [],
       byReferrer: byReferrer.results || [],
+      trafficOrigins: trafficOrigins.results || [],
       byCampaign: byCampaign.results || [],
       bySource: bySource.results || [],
       byDevice: byDevice.results || [],
