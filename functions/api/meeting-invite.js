@@ -1,3 +1,9 @@
+const OPTIONAL_TEAM_ATTENDEES = [
+  'ken@hirecar.la',
+  'omar@hirecar.la',
+  'myra@hirecar.la',
+];
+
 export async function onRequestPost(context) {
   const cors = {
     'Access-Control-Allow-Origin': '*',
@@ -23,7 +29,7 @@ export async function onRequestPost(context) {
     const sender = context.env.GMAIL_SENDER_EMAIL || 'hello@hirecar.la';
     const requestedCc = Array.isArray(body.ccEmails) ? body.ccEmails : [];
     const toRecipients = Array.from(new Set([clientEmail].map(v => String(v || '').trim()).filter(Boolean)));
-    const ccRecipients = Array.from(new Set(['ken@hirecar.la'].concat(requestedCc).map(v => String(v || '').trim()).filter(Boolean)))
+    const ccRecipients = Array.from(new Set(OPTIONAL_TEAM_ATTENDEES.concat(requestedCc).map(v => String(v || '').trim()).filter(Boolean)))
       .filter(email => !toRecipients.some(to => to.toLowerCase() === email.toLowerCase()));
     const attendees = Array.from(new Set(toRecipients.concat(ccRecipients)));
     const summary = String(body.title || (clientName ? `HIRECAR Meeting — ${clientName}` : 'HIRECAR Client Meeting')).trim();
@@ -34,7 +40,19 @@ export async function onRequestPost(context) {
 
     const status = action === 'cancel' ? 'CANCELLED' : 'CONFIRMED';
     const method = action === 'cancel' ? 'CANCEL' : 'REQUEST';
-    const ics = buildIcs({ uid, summary, description, location, startIso, endIso, organizer: sender, attendees, method, status });
+    const ics = buildIcs({
+      uid,
+      summary,
+      description,
+      location,
+      startIso,
+      endIso,
+      organizer: sender,
+      requiredAttendees: toRecipients,
+      optionalAttendees: ccRecipients,
+      method,
+      status,
+    });
 
     if (validateOnly) {
       return new Response(JSON.stringify({
@@ -44,6 +62,8 @@ export async function onRequestPost(context) {
         startIso: parsedStart.startIso,
         durationMin,
         attendees,
+        requiredAttendees: toRecipients,
+        optionalAttendees: ccRecipients,
         to: toRecipients,
         cc: ccRecipients,
       }), { status: 200, headers: cors });
@@ -143,7 +163,7 @@ function validateMeetingRequest({ action, startIso, durationMin, clientEmail, cl
   return { ok: true, startIso };
 }
 
-function buildIcs({ uid, summary, description, location, startIso, endIso, organizer, attendees, method, status }) {
+function buildIcs({ uid, summary, description, location, startIso, endIso, organizer, requiredAttendees, optionalAttendees, method, status }) {
   const fmt = (iso) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
   return [
     'BEGIN:VCALENDAR',
@@ -161,7 +181,8 @@ function buildIcs({ uid, summary, description, location, startIso, endIso, organ
     `LOCATION:${location}`,
     `STATUS:${status}`,
     `ORGANIZER:mailto:${organizer}`,
-    ...attendees.map(a => `ATTENDEE;CN=${a};RSVP=TRUE:mailto:${a}`),
+    ...requiredAttendees.map(a => `ATTENDEE;CN=${a};ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${a}`),
+    ...optionalAttendees.map(a => `ATTENDEE;CN=${a};ROLE=OPT-PARTICIPANT;RSVP=TRUE:mailto:${a}`),
     'END:VEVENT',
     'END:VCALENDAR'
   ].join('\r\n');
