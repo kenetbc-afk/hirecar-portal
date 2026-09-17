@@ -6635,7 +6635,9 @@ function refreshOfferAnalytics(force) {
       offerAnalyticsLastLoaded = Date.now();
       if (status) {
         status.style.color = 'var(--muted)';
-        status.textContent = 'Updated ' + offerAnalyticsDate(data.generatedAt) + ' · ' + data.days + '-day window · Anonymous first-party analytics · Approximate location only';
+        status.textContent = Number(totals.views || 0) === 0
+          ? 'Tracker is live and connected · No real visitor events recorded yet · ' + data.days + '-day window'
+          : 'Updated ' + offerAnalyticsDate(data.generatedAt) + ' · ' + data.days + '-day window · Anonymous first-party analytics · Approximate location only';
       }
     })
     .catch(function(error) {
