@@ -17,7 +17,7 @@ export async function onRequestGet({ request, env }) {
   const since = `-${days} days`
 
   try {
-    const [totals, byDay, byLocation, byReferrer, byCampaign, bySource, byDevice, byBrowser, byPage, visitors, funnel, recent] = await Promise.all([
+    const [totals, byDay, byLocation, byReferrer, byCampaign, bySource, byDevice, byBrowser, byPage, visitors, funnel, recent, historyTotals, historyByDay, historyRows] = await Promise.all([
       db.prepare(
         `SELECT SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) AS views,
                 COUNT(DISTINCT CASE WHEN event_type = 'page_view' THEN visitor_id END) AS visitors,
@@ -148,21 +148,89 @@ export async function onRequestGet({ request, env }) {
          WHERE created_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)
          ORDER BY created_at DESC, id DESC LIMIT 200`
       ).bind(since).all(),
+      db.prepare(
+        `SELECT COALESCE(SUM(request_count), 0) AS requests,
+                MIN(hour) AS first_request, MAX(hour) AS last_request
+         FROM offer_request_history
+         WHERE status_code = 200
+           AND page_path = '/september2026only'
+           AND hour >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)`
+      ).bind(since).first(),
+      db.prepare(
+        `SELECT substr(hour, 1, 10) AS day, SUM(request_count) AS requests
+         FROM offer_request_history
+         WHERE status_code = 200
+           AND page_path = '/september2026only'
+           AND hour >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)
+         GROUP BY day ORDER BY day DESC`
+      ).bind(since).all(),
+      db.prepare(
+        `SELECT hour, country, device_type AS device, SUM(request_count) AS requests
+         FROM offer_request_history
+         WHERE status_code = 200
+           AND page_path = '/september2026only'
+           AND hour >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?1)
+         GROUP BY hour, country, device_type
+         ORDER BY hour DESC, requests DESC LIMIT 200`
+      ).bind(since).all(),
     ])
+
+    const detailedTotals = totals || {}
+    const historicalRequests = Number(historyTotals?.requests || 0)
+    const combinedTotals = {
+      ...detailedTotals,
+      detailed_views: Number(detailedTotals.views || 0),
+      historical_requests: historicalRequests,
+      views: Number(detailedTotals.views || 0) + historicalRequests,
+    }
+
+    const daily = new Map((byDay.results || []).map((row) => [row.day, { ...row, historical_requests: 0 }]))
+    for (const row of historyByDay.results || []) {
+      const current = daily.get(row.day) || { day: row.day, views: 0, visitors: 0, sessions: 0, historical_requests: 0 }
+      current.historical_requests = Number(row.requests || 0)
+      current.views = Number(current.views || 0) + current.historical_requests
+      daily.set(row.day, current)
+    }
+
+    const pages = (byPage.results || []).map((row) => ({ ...row, historical_requests: 0 }))
+    if (historicalRequests > 0) {
+      const offerPage = pages.find((row) => row.page_path === '/september2026only')
+      if (offerPage) {
+        offerPage.historical_requests = historicalRequests
+        offerPage.views = Number(offerPage.views || 0) + historicalRequests
+      } else {
+        pages.unshift({
+          page_path: '/september2026only',
+          views: historicalRequests,
+          visitors: 0,
+          sessions: 0,
+          historical_requests: historicalRequests,
+        })
+      }
+    }
 
     return json({
       success: true,
       generatedAt: new Date().toISOString(),
       days,
-      totals: totals || {},
-      byDay: byDay.results || [],
+      totals: combinedTotals,
+      history: {
+        source: 'Cloudflare HTTP request history',
+        requests: historicalRequests,
+        firstRequest: historyTotals?.first_request || null,
+        lastRequest: historyTotals?.last_request || null,
+        capturedThrough: '2026-09-17T20:59:59Z',
+        note: 'Recovered successful HTTP 200 requests are aggregate counts. They do not contain unique visitor IDs, referrers, campaigns, or behavior events.',
+      },
+      historyRows: historyRows.results || [],
+      byDay: [...daily.values()].sort((a, b) => b.day.localeCompare(a.day)),
       byLocation: byLocation.results || [],
       byReferrer: byReferrer.results || [],
       byCampaign: byCampaign.results || [],
       bySource: bySource.results || [],
       byDevice: byDevice.results || [],
       byBrowser: byBrowser.results || [],
-      byPage: byPage.results || [],
+      byPage: pages,
       visitors: visitors.results || [],
       funnel: funnel || {},
       recent: recent.results || [],

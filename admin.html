@@ -1717,6 +1717,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       <div class="offer-analytics-status" id="offer-analytics-status">Open this section to load visitor activity.</div>
       <div class="stats-grid" style="margin-top:14px;">
         <div class="stat-card"><div class="s-num s-cyan" id="offer-stat-views">0</div><div class="s-label">Page Views</div></div>
+        <div class="stat-card"><div class="s-num s-cyan" id="offer-stat-historical">0</div><div class="s-label">Recovered Historical Requests</div></div>
         <div class="stat-card"><div class="s-num s-green" id="offer-stat-visitors">0</div><div class="s-label">Unique Visitors</div></div>
         <div class="stat-card"><div class="s-num s-blue" id="offer-stat-sessions">0</div><div class="s-label">Sessions</div></div>
         <div class="stat-card"><div class="s-num s-amber" id="offer-stat-returning">0</div><div class="s-label">Returning Visitors</div></div>
@@ -1727,6 +1728,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
       </div>
 
       <div class="offer-analytics-grid">
+        <div class="a-card offer-wide" style="padding:0;">
+          <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 6px;">Recovered Cloudflare Request History</h3>
+          <div id="offer-analytics-history-note" style="font-size:12px;color:var(--muted);padding:0 20px 12px;"></div>
+          <div class="a-table-wrap" id="offer-analytics-history"></div>
+        </div>
         <div class="a-card offer-wide" style="padding:0;">
           <h3 style="font-size:14px;color:var(--cyan);padding:18px 20px 12px;">Visitor Profiles &amp; Last Visit</h3>
           <div class="a-table-wrap" id="offer-analytics-visitors"></div>
@@ -6514,6 +6520,7 @@ function refreshOfferAnalytics(force) {
       var totals = data.totals || {};
       var fmt = function(value) { return Number(value || 0).toLocaleString(); };
       document.getElementById('offer-stat-views').textContent = fmt(totals.views);
+      document.getElementById('offer-stat-historical').textContent = fmt(totals.historical_requests);
       document.getElementById('offer-stat-visitors').textContent = fmt(totals.visitors);
       document.getElementById('offer-stat-sessions').textContent = fmt(totals.sessions);
       document.getElementById('offer-stat-returning').textContent = fmt(totals.returning_visitors);
@@ -6574,8 +6581,29 @@ function refreshOfferAnalytics(force) {
 
       document.getElementById('offer-analytics-pages').innerHTML = offerAnalyticsTable(data.byPage || [], [
         { label: 'Page', key: 'page_path' }, { label: 'Visitors', key: 'visitors' },
-        { label: 'Sessions', key: 'sessions' }, { label: 'Views', key: 'views' }
+        { label: 'Sessions', key: 'sessions' }, { label: 'Recovered', key: 'historical_requests' },
+        { label: 'Views', key: 'views' }
       ], 'No page activity in this date range.');
+
+      var history = data.history || {};
+      var historyNote = document.getElementById('offer-analytics-history-note');
+      if (historyNote) {
+        historyNote.textContent = Number(history.requests || 0)
+          ? fmt(history.requests) + ' successful page requests recovered from ' + offerAnalyticsDate(history.firstRequest) + ' through ' + offerAnalyticsDate(history.lastRequest) + '. ' + (history.note || '')
+          : 'No recovered Cloudflare request history in this date range.';
+      }
+      var historyRows = (data.historyRows || []).map(function(row) {
+        return {
+          hour: offerAnalyticsDate(row.hour),
+          country: row.country === 'XX' ? 'Unknown' : row.country,
+          device: row.device,
+          requests: row.requests
+        };
+      });
+      document.getElementById('offer-analytics-history').innerHTML = offerAnalyticsTable(historyRows, [
+        { label: 'Hour', key: 'hour' }, { label: 'Country', key: 'country' },
+        { label: 'Device', key: 'device' }, { label: 'Successful Requests', key: 'requests' }
+      ], 'No recovered request history in this date range.');
 
       document.getElementById('offer-analytics-locations').innerHTML = offerAnalyticsTable(data.byLocation || [], [
         { label: 'Country', key: 'country' }, { label: 'Region', key: 'region' },
@@ -6599,7 +6627,8 @@ function refreshOfferAnalytics(force) {
 
       document.getElementById('offer-analytics-daily').innerHTML = offerAnalyticsTable(data.byDay || [], [
         { label: 'Date', key: 'day' }, { label: 'Visitors', key: 'visitors' },
-        { label: 'Sessions', key: 'sessions' }, { label: 'Views', key: 'views' }
+        { label: 'Sessions', key: 'sessions' }, { label: 'Recovered', key: 'historical_requests' },
+        { label: 'Views', key: 'views' }
       ], 'No daily activity in this date range.');
 
       var deviceHtml = '<div style="padding:0 20px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">Device Class</div>'
@@ -6637,7 +6666,9 @@ function refreshOfferAnalytics(force) {
         status.style.color = 'var(--muted)';
         status.textContent = Number(totals.views || 0) === 0
           ? 'Tracker is live and connected · No real visitor events recorded yet · ' + data.days + '-day window'
-          : 'Updated ' + offerAnalyticsDate(data.generatedAt) + ' · ' + data.days + '-day window · Anonymous first-party analytics · Approximate location only';
+          : Number(totals.historical_requests || 0) > 0 && Number(totals.detailed_views || 0) === 0
+            ? 'Showing ' + fmt(totals.historical_requests) + ' recovered successful requests · Detailed visitor tracking begins with newly recorded events · ' + data.days + '-day window'
+            : 'Updated ' + offerAnalyticsDate(data.generatedAt) + ' · ' + data.days + '-day window · Anonymous first-party analytics · Approximate location only';
       }
     })
     .catch(function(error) {
