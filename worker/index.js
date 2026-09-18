@@ -22,7 +22,6 @@ const CORS_HEADERS = {
   'Access-Control-Max-Age': '86400',
 };
 
-const API_KEY = 'hc-live-2026-k8X9mP3qR7wL';
 const CLIENTS_INDEX_KEY = 'clients_index';
 const SLACK_CHANNEL_ALERTS = '#hirecar-alerts';
 
@@ -105,9 +104,13 @@ function err(msg, status = 400) {
   return json({ error: msg }, status);
 }
 
-function auth(req) {
+function auth(req, env) {
   const key = req.headers.get('x-api-key');
-  return key === API_KEY;
+  const expected = String(env.ADMIN_API_KEY || '').trim();
+  if (!key || !expected || key.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < key.length; i++) diff |= key.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0;
 }
 
 function makeId(prefix = 'hc') {
@@ -532,7 +535,7 @@ export default {
     }
 
     // All other endpoints require API key
-    if (path !== '/webhooks/paypal' && !auth(request)) {
+    if (path !== '/webhooks/paypal' && !auth(request, env)) {
       return err('Unauthorized', 401);
     }
 
@@ -704,7 +707,7 @@ export default {
     }
 
     else if (path === '/api/paypal/reconcile' && request.method === 'POST') {
-      if (!auth(request)) return err('Unauthorized', 401);
+      if (!auth(request, env)) return err('Unauthorized', 401);
 
       let body;
       try { body = await request.json(); } catch(e) { return err('Invalid JSON'); }
@@ -725,7 +728,7 @@ export default {
 
     // Generic CRUD helper for admin tables
     else if (path.startsWith('/api/admin/')) {
-      if (!auth(request)) return err('Unauthorized', 401);
+      if (!auth(request, env)) return err('Unauthorized', 401);
 
       const adminParts = path.replace('/api/admin/', '').split('/');
       const table = adminParts[0]; // quotes, invoices, billing, documents, commitments, funding
@@ -806,7 +809,7 @@ export default {
 
     // ── PIFR-specific endpoints ──
     else if (path === '/api/admin/pifr-log' && request.method === 'POST' && DB) {
-      if (!auth(request)) return err('Unauthorized', 401);
+      if (!auth(request, env)) return err('Unauthorized', 401);
       let body;
       try { body = await request.json(); } catch(e) { return err('Invalid JSON'); }
       await DB.prepare('INSERT INTO pifr_activity_log (enrollment_id, action, actor, details) VALUES (?, ?, ?, ?)')
@@ -815,7 +818,7 @@ export default {
     }
 
     else if (path === '/api/admin/pifr-log' && request.method === 'GET' && DB) {
-      if (!auth(request)) return err('Unauthorized', 401);
+      if (!auth(request, env)) return err('Unauthorized', 401);
       const eid = url.searchParams.get('enrollment_id');
       if (!eid) return err('enrollment_id required');
       const rows = await DB.prepare('SELECT * FROM pifr_activity_log WHERE enrollment_id = ? ORDER BY created_at DESC LIMIT 100').bind(eid).all();
