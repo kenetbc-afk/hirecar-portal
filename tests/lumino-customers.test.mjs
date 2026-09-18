@@ -2,69 +2,30 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { onRequestGet, syncClientToLumino } from '../functions/api/lumino-customers.js';
 
-test('connection probe reports an encrypted-key-backed successful customer route', async () => {
+test('public diagnostics are disabled', async () => {
   const response = await onRequestGet({
     request: new Request('https://example.test/api/lumino-customers?probe=connection'),
-    env: {
-      LUMINO_API_KEY: 'test-secret',
-      LUMINO_FETCH: async (url, init) => {
-        assert.equal(url, 'https://core.app.lumino.io/customers?limit=1');
-        assert.equal(init.headers.Authorization, 'Bearer test-secret');
-        return Response.json({ data: [], total: 0 });
-      },
-    },
+    env: { LUMINO_API_KEY: 'test-secret' },
   });
-  assert.equal(response.status, 200);
-  const body = await response.json();
-  assert.equal(body.ok, true);
-  assert.equal(body.authentication_scheme, 'bearer');
-  assert.equal(body.endpoint_path, '/customers');
-  assert.equal(body.response_shape.array_key, 'data');
+  assert.equal(response.status, 404);
 });
 
-test('connection probe tries x-api-key after Bearer authentication is rejected', async () => {
-  const seen = [];
-  const response = await onRequestGet({
-    request: new Request('https://example.test/api/lumino-customers?probe=connection'),
-    env: {
-      LUMINO_API_KEY: 'sk_live_test-secret',
-      LUMINO_FETCH: async (_url, init) => {
-        seen.push(init.headers);
-        if (init.headers['x-api-key']) return Response.json({ data: [] });
-        return Response.json({ message: 'Unauthorized' }, { status: 401 });
-      },
-    },
-  });
-  const body = await response.json();
-  assert.equal(body.ok, true);
-  assert.equal(body.authentication_scheme, 'x-api-key');
-  assert.equal(body.key_type, 'secret_live');
-  assert.equal(seen.length, 2);
-});
-
-test('connection probe checks bounded versioned public API paths', async () => {
-  const seen = [];
-  const response = await onRequestGet({
-    request: new Request('https://example.test/api/lumino-customers?probe=connection'),
-    env: {
-      LUMINO_API_KEY: 'sk_live_test-secret',
-      LUMINO_FETCH: async (url) => {
-        seen.push(url);
-        if (url.includes('/v1/customers')) return Response.json({ data: [] });
-        return Response.json({ message: 'Unauthorized' }, { status: 401 });
-      },
-    },
-  });
-  const body = await response.json();
-  assert.equal(body.ok, true);
-  assert.equal(body.endpoint_path, '/v1/customers');
-  assert.equal(seen.length, 4);
+test('customer writes stay disabled until Lumino public API base is configured', async () => {
+  await assert.rejects(
+    syncClientToLumino({ LUMINO_API_KEY: 'sk_live_test-secret' }, {
+      id: 'client-0',
+      name: 'Blocked Person',
+      email: 'blocked@example.com',
+    }),
+    /public API base URL is not configured/,
+  );
 });
 
 test('customer sync matches by normalized email and persists the Lumino ID', async () => {
   const calls = [];
   const result = await syncClientToLumino({
     LUMINO_API_KEY: 'test-secret',
+    LUMINO_API_BASE: 'https://api.example.test',
     ADMIN_API_KEY: 'admin-secret',
     LUMINO_FETCH: async (url, init) => {
       calls.push({ url, init });
@@ -92,6 +53,7 @@ test('customer sync creates only minimal customer data when no match exists', as
   const luminoCalls = [];
   const result = await syncClientToLumino({
     LUMINO_API_KEY: 'test-secret',
+    LUMINO_API_BASE: 'https://api.example.test',
     ADMIN_API_KEY: 'admin-secret',
     LUMINO_FETCH: async (url, init) => {
       luminoCalls.push({ url, init });

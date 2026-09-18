@@ -1,48 +1,8 @@
-const LUMINO_API_BASE = 'https://core.app.lumino.io';
 const WORKER_BASE = 'https://hirecar-api.hirecar.workers.dev';
 const SESSION_SECRET = 'hc-admin-session-2026-06-14-portal';
 
 export async function onRequestGet(context) {
-  const url = new URL(context.request.url);
-  if (url.searchParams.get('probe') !== 'connection') {
-    const auth = await verifySession(context.request, context.env);
-    if (!auth.ok) return json({ ok: false, error: 'Unauthorized' }, 401);
-  }
-
-  if (!context.env?.LUMINO_API_KEY) {
-    return json({ ok: false, configured: false, error: 'Lumino API key is not configured' }, 503);
-  }
-
-  try {
-    const attempts = [];
-    let response = null;
-    let authenticationScheme = null;
-    let endpointPath = null;
-    for (const path of ['/customers?limit=1', '/v1/customers?limit=1', '/api/customers?limit=1', '/api/v1/customers?limit=1']) {
-      for (const scheme of ['bearer', 'x-api-key', 'authorization-raw']) {
-        response = await luminoRequest(context.env, 'GET', path, undefined, scheme);
-        attempts.push({ path: path.split('?')[0], scheme, status: response.status });
-        if (response.ok) {
-          authenticationScheme = scheme;
-          endpointPath = path.split('?')[0];
-          break;
-        }
-      }
-      if (response.ok) break;
-    }
-    return json({
-      ok: response.ok,
-      configured: true,
-      upstream_status: response.status,
-      authentication_scheme: authenticationScheme,
-      endpoint_path: endpointPath,
-      attempts,
-      key_type: keyType(context.env.LUMINO_API_KEY),
-      response_shape: describeResponseShape(response.body),
-    }, response.ok ? 200 : 502);
-  } catch (error) {
-    return json({ ok: false, configured: true, error: safeError(error) }, 502);
-  }
+  return json({ ok: false, error: 'Not found' }, 404);
 }
 
 export async function onRequestPost(context) {
@@ -50,6 +10,9 @@ export async function onRequestPost(context) {
   if (!auth.ok) return json({ ok: false, error: 'Unauthorized' }, 401);
   if (!context.env?.LUMINO_API_KEY) {
     return json({ ok: false, error: 'Lumino API key is not configured' }, 503);
+  }
+  if (!context.env?.LUMINO_API_BASE) {
+    return json({ ok: false, error: 'Lumino public API base URL is not configured' }, 503);
   }
 
   let body;
@@ -133,7 +96,9 @@ async function luminoRequest(env, method, path, payload, authStyle = 'bearer') {
   if (authStyle === 'x-api-key') headers['x-api-key'] = key;
   else if (authStyle === 'authorization-raw') headers.Authorization = key;
   else headers.Authorization = 'Bearer ' + key;
-  const response = await fetcher(LUMINO_API_BASE + path, {
+  const apiBase = String(env.LUMINO_API_BASE || '').trim().replace(/\/$/, '');
+  if (!apiBase) throw new Error('Lumino public API base URL is not configured');
+  const response = await fetcher(apiBase + path, {
     method,
     headers,
     body: payload === undefined ? undefined : JSON.stringify(payload),
@@ -171,23 +136,6 @@ function unwrapCustomer(body) {
 function luminoDescription(client) {
   const reference = String(client.caseNumber || client.hcNumber || client.id || '').trim();
   return reference ? 'HIRECAR customer reference ' + reference : 'HIRECAR customer';
-}
-
-function describeResponseShape(body) {
-  if (Array.isArray(body)) return { type: 'array' };
-  if (!body || typeof body !== 'object') return { type: body === null ? 'null' : typeof body };
-  const keys = Object.keys(body).slice(0, 12);
-  const arrayKey = keys.find(key => Array.isArray(body[key])) || null;
-  return { type: 'object', keys, array_key: arrayKey };
-}
-
-function keyType(value) {
-  const key = String(value || '').trim();
-  if (key.startsWith('sk_live_')) return 'secret_live';
-  if (key.startsWith('sk_test_')) return 'secret_test';
-  if (key.startsWith('pk_live_')) return 'publishable_live';
-  if (key.startsWith('pk_test_')) return 'publishable_test';
-  return key ? 'unknown' : 'missing';
 }
 
 function luminoError(response, fallback) {
