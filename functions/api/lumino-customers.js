@@ -17,19 +17,25 @@ export async function onRequestGet(context) {
     const attempts = [];
     let response = null;
     let authenticationScheme = null;
-    for (const scheme of ['bearer', 'x-api-key', 'authorization-raw']) {
-      response = await luminoRequest(context.env, 'GET', '/customers?limit=1', undefined, scheme);
-      attempts.push({ scheme, status: response.status });
-      if (response.ok) {
-        authenticationScheme = scheme;
-        break;
+    let endpointPath = null;
+    for (const path of ['/customers?limit=1', '/v1/customers?limit=1', '/api/customers?limit=1', '/api/v1/customers?limit=1']) {
+      for (const scheme of ['bearer', 'x-api-key', 'authorization-raw']) {
+        response = await luminoRequest(context.env, 'GET', path, undefined, scheme);
+        attempts.push({ path: path.split('?')[0], scheme, status: response.status });
+        if (response.ok) {
+          authenticationScheme = scheme;
+          endpointPath = path.split('?')[0];
+          break;
+        }
       }
+      if (response.ok) break;
     }
     return json({
       ok: response.ok,
       configured: true,
       upstream_status: response.status,
       authentication_scheme: authenticationScheme,
+      endpoint_path: endpointPath,
       attempts,
       key_type: keyType(context.env.LUMINO_API_KEY),
       response_shape: describeResponseShape(response.body),
