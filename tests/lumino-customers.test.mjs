@@ -17,7 +17,28 @@ test('connection probe reports an encrypted-key-backed successful customer route
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.ok, true);
+  assert.equal(body.authentication_scheme, 'bearer');
   assert.equal(body.response_shape.array_key, 'data');
+});
+
+test('connection probe tries x-api-key after Bearer authentication is rejected', async () => {
+  const seen = [];
+  const response = await onRequestGet({
+    request: new Request('https://example.test/api/lumino-customers?probe=connection'),
+    env: {
+      LUMINO_API_KEY: 'sk_live_test-secret',
+      LUMINO_FETCH: async (_url, init) => {
+        seen.push(init.headers);
+        if (init.headers['x-api-key']) return Response.json({ data: [] });
+        return Response.json({ message: 'Unauthorized' }, { status: 401 });
+      },
+    },
+  });
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.authentication_scheme, 'x-api-key');
+  assert.equal(body.key_type, 'secret_live');
+  assert.equal(seen.length, 2);
 });
 
 test('customer sync matches by normalized email and persists the Lumino ID', async () => {

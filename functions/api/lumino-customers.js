@@ -14,11 +14,24 @@ export async function onRequestGet(context) {
   }
 
   try {
-    const response = await luminoRequest(context.env, 'GET', '/customers?limit=1');
+    const attempts = [];
+    let response = null;
+    let authenticationScheme = null;
+    for (const scheme of ['bearer', 'x-api-key', 'authorization-raw']) {
+      response = await luminoRequest(context.env, 'GET', '/customers?limit=1', undefined, scheme);
+      attempts.push({ scheme, status: response.status });
+      if (response.ok) {
+        authenticationScheme = scheme;
+        break;
+      }
+    }
     return json({
       ok: response.ok,
       configured: true,
       upstream_status: response.status,
+      authentication_scheme: authenticationScheme,
+      attempts,
+      key_type: keyType(context.env.LUMINO_API_KEY),
       response_shape: describeResponseShape(response.body),
     }, response.ok ? 200 : 502);
   } catch (error) {
@@ -104,15 +117,19 @@ async function findLuminoCustomerByEmail(env, email) {
   return customers.find(row => normalizeEmail(row?.email) === email) || null;
 }
 
-async function luminoRequest(env, method, path, payload) {
+async function luminoRequest(env, method, path, payload, authStyle = 'bearer') {
   const fetcher = env.LUMINO_FETCH || fetch;
+  const key = String(env.LUMINO_API_KEY || '').trim();
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+  if (authStyle === 'x-api-key') headers['x-api-key'] = key;
+  else if (authStyle === 'authorization-raw') headers.Authorization = key;
+  else headers.Authorization = 'Bearer ' + key;
   const response = await fetcher(LUMINO_API_BASE + path, {
     method,
-    headers: {
-      Authorization: 'Bearer ' + String(env.LUMINO_API_KEY || '').trim(),
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers,
     body: payload === undefined ? undefined : JSON.stringify(payload),
   });
   const text = await response.text();
@@ -156,6 +173,15 @@ function describeResponseShape(body) {
   const keys = Object.keys(body).slice(0, 12);
   const arrayKey = keys.find(key => Array.isArray(body[key])) || null;
   return { type: 'object', keys, array_key: arrayKey };
+}
+
+function keyType(value) {
+  const key = String(value || '').trim();
+  if (key.startsWith('sk_live_')) return 'secret_live';
+  if (key.startsWith('sk_test_')) return 'secret_test';
+  if (key.startsWith('pk_live_')) return 'publishable_live';
+  if (key.startsWith('pk_test_')) return 'publishable_test';
+  return key ? 'unknown' : 'missing';
 }
 
 function luminoError(response, fallback) {
